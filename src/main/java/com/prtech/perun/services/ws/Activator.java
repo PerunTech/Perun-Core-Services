@@ -20,13 +20,8 @@ import java.util.ArrayList;
 import org.apache.logging.log4j.Logger;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.http.HttpService;
-import org.osgi.util.tracker.ServiceTracker;
-
 import com.prtech.svarog.SvConf;
-import com.prtech.svarog_interfaces.IPerunPlugin;
 import com.prtech.svarog_interfaces.ISvExecutor;
 
 /**
