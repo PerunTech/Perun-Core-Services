@@ -40,15 +40,9 @@ import com.prtech.svarog_interfaces.ISvExecutor;
  */
 public class Activator implements BundleActivator {
 	/**
-	 * The context path on the http server under which the static content from
-	 * the /www folder inside the bundle will be served
+	 * THIS PROJECT HAS ONLY JAVA SERVICES.
+	 * No frontend html/js to serve
 	 */
-	static final String httpContextPath = "/perun";
-
-	/**
-	 * Directory inside the bundle which will be served at the context path
-	 */
-	static final String httpLocalDir = "/www";
 	/**
 	 * Logger instance from the Svarog classloader so we log our Svarog specific
 	 * info outside of the OSGI container
@@ -73,11 +67,6 @@ public class Activator implements BundleActivator {
 	 */
 	private ArrayList<ISvExecutor> executorServiceClasses = initExecutors();
 
-	/**
-	 * Member used to track the http services in order to register path for
-	 * serving static JS/Other content
-	 */
-	private ServiceTracker httpTracker;
 
 	/**
 	 * Init method adding all classes to the list
@@ -143,33 +132,6 @@ public class Activator implements BundleActivator {
 			if (svc != null)
 				this.registration.add(svc);
 		}
-		
-		httpTracker = new ServiceTracker(context, HttpService.class.getName(), null) {
-			public void removedService(ServiceReference reference, Object service) {
-				// HTTP service is no longer available, unregister our
-				// resources...
-				try {
-					((HttpService) service).unregister(httpContextPath);
-				} catch (IllegalArgumentException exception) {
-					// Ignore; servlet registration probably failed earlier
-					// on...
-				}
-			}
-
-			public Object addingService(ServiceReference reference) {
-				// HTTP service is available, register our resources...
-				HttpService httpService = (HttpService) this.context.getService(reference);
-				try {
-					httpService.registerResources(httpContextPath, httpLocalDir, null);
-				} catch (Exception exception) {
-					exception.printStackTrace();
-				}
-				return httpService;
-			}
-		};
-		// start tracking all HTTP services...
-		httpTracker.open();
-
 	}
 
 	/**
