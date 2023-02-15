@@ -86,11 +86,11 @@
 							A bundle that provides basic perun core web services. This bundle doesn't contain React code
 						</Bundle-Description>
 						<Bundle-Activator>
-							com.prtech.perun_core.ws.Activator
+							com.prtech.perun.services.ws.Activator
 						</Bundle-Activator>
 						<Export-Package>
 							com.prtech.perun,
-							com.prtech.perun_core.ws
+							com.prtech.perun.services.core.ws
 						</Export-Package>
 						<Import-Package>
 							com.eclipsesource.jaxrs.publisher;version=!,*
