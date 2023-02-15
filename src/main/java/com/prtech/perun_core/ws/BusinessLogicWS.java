@@ -1,4 +1,4 @@
-package com.prtech.perun.services.ws;
+package com.prtech.perun_core.ws;
 
 import java.util.HashMap;
 import java.util.Iterator;

@@ -1,4 +1,4 @@
-package com.prtech.perun.services.ws;
+package com.prtech.perun_core.ws;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;

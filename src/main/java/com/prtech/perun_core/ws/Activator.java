@@ -14,7 +14,7 @@
  *   limitations under the License.
  *
  */
-package com.prtech.perun.services.ws;
+package com.prtech.perun_core.ws;
 import java.util.ArrayList;
 
 import org.apache.logging.log4j.Logger;
