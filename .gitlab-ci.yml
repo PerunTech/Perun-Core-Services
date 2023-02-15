@@ -1,0 +1,143 @@
+stages:
+  - 1_linter
+  - 2_build_and_install
+  - 3_mvn_install
+  - 4_sonarqube
+
+before_script:
+  - pwd
+  - echo $CI_COMMIT_REF_NAME
+  - git remote -v
+  - git reset --hard HEAD
+  - git stash
+  - git pull origin $CI_COMMIT_REF_NAME
+
+after_script:
+  - git reset --hard HEAD
+  - git stash
+  - git pull origin $CI_COMMIT_REF_NAME
+
+1_npm_install_test_build:
+  stage: 1_linter
+  script:
+    - pwd
+    - git reset --hard HEAD
+    - rm -rf node_modules
+    - npm install
+    - npm run test
+    - npm run build
+
+1_build_test_java:
+  stage: 2_build_and_install
+  script:
+    - cd backend
+    - mvn clean
+    - mvn test
+    
+1_perun-core-dev-install:
+  stage: 3_mvn_install
+  script:  
+    - pwd
+    - cd $CI_PROJECT_DIR/
+    - git reset --hard HEAD
+    - rm -rf node_modules
+    - npm install
+    - rm -rf backend/www/*.js
+    - npm run build-dev
+    - cd backend
+    - ls -al www/
+    - pwd
+    - mvn clean package org.apache.maven.plugins:maven-deploy-plugin:3.0.0-M1:deploy -DskipTests
+  only:
+    - dev
+    - integrationGsaaV2
+    - changes_ui_ux
+    - RND
+
+1_perun-core-dev-generate-js:
+  stage: 3_mvn_install
+  script:  
+    - pwd
+    - cd $CI_PROJECT_DIR/
+    - git reset --hard HEAD
+    - rm -rf node_modules
+    - npm install
+    - rm -rf backend/www/*.js
+    - npm run build-dev
+    - url_host=`git remote get-url origin | sed -e "s/https:\/\/gitlab-ci-token:.*@//g"`
+    - git remote set-url origin "https://gitlab-ci-token:${K8S_SECRET_GITLABCI_TOKEN}@${url_host}"
+    - git remote -v
+    - git add backend/www/*.js
+    - git commit -m "Auto commit of perun-core library for npm" || exit 0
+    - git push origin HEAD:$CI_COMMIT_REF_NAME    
+  only:
+    - dev
+    - RND
+  when: manual
+
+2_perun-core-stable-generate-js:
+  stage: 3_mvn_install
+  script:  
+    - pwd
+    - cd $CI_PROJECT_DIR/
+    - git reset --hard HEAD
+    - rm -rf node_modules
+    - npm install
+    - rm -rf backend/www/*.js
+    - npm run build
+    - url_host=`git remote get-url origin | sed -e "s/https:\/\/gitlab-ci-token:.*@//g"`
+    - git remote set-url origin "https://gitlab-ci-token:${K8S_SECRET_GITLABCI_TOKEN}@${url_host}"
+    - git remote -v
+    - git add backend/www/*.js
+    - git commit -m "Auto commit of perun-core library for npm" || exit 0
+    - git push origin HEAD:$CI_COMMIT_REF_NAME    
+  only:
+    - master
+    - staging
+  when: manual
+
+2_perun-core-stable-install:
+  stage: 3_mvn_install
+  script:  
+    - pwd
+    - cd $CI_PROJECT_DIR/
+    - git reset --hard HEAD
+    - rm -rf node_modules
+    - npm install
+    - rm -rf backend/www/*.js
+    - npm run build
+    - cd backend
+    - ls -al www/
+    - pwd
+    - mvn clean package org.apache.maven.plugins:maven-deploy-plugin:3.0.0-M1:deploy -DskipTests
+  only:
+    - master
+    - staging
+
+1_perun-sonarqube_backend:
+  stage: 4_sonarqube
+  script:
+    - cd $CI_PROJECT_DIR/
+    - cd backend
+    - mvn sonar:sonar -Dsonar.analysis.mode=preview -Dsonar.projectName=$CI_PROJECT_NAME -Dsonar.gitlab.commit_sha=$CI_COMMIT_SHA -Dsonar.gitlab.ref_name=$CI_COMMIT_REF_NAME -Dsonar.gitlab.project_id=$CI_PROJECT_ID
+
+2_perun-sonarqube_backend_publish:
+  stage: 4_sonarqube
+  script:
+    - cd $CI_PROJECT_DIR/
+    - cd backend
+    - mvn sonar:sonar -Dsonar.analysis.mode=publish -Dsonar.projectName=$CI_PROJECT_NAME -Dsonar.gitlab.commit_sha=$CI_COMMIT_SHA -Dsonar.gitlab.ref_name=$CI_COMMIT_REF_NAME -Dsonar.gitlab.project_id=$CI_PROJECT_ID -Donar.gitlab.user_token access=a18878c7b5beb401ce2f847537c296b46a3902b8 
+  environment:
+    name: $CI_COMMIT_REF_NAME
+  only:
+    - staging
+    - dev  
+  when: manual
+
+3_sonarqube_frontend:
+  stage: 4_sonarqube
+  script:
+    - sonar-scanner -Dsonar.sources=. -Dsonar.projectKey=$CI_PROJECT_NAME -Dsonar.analysis.mode=preview -Dsonar.login=a02003f1f8f90382d7570b57a85c00c38132f85f -Dsonar.branch=$CI_BUILD_REF_NAME -Dsonar.projectName=$CI_PROJECT_NAME -Dsonar.gitlab.commit_sha=$CI_BUILD_REF -Dsonar.gitlab.ref_name=$CI_BUILD_REF_NAME -Dsonar.gitlab.project_id=$CI_PROJECT_ID
+    - sonar-scanner -Dsonar.sources=. -Dsonar.projectKey=$CI_PROJECT_NAME -Dsonar.analysis.mode=publish -Dsonar.login=a02003f1f8f90382d7570b57a85c00c38132f85f -Dsonar.branch=$CI_BUILD_REF_NAME -Dsonar.projectName=$CI_PROJECT_NAME
+
+
