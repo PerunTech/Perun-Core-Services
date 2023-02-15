@@ -54,20 +54,36 @@ public class PerunUtil extends SvUtil {
 	public static Response handleException(Exception e, String message) {
 		return handleException(e, new ResponseHandler(), message);
 	}
-	
+
 	public static String getClientIpAddress(HttpServletRequest request) {
-	    String xForwardedForHeader = request.getHeader("X-Forwarded-For");
-	    if (xForwardedForHeader == null) {
-	        return request.getRemoteAddr();
-	    } else {
-	        // As of https://en.wikipedia.org/wiki/X-Forwarded-For
-	        // The general format of the field is: X-Forwarded-For: client, proxy1, proxy2 ...
-	        // we only want the client
-	        return new StringTokenizer(xForwardedForHeader, ",").nextToken().trim();
-	    }
+		String xForwardedForHeader = request.getHeader("X-Forwarded-For");
+		if (xForwardedForHeader == null) {
+			return request.getRemoteAddr();
+		} else {
+			// As of https://en.wikipedia.org/wiki/X-Forwarded-For
+			// The general format of the field is: X-Forwarded-For: client, proxy1, proxy2
+			// ...
+			// we only want the client
+			return new StringTokenizer(xForwardedForHeader, ",").nextToken().trim();
+		}
 	}
-	
-	public static void denormaliseFieldFromParent(DbDataArray data, SvReader svr, String objectName, String fieldName, String defaultNoParentString) throws SvException {
+
+	/**
+	 * Method to fetch the parent object and update the current data with a specific
+	 * field from the parent. Not the most optimal process but it works.
+	 * 
+	 * @param data                  The DbDataArray holding the objects to be
+	 *                              updated
+	 * @param svr                   The SvCore to be used for transaction handling
+	 * @param objectName            The object name which is the parent type
+	 * @param fieldName             The field from the parent object used for
+	 *                              denormalisation
+	 * @param defaultNoParentString Default string which will be assigned if no
+	 *                              parent is found (Where parent id equals to 0)
+	 * @throws SvException Passthrough of underlying exceptions.
+	 */
+	public static void denormaliseFieldFromParent(DbDataArray data, SvReader svr, String objectName, String fieldName,
+			String defaultNoParentString) throws SvException {
 		Long typeId = SvCore.getTypeIdByName(objectName);
 		String denormalisedField = null;
 		for (DbDataObject prc : data.getItems()) {
