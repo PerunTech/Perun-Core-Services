@@ -11,8 +11,12 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.JsonObject;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.Sv;
+import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
+import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvUtil;
+import com.prtech.svarog_common.DbDataArray;
+import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.ResponseHandler;
 import com.prtech.svarog_common.ResponseHandler.MessageType;
 
@@ -61,5 +65,21 @@ public class PerunUtil extends SvUtil {
 	        // we only want the client
 	        return new StringTokenizer(xForwardedForHeader, ",").nextToken().trim();
 	    }
+	}
+	
+	public static void denormaliseFieldFromParent(DbDataArray data, SvReader svr, String objectName, String fieldName, String defaultNoParentString) throws SvException {
+		Long typeId = SvCore.getTypeIdByName(objectName);
+		String denormalisedField = null;
+		for (DbDataObject prc : data.getItems()) {
+			if (prc.getParentId() > 0L) {
+				DbDataObject parent = svr.getObjectById(prc.getParentId(), typeId, null);
+				denormalisedField = parent != null ? (String) parent.getVal(fieldName) : null;
+			} else
+				denormalisedField = defaultNoParentString;
+			prc.setVal(fieldName, denormalisedField);
+			prc.setIsDirty(false);
+
+		}
+
 	}
 }
