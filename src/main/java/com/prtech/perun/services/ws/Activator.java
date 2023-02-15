@@ -14,7 +14,7 @@
  *   limitations under the License.
  *
  */
-package com.prtech.perun_core.ws;
+package com.prtech.perun.services.ws;
 import java.util.ArrayList;
 
 import org.apache.logging.log4j.Logger;
@@ -144,10 +144,6 @@ public class Activator implements BundleActivator {
 				this.registration.add(svc);
 		}
 		
-		IPerunPlugin plg = new PerunPluginInfo();
-		log4j.info("Registering perunPlugin service class: " + plg.getClass().getName());
-		svc = context.registerService(IPerunPlugin.class.getName(), plg, null);
-
 		httpTracker = new ServiceTracker(context, HttpService.class.getName(), null) {
 			public void removedService(ServiceReference reference, Object service) {
 				// HTTP service is no longer available, unregister our
