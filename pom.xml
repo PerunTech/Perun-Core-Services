@@ -90,7 +90,7 @@
 						</Bundle-Activator>
 						<Export-Package>
 							com.prtech.perun,
-							com.prtech.perun.services.core.ws
+							com.prtech.perun.services.ws
 						</Export-Package>
 						<Import-Package>
 							com.eclipsesource.jaxrs.publisher;version=!,*
