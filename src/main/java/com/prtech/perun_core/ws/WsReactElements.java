@@ -1783,7 +1783,7 @@ public class WsReactElements {
 	 * 
 	 * @return JSON String with data from oData Object
 	 */
-	public static JsonObject addValueToJsonObject1(JsonObject jsonData, DbDataObject recordObject, DbDataObject tmpField) {
+	public JsonObject addValueToJsonObject1(JsonObject jsonData, DbDataObject recordObject, DbDataObject tmpField) {
 		/*
 		 * as input we get empty or json with some filled fields (svarog core) then we
 		 * save that object for future use ,and we try to process only the field that is
@@ -7578,7 +7578,7 @@ public class WsReactElements {
 		return dbField;
 	}
 
-	public static DbDataObject getDbDataObjectFromDenormalizedField(String tableName, String fieldName, Object denormalizedId,
+	public DbDataObject getDbDataObjectFromDenormalizedField(String tableName, String fieldName, Object denormalizedId,
 			SvReader svr) throws SvException {
 		DbDataObject dbo = null;
 
