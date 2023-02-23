@@ -1090,7 +1090,7 @@ public class WsReactElements {
 				jLeaf.addProperty("key", tableName + "." + field.getVal(Rc.FIELD_NAME).toString());
 				jLeaf.addProperty(Rc.TABLE_NAME, tableName);
 				jLeaf.addProperty(Rc.FIELD_NAME, field.getVal(Rc.FIELD_NAME).toString());
-
+				jLeaf.addProperty(Rc.FIELD_TYPE, field.getVal(Rc.FIELD_TYPE).toString());
 				if ("DATE".equalsIgnoreCase(field.getVal(Rc.FIELD_TYPE).toString())
 						|| "DATETIME".equalsIgnoreCase(field.getVal(Rc.FIELD_TYPE).toString())
 						|| "TIMESTAMP".equalsIgnoreCase(field.getVal(Rc.FIELD_TYPE).toString()))
