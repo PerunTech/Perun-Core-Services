@@ -1,12 +1,17 @@
-package com.prtech.perun.ws;
+package com.prtech.perun_core.ws;
 
 import static org.junit.Assert.fail;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Response;
@@ -24,6 +29,7 @@ import com.prtech.perun_core.ws.DbReader;
 import com.prtech.perun_core.ws.PublicWs;
 import com.prtech.perun_core.ws.WsConf;
 import com.prtech.perun_core.ws.WsReactElements;
+import com.prtech.perun_core.ws.WsReporting;
 import com.prtech.perun_core.ws.WsSecurityActions;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.SvConf;
@@ -39,17 +45,35 @@ import com.prtech.svarog.SvWriter;
 import com.prtech.svarog.svCONST;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
+import com.prtech.svarog_common.DbQuery;
 import com.prtech.svarog_common.DbQueryExpression;
 import com.prtech.svarog_common.DbQueryObject;
 import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.ResponseHandler;
+import com.prtech.svarog_common.DbDataField.DbFieldType;
 import com.prtech.svarog_common.DbQueryObject.DbJoinType;
 import com.prtech.svarog_common.DbQueryObject.LinkType;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.ResponseHandler.MessageType;
 
 public class Perun_core_tests {
+
+	static String getUserSessionIdForTestPurpose() {
+		String sessionId = "";
+		try (@SuppressWarnings("deprecation")
+		SvSecurity svc = new SvSecurity();) {
+			String userName = "ADMIN";
+			String password = "welcome";
+			if (SvConf.getParam("conn.string").equals("jdbc:oracle:thin:@192.168.9.60:1521:orclte19")) {
+				password = "welcome";
+			}
+			sessionId = svc.logon(userName, SvUtil.getMD5(password));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return sessionId;
+	}
 
 	@Test
 	public void defaultGroup() {
@@ -66,7 +90,7 @@ public class Perun_core_tests {
 			e.printStackTrace();
 		}
 	}
-	
+
 //	@Test
 //	public void accesGroupPermission() {
 //		SvSecurity svc = null;
@@ -83,6 +107,59 @@ public class Perun_core_tests {
 //			e.printStackTrace();
 //		}
 //	}
+
+	@Test
+	public void getQueryReport() throws SvException {
+		String token = getUserSessionIdForTestPurpose();
+		try (SvReader svr = new SvReader(token)) {
+			String strIn = "[{\"field_name\":\"ANIMAL.HOLDING_ID\",\"operator\":\"equal\",\"value\":\"104602131\"},"
+					+ "{\"field_name\":\"ANIMAL.HOLDING_LOCATION\",\"operator\":\"equal\"}]";
+			Gson gson = new Gson();
+			JsonArray json = gson.fromJson(strIn, JsonArray.class);
+			WsReporting w = new WsReporting();
+			//DbDataArray data = (w).getData(json, svr);
+			HashMap<String, String> fieldNames = new LinkedHashMap<>();
+			ArrayList<DbFieldType> types = new ArrayList<>();
+			HashMap<String, String> tablePrefixMap = new LinkedHashMap<>();
+			DbQuery q = w.generateQuery(json, tablePrefixMap);
+			w.buildFieldList(json, tablePrefixMap, types, fieldNames);
+			DbDataArray res = svr.getObjects(q, null, null);
+			FileOutputStream fout;
+			try {
+				fout = new FileOutputStream("./test.xls");
+				w.generateXls(res, fieldNames, types, fout);
+				fout.close();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				fail("Exception raised");
+			}
+
+		}
+	}
+
+	@Test
+	public void getTables() {
+		String strIn = "[{\"field_name\":\"ANIMAL.HOLDING_ID\",\"operator\":\"equal\",\"value\":\"vvvv\"}]";
+		Gson gson = new Gson();
+		JsonArray json = gson.fromJson(strIn, JsonArray.class);
+		WsReporting w = new WsReporting();
+		ArrayList<DbDataObject> t = w.extractTableNames(json);
+
+		if (!t.get(0).getVal("TABLE_NAME").equals("ANIMAL"))
+			fail("no animal table is found");
+	}
+
+	@Test
+	public void getFields() {
+		String strIn = "[{\"field_name\":\"ANIMAL.HOLDING_ID\",\"operator\":\"equal\",\"value\":\"vvvv\"}]";
+		Gson gson = new Gson();
+		JsonArray json = gson.fromJson(strIn, JsonArray.class);
+		WsReporting w = new WsReporting();
+		ArrayList<String> t = w.extractFieldNames(json, "ANIMAL");
+		if (!t.contains("HOLDING_ID"))
+			fail("no animal table is found");
+	}
 
 	@Test
 	public void canAccess() {

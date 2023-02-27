@@ -83,7 +83,8 @@
 						<Bundle-Name>Perun Core Services</Bundle-Name>
 						<Bundle-Vendor>Perun.Tech</Bundle-Vendor>
 						<Bundle-Description>
-							A bundle that provides basic perun core web services. This bundle doesn't contain React code
+							A bundle that provides basic perun core web
+							services. This bundle doesn't contain React code
 						</Bundle-Description>
 						<Bundle-Activator>
 							com.prtech.perun_core.ws.Activator
@@ -128,6 +129,11 @@
 			<version>[3.2.30,3.2.99]</version>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<version>2.11.0</version>
+		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.glassfish.jersey.media/jersey-media-multipart -->
 		<!-- https://mvnrepository.com/artifact/org.glassfish.jersey.core/jersey-server -->
 		<dependency>
@@ -153,6 +159,16 @@
 			<artifactId>mail</artifactId>
 			<version>1.4</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi</artifactId>
+			<version>5.2.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.2.0</version>
+		</dependency>
 	</dependencies>
 	<profiles>
 		<profile>
@@ -162,6 +178,12 @@
 					<groupId>com.oracle</groupId>
 					<artifactId>ojdbc8</artifactId>
 					<version>12.2.0.1.0</version>
+				</dependency>
+				<dependency>
+					<groupId>svarog</groupId>
+					<artifactId>svarog-io</artifactId>
+					<version>[1.0.4,)</version>
+					<scope>provided</scope>
 				</dependency>
 			</dependencies>
 		</profile>
