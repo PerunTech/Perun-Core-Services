@@ -1,13 +1,17 @@
 package com.prtech.perun;
 
+import java.util.List;
 import java.util.StringTokenizer;
+import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.Sv;
@@ -97,5 +101,27 @@ public class PerunUtil extends SvUtil {
 
 		}
 
+	}
+	
+	public static JsonObject dataToJson(MultivaluedMap<String, String> data) {
+		String formData = "";
+		JsonObject json = null;
+
+		try {
+			Gson gson = new Gson();
+			// handle empty, prep json, create data
+			for (Entry<String, List<String>> entry : data.entrySet()) {
+				if (entry.getKey() != null && !entry.getKey().isEmpty()) {
+					String key = entry.getKey();
+					formData = key;
+				}
+			}
+
+			json = gson.fromJson(formData, JsonObject.class);
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+
+		return json;
 	}
 }
