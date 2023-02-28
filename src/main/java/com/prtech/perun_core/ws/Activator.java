@@ -76,6 +76,7 @@ public class Activator implements BundleActivator {
 		list.add(ElementBuilder.class);
 		list.add(AdminConsole.class);
 		list.add(PublicWs.class);
+		list.add(WsReporting.class);
 		return list;
 
 	}
