@@ -111,7 +111,7 @@ public class WsReporting {
 				dbtNext = tableDbt.get(i + 1);
 
 			DbSearch dbs = extractTableCriteria(params, (String) dbt.getVal(Sv.TABLE_NAME));
-			DbQueryObject dqo = new DbQueryObject(dbt, dbs, null, DbJoinType.LEFT);
+			DbQueryObject dqo = new DbQueryObject(dbt, dbs, null, DbJoinType.INNER);
 			dqo.setSqlTablePrefix("EXTBL" + i);
 			if (tablePrefixMap != null)
 				tablePrefixMap.put((String) dbt.getVal("TABLE_NAME"), "EXTBL" + Integer.toString(i));
@@ -121,7 +121,8 @@ public class WsReporting {
 				dqo.setLinkToNextType(lt);
 				if (theLinkType.size() > 0)
 					dqo.setLinkToNext(theLinkType.get(0));
-			}
+			} else
+				dqo.setJoinToNext(null);
 			dqe.addItem(dqo);
 		}
 		return dqe;
@@ -170,7 +171,7 @@ public class WsReporting {
 //	DbDataObject getField(DbDataObject parentTable, String fieldName) {
 
 	DbSearchExpression extractTableCriteria(JsonArray params, String tableName) throws SvException {
-		DbSearchExpression epxression = new DbSearchExpression();
+		DbSearchExpression epxression = null;
 		for (JsonElement el : params) {
 			JsonObject o = el.getAsJsonObject();
 			String fieldname = o.get("field_name").getAsString();
@@ -210,8 +211,12 @@ public class WsReporting {
 				default:
 					dbs = new DbSearchCriterion(tblField[1], DbCompareOperand.EQUAL, value);
 				}
-				if (dbs != null)
+				if (dbs != null) {
+					if (epxression == null)
+						epxression = new DbSearchExpression();
 					epxression.addDbSearchItem(dbs);
+				}
+
 			}
 		}
 		return epxression;
@@ -271,7 +276,10 @@ public class WsReporting {
 					DbFieldType d = types.get(celltypeIndex++);
 					switch (d) {
 					case NUMERIC:
-						cell.setCellValue(((BigDecimal) o).doubleValue());
+						if (o instanceof BigDecimal)
+							cell.setCellValue(((BigDecimal) o).doubleValue());
+						else
+							cell.setCellValue((long) o);
 						break;
 					case NVARCHAR:
 						cell.setCellValue((String) o);
