@@ -3,21 +3,28 @@ package com.prtech.perun_core.ws;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.FillPatternType;
@@ -34,6 +41,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.prtech.perun.PerunUtil;
 import com.prtech.svarog.Sv;
+import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvReader;
@@ -53,6 +61,7 @@ import com.prtech.svarog_common.DbSearchExpression;
 
 @Path("/svarog-reporting")
 public class WsReporting {
+	static final Logger log4j = SvConf.getLogger(WsReporting.class);
 
 	@Path("/get/xls/{session_id}")
 	@POST
@@ -79,6 +88,38 @@ public class WsReporting {
 			};
 		};
 		return Response.ok(pbfStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").build();
+	}
+
+	@Path("/get/analytics/tables/{session_id}/")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getTableList(@PathParam("session_id") String sessionId, MultivaluedMap<String, String> formVals,
+			@Context HttpServletRequest httpRequest) {
+		JsonArray el = new JsonArray();
+		try (SvReader svr = new SvReader(sessionId)) {
+			el = PerunUtil.getListObjectsFromDb(svr, "%ANALYTICS%", SvConf.getDefaultSchema(), Rc.MATERIALIZED_VIEW);
+		} catch (SvException e) {
+			PerunUtil.handleException(e, "Error generating list of tables");
+		}
+
+		return Response.ok(el.toString()).build();
+		// return null;
+	}
+
+	@Path("/get/analytics/fields/{session_id}/{table_name}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getTableList(@PathParam("session_id") String sessionId, @PathParam("table_name") String tableName,
+			MultivaluedMap<String, String> formVals, @Context HttpServletRequest httpRequest) {
+		JsonArray el = new JsonArray();
+		try (SvReader svr = new SvReader(sessionId)) {
+			el = PerunUtil.getTableFieldsFromDb(svr, tableName, SvConf.getDefaultSchema());
+		} catch (SvException e) {
+			PerunUtil.handleException(e, "Error generating list of fields for table:"+tableName);
+		}
+
+		return Response.ok(el.toString()).build();
+		// return null;
 	}
 
 	void buildFieldList(JsonArray paramArray, HashMap<String, String> tablePrefixMap, ArrayList<DbFieldType> types,

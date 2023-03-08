@@ -1,6 +1,13 @@
 package com.prtech.perun;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Map.Entry;
 
@@ -12,13 +19,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.Sv;
+import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvUtil;
+import com.prtech.svarog.SvConf.SvDbType;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.ResponseHandler;
@@ -102,7 +112,7 @@ public class PerunUtil extends SvUtil {
 		}
 
 	}
-	
+
 	public static JsonObject dataToJson(MultivaluedMap<String, String> data) {
 		String formData = "";
 		JsonObject json = null;
@@ -124,4 +134,171 @@ public class PerunUtil extends SvUtil {
 
 		return json;
 	}
+
+	public static Boolean executeDbScript(String script, HashMap<String, String> params, Connection conn,
+			Boolean returnsResultSet, ResultSet[] resultSet, PreparedStatement[] prepStatement) {
+		Boolean retval = false;
+		if (returnsResultSet && (resultSet == null || prepStatement == null)) {
+			log4j.error("Can't store resultsets in null object!");
+			return false;
+		}
+		if (log4j.isDebugEnabled())
+			log4j.trace("executeDbScript() of:" + script);
+
+		PreparedStatement ps = null;
+		try {
+
+			Set<String> paramKeys = (Set<String>) params.keySet();
+
+			String[] items = null;
+			items = script.split(SvConf.getDbHandler().getDbScriptDelimiter());
+			if (returnsResultSet && resultSet != null
+					&& (resultSet.length < items.length || prepStatement.length < items.length)) {
+				log4j.info("Can't execute " + Integer.toString(items.length)
+						+ " statements and store in result set array with length "
+						+ Integer.toString(resultSet.length));
+				return false;
+			}
+			for (int i = 0; i < items.length; i++) {
+				String stmt = items[i];
+				if (stmt.trim().length() <= 0)
+					continue;
+				Iterator<String> it = paramKeys.iterator();
+				while (it.hasNext()) {
+					String currentKey = it.next();
+					if (params.get(currentKey) != null)
+						stmt = stmt.replace("{" + currentKey + "}", params.get(currentKey));
+				}
+
+				log4j.trace(stmt.toUpperCase());
+
+				if (returnsResultSet) {
+					prepStatement[i] = conn.prepareStatement(stmt.toUpperCase());
+					resultSet[i] = prepStatement[i].executeQuery();
+				} else {
+					ps = conn.prepareStatement(stmt.toUpperCase());
+					ps.execute();
+				}
+
+			}
+			retval = true;
+		} catch (Exception ex) {
+
+			if (SvConf.getDbType().equals(SvDbType.ORACLE) && ((SQLException) ex).getErrorCode() == 1408) {
+				retval = true;
+				log4j.warn("Duplicate ORACLE index. Warning executing " + script + ". " + ex.getMessage()
+						+ ". Parameters maps:" + params.toString());
+			} else {
+				log4j.fatal("Error executing " + script + ". " + ex.getMessage() + ". Parameters maps:"
+						+ params.toString());
+				retval = false;
+			}
+
+		} finally {
+			if (ps != null)
+				try {
+					ps.close();
+				} catch (Exception e) {
+					log4j.error("PreparedStatement can't be released!", e);
+				}
+			;
+
+		}
+		if (log4j.isDebugEnabled())
+			log4j.debug("executeDbScript() for " + script + " finished.");
+		return retval;
+	}
+	public static JsonArray getListObjectsFromDb(SvCore svc, String tableFilterName, String schemaName, String objectType)
+			throws SvException {
+
+		String script = svc.getDbHandler().getSQLScript("db_object_list.sql");
+		HashMap<String, String> params = new HashMap<String, String>();
+		params.put("OBJECT_FILTER", tableFilterName);
+		params.put("SCHEMA_NAME", schemaName);
+
+		ResultSet[] rs = new ResultSet[1];
+		PreparedStatement[] ps = new PreparedStatement[1];
+		Connection conn = svc.dbGetConn();
+		PerunUtil.executeDbScript(script, params, conn, true, rs, ps);
+
+		JsonArray arr = new JsonArray();
+		try {
+			while (rs[0].next()) {
+				String type = rs[0].getString("OBJECT_TYPE");
+				if (type.equals(objectType)) {
+					JsonObject jo = new JsonObject();
+					String name = rs[0].getString("OBJECT_NAME");
+					Long id = rs[0].getLong("OBJECT_ID");
+					jo.addProperty("OBJECT_NAME", name);
+					jo.addProperty("OBJECT_ID", id);
+					jo.addProperty("PARENT_ID", -1L);
+					arr.add(jo);
+				}
+			}
+		} catch (SQLException e) {
+			log4j.error("Can't get list of tables", e);
+		} finally {
+			try {
+				if (rs[0] != null)
+					rs[0].close();
+				if (ps[0] != null)
+					ps[0].close();
+			} catch (SQLException e) {
+				log4j.error("Can't close result set", e);
+			}
+
+		}
+
+		return arr;
+	}
+
+	public static JsonArray getTableFieldsFromDb(SvCore svc, String tableName, String schemaName)
+			throws SvException {
+
+		String script = svc.getDbHandler().getSQLScript("table_column_list.sql");
+		HashMap<String, String> params = new HashMap<String, String>();
+		params.put("SCHEMA_NAME", schemaName);
+		params.put("TABLE_NAME", tableName);
+		params.put("SCHEMA_NAME", schemaName);
+
+		ResultSet[] rs = new ResultSet[1];
+		PreparedStatement[] ps = new PreparedStatement[1];
+		Connection conn = svc.dbGetConn();
+		PerunUtil.executeDbScript(script, params, conn, true, rs, ps);
+
+		JsonArray arr = new JsonArray();
+		try {
+			while (rs[0].next()) {
+				JsonObject jo = new JsonObject();
+				String name = rs[0].getString("FIELD_NAME");
+				String stype = rs[0].getString("FIELD_TYPE");
+				String isNull = rs[0].getString("IS_NULL");
+				int fieldSize = rs[0].getInt("FIELD_SIZE");
+				int fieldScale = rs[0].getInt("FIELD_SCALE");
+				
+				jo.addProperty("FIELD_NAME", name);
+				jo.addProperty("FIELD_TYPE", stype);
+				jo.addProperty("IS_NULL", isNull);
+				jo.addProperty("FIELD_SIZE", fieldSize);
+				jo.addProperty("FIELD_SCALE", fieldScale);
+				arr.add(jo);
+
+			}
+		} catch (SQLException e) {
+			log4j.error("Can't get list of indexes", e);
+		} finally {
+			try {
+				if (rs[0] != null)
+					rs[0].close();
+				if (ps[0] != null)
+					ps[0].close();
+			} catch (SQLException e) {
+				log4j.error("Can't close result set", e);
+			}
+
+		}
+
+		return arr;
+	}
+
 }
