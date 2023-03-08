@@ -208,8 +208,9 @@ public class PerunUtil extends SvUtil {
 			log4j.debug("executeDbScript() for " + script + " finished.");
 		return retval;
 	}
-	public static JsonArray getListObjectsFromDb(SvCore svc, String tableFilterName, String schemaName, String objectType)
-			throws SvException {
+
+	public static JsonArray getListObjectsFromDb(SvCore svc, String tableFilterName, String schemaName,
+			String objectType) throws SvException {
 
 		String script = svc.getDbHandler().getSQLScript("db_object_list.sql");
 		HashMap<String, String> params = new HashMap<String, String>();
@@ -252,8 +253,7 @@ public class PerunUtil extends SvUtil {
 		return arr;
 	}
 
-	public static JsonArray getTableFieldsFromDb(SvCore svc, String tableName, String schemaName)
-			throws SvException {
+	public static JsonArray getTableFieldsFromDb(SvCore svc, String tableName, String schemaName) throws SvException {
 
 		String script = svc.getDbHandler().getSQLScript("table_column_list.sql");
 		HashMap<String, String> params = new HashMap<String, String>();
@@ -275,7 +275,7 @@ public class PerunUtil extends SvUtil {
 				String isNull = rs[0].getString("IS_NULL");
 				int fieldSize = rs[0].getInt("FIELD_SIZE");
 				int fieldScale = rs[0].getInt("FIELD_SCALE");
-				
+				jo.addProperty("KEY", tableName + "." + name);
 				jo.addProperty("FIELD_NAME", name);
 				jo.addProperty("FIELD_TYPE", stype);
 				jo.addProperty("IS_NULL", isNull);
