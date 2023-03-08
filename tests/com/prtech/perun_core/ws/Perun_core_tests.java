@@ -117,7 +117,7 @@ public class Perun_core_tests {
 			JsonElement el;
 			el = PerunUtil.getListObjectsFromDb(svr, "%ANALYTICS%", SvConf.getDefaultSchema(), Rc.MATERIALIZED_VIEW);
 			System.out.println(el.toString());
-			el = PerunUtil.getTableFieldsFromDb(svr,"ANALYTICS_APPLICATIONS", SvConf.getDefaultSchema());
+			el = PerunUtil.getTableFieldsFromDb(svr, "ANALYTICS_APPLICATIONS", SvConf.getDefaultSchema());
 			System.out.println(el.toString());
 
 		} catch (SvException e) {
@@ -131,8 +131,7 @@ public class Perun_core_tests {
 	public void getQueryReport() throws SvException {
 		String token = getUserSessionIdForTestPurpose();
 		try (SvReader svr = new SvReader(token)) {
-
-			String strIn = "[{\"field_name\":\"FARMER.FIC\",\"field_type\":\"\",\"operator\":\"equal\",\"value\":\"00005520440\"},{\"field_name\":\"APPLICATION.ARCH_NO\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"APPLICATION.APP_ID\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"APPLICATION.STATUS\",\"field_type\":\"NVARCHAR\",\"operator\":\"equal\",\"value\":\"SUBMITTED\"}]";
+			String strIn = "[{\"field_name\":\"FARMER.FIC\",\"field_type\":\"\",\"operator\":\"equal\",\"value\":\"00005520440\"},{\"field_name\":\"FARMER.ID_NO\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"FARMER.TAX_NO\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"FARMER.FULL_NAME\",\"field_type\":\"\",\"operator\":\"equal\",\"value\":\"\"},{\"field_name\":\"AGRI_PARCEL.HOME_NAME\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"AGRI_PARCEL.OLD_ID\",\"field_type\":\"\",\"operator\":\"equal\"}]";
 			// String strIn =
 			// "[{\"field_name\":\"ANIMAL.HOLDING_ID\",\"operator\":\"equal\",\"value\":\"104602131\"},"
 			// + "{\"field_name\":\"ANIMAL.HOLDING_LOCATION\",\"operator\":\"equal\"}]";
@@ -146,6 +145,7 @@ public class Perun_core_tests {
 			DbQuery q = w.generateQuery(json, tablePrefixMap);
 			w.buildFieldList(json, tablePrefixMap, types, fieldNames);
 			DbDataArray res = svr.getObjects(q, null, null);
+			System.out.println(q.getSQLExpression());
 			FileOutputStream fout;
 			try {
 				fout = new FileOutputStream("./test.xls");

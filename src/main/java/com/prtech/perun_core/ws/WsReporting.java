@@ -115,7 +115,7 @@ public class WsReporting {
 		try (SvReader svr = new SvReader(sessionId)) {
 			el = PerunUtil.getTableFieldsFromDb(svr, tableName, SvConf.getDefaultSchema());
 		} catch (SvException e) {
-			PerunUtil.handleException(e, "Error generating list of fields for table:"+tableName);
+			PerunUtil.handleException(e, "Error generating list of fields for table:" + tableName);
 		}
 
 		return Response.ok(el.toString()).build();
@@ -226,6 +226,8 @@ public class WsReporting {
 					value = scale == 0L ? o.get("value").getAsLong() : o.get("value").getAsBigDecimal();
 				else
 					value = o.get("value").getAsString();
+				if (value instanceof String && value.equals(""))
+					continue;
 
 				String op = o.get("operator").getAsString();
 
