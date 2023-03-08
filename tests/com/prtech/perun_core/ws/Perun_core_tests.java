@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -22,8 +23,10 @@ import org.junit.Test;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import com.prtech.perun.PerunUtil;
 import com.prtech.perun_core.ws.AdminConsole;
 import com.prtech.perun_core.ws.DbReader;
 import com.prtech.perun_core.ws.PublicWs;
@@ -107,17 +110,36 @@ public class Perun_core_tests {
 //			e.printStackTrace();
 //		}
 //	}
+	@Test
+	public void getSQL() throws SvException {
+		String token = getUserSessionIdForTestPurpose();
+		try (SvReader svr = new SvReader(token)) {
+			JsonElement el;
+			el = PerunUtil.getListObjectsFromDb(svr, "%ANALYTICS%", SvConf.getDefaultSchema(), Rc.MATERIALIZED_VIEW);
+			System.out.println(el.toString());
+			el = PerunUtil.getTableFieldsFromDb(svr,"ANALYTICS_APPLICATIONS", SvConf.getDefaultSchema());
+			System.out.println(el.toString());
+
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
 
 	@Test
 	public void getQueryReport() throws SvException {
 		String token = getUserSessionIdForTestPurpose();
 		try (SvReader svr = new SvReader(token)) {
-			String strIn = "[{\"field_name\":\"ANIMAL.HOLDING_ID\",\"operator\":\"equal\",\"value\":\"104602131\"},"
-					+ "{\"field_name\":\"ANIMAL.HOLDING_LOCATION\",\"operator\":\"equal\"}]";
+
+			String strIn = "[{\"field_name\":\"FARMER.FIC\",\"field_type\":\"\",\"operator\":\"equal\",\"value\":\"00005520440\"},{\"field_name\":\"APPLICATION.ARCH_NO\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"APPLICATION.APP_ID\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"APPLICATION.STATUS\",\"field_type\":\"NVARCHAR\",\"operator\":\"equal\",\"value\":\"SUBMITTED\"}]";
+			// String strIn =
+			// "[{\"field_name\":\"ANIMAL.HOLDING_ID\",\"operator\":\"equal\",\"value\":\"104602131\"},"
+			// + "{\"field_name\":\"ANIMAL.HOLDING_LOCATION\",\"operator\":\"equal\"}]";
 			Gson gson = new Gson();
 			JsonArray json = gson.fromJson(strIn, JsonArray.class);
 			WsReporting w = new WsReporting();
-			//DbDataArray data = (w).getData(json, svr);
+			// DbDataArray data = (w).getData(json, svr);
 			HashMap<String, String> fieldNames = new LinkedHashMap<>();
 			ArrayList<DbFieldType> types = new ArrayList<>();
 			HashMap<String, String> tablePrefixMap = new LinkedHashMap<>();

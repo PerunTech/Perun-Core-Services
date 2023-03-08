@@ -126,7 +126,7 @@
 		<dependency>
 			<groupId>svarog</groupId>
 			<artifactId>svarog</artifactId>
-			<version>[3.2.30,3.2.99]</version>
+			<version>[3.2.41-SNAPSHOT,3.2.99]</version>
 			<scope>provided</scope>
 		</dependency>
 <dependency>

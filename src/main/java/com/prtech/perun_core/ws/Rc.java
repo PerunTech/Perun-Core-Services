@@ -109,4 +109,5 @@ public class Rc {
 	public static final String SVAROG_USER_GROUPS = "SVAROG_USER_GROUPS";
 	public static final String SVAROG_USERS = "SVAROG_USERS";
 	public static final String SVAROG_TABLE = "SVAROG_TABLES";
+	public static final String MATERIALIZED_VIEW = "MATERIALIZED VIEW";
 }
