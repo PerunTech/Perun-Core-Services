@@ -317,20 +317,21 @@ public class WsReporting {
 					Cell cell = row.createCell(celltypeIndex);
 					Object o = dbo.getVal(e.getKey());
 					DbFieldType d = types.get(celltypeIndex++);
-					switch (d) {
-					case NUMERIC:
-						if (o instanceof BigDecimal)
-							cell.setCellValue(((BigDecimal) o).doubleValue());
-						else
-							cell.setCellValue((long) o);
-						break;
-					case NVARCHAR:
-						cell.setCellValue((String) o);
-						break;
-					case DATE:
-					case TIMESTAMP:
-						cell.setCellValue(((DateTime) o).toString());
-					}
+					if (o != null)
+						switch (d) {
+						case NUMERIC:
+							if (o instanceof BigDecimal)
+								cell.setCellValue(((BigDecimal) o).doubleValue());
+							else
+								cell.setCellValue((long) o);
+							break;
+						case NVARCHAR:
+							cell.setCellValue((String) o);
+							break;
+						case DATE:
+						case TIMESTAMP:
+							cell.setCellValue(((DateTime) o).toString());
+						}
 					cell.setCellStyle(style);
 				}
 			}
