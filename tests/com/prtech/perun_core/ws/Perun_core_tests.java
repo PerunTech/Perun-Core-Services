@@ -472,6 +472,24 @@ public class Perun_core_tests {
 		}
 
 	}
+	
+	@Test
+	public void getTableJSONresponse() {
+		WsReactElements wsc = new WsReactElements();
+		SvSecurity svc;
+		try {
+			svc = new SvSecurity();
+			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("notvalid"));
+			Response test = wsc.getRowDataByObjectId(sessionId, 698497726L, "APPLICATION", null);
+			System.out.print(test);
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+	
+	
 
 	@Test
 	public void changePass() {
