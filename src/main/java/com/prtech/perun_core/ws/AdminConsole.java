@@ -1073,7 +1073,7 @@ public class AdminConsole {
 	}
 
 	/**
-	 * create code list user f.r
+	 * create code list
 	 * 
 	 */
 	@Path("/save-code-list/sid/{session_id}/parent_id/{parent_id}")
