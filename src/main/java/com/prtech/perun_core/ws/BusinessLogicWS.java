@@ -86,10 +86,11 @@ public class BusinessLogicWS {
 		return jrh.getAll();
 	}
 
-	public JsonObject doRegister(String fic, String idNo, String email, String password, HttpServletRequest fehost) {
+	public JsonObject doRegister(Boolean farmer, String fic, String idNo, String email, String password,
+			HttpServletRequest fehost) {
 		JsonObject jbo = null;
 		try {
-			jbo = registerUser(fic, idNo, email, password, fehost);
+			jbo = registerUser(farmer, fic, idNo, email, password, fehost);
 		} catch (Exception e) {
 			ResponseHandler jrh = new ResponseHandler();
 			jrh.create("EXCEPTION", I18n.getText("error.loading.plugin"),
@@ -172,41 +173,50 @@ public class BusinessLogicWS {
 	 * @return String message if user was created or error message of what went
 	 *         wrong
 	 */
-	public JsonObject registerUser(String userName, String pinVat, String eMail, String password,
+	public JsonObject registerUser(Boolean farmer, String userName, String pinVat, String eMail, String password,
 			HttpServletRequest feHost) {
 		ResponseHandler jrh = new ResponseHandler();
 		String firstName = " ";
 		String lastName = " ";
+		Boolean farmerExists = false;
+		Boolean matchingUserNamePinVat = false;
 		// Secondary ID of the user. Tax ID if legal entity.
 		String taxId = "";
-		if (!(userName == null || password == null || eMail == null || pinVat == null)) {
+		if (!(userName == null || password == null || eMail == null || pinVat == null || farmer == null)) {
 			DbDataObject dboUser = null;
 			try (SvSecurity svs = new SvSecurity();) {
 				// check if the user is registered in the Farm register
-				DbSearchExpression getFarmer = getFarmerDbSearch(userName, pinVat);
 				DbSearchExpression getPerson = getPersonSearch(pinVat);
-				/* if farmer does not exist do not create user f.r */
-				Boolean farmerExists = verifyValidFarmer(userName, getFarmer);
-				Boolean matchingUserNamePinVat = svs.checkIfExistsConditional("FARMER", getFarmer, "FIC",
-						userName.toUpperCase());
 
-				if (farmerExists && matchingUserNamePinVat) {
-					dboUser = svs.createUser(userName.toUpperCase(), password.toUpperCase(), firstName.toUpperCase(),
-							lastName.toUpperCase(), eMail, pinVat.toUpperCase(), taxId.toUpperCase(), "EXTERNAL",
-							"PENDING");
+				// check if the user is registered in the Farm register
+				DbSearchExpression getFarmer = getFarmerDbSearch(userName, pinVat);
+				farmerExists = verifyValidFarmer(userName, getFarmer);
+				matchingUserNamePinVat = svs.checkIfExistsConditional("FARMER", getFarmer, "FIC",
+						userName.toUpperCase());
+				if (!farmerExists || !matchingUserNamePinVat) {
+					if (farmer) {
+						return jrh.create(MessageType.ERROR, I18n.getText("user.farmer_notFound"),
+								I18n.getText("user.farmer_notFound"), new JsonObject());
+					} else {
+						dboUser = svs.createUser(userName.toUpperCase(), password.toUpperCase(),
+								firstName.toUpperCase(), lastName.toUpperCase(), eMail, pinVat.toUpperCase(),
+								taxId.toUpperCase(), "EXTERNAL", "PENDING");
+					}
 					if (dboUser != null) {
 						jrh.create(MessageType.SUCCESS, I18n.getText("user.user1_created"),
 								I18n.getText("user.created.activation"), new JsonObject());
 						try {
 							svs.empowerUser(dboUser, "PERSON", getPerson);
-						} catch (SvException e) {
-							log4j.error("Error empowering user:" + getPerson.toSimpleJson(), e);
+						} catch (Exception e) {
+							if (!(e instanceof IndexOutOfBoundsException))
+								log4j.error("Error empowering user:" + getPerson.toSimpleJson(), e);
 						}
 
 						try {
 							svs.empowerUser(dboUser, "FARMER", getFarmer);
-						} catch (SvException e) {
-							log4j.error("Error empowering user:" + getFarmer.toSimpleJson(), e);
+						} catch (Exception e) {
+							if (!(e instanceof IndexOutOfBoundsException))
+								log4j.error("Error empowering user:" + getFarmer.toSimpleJson(), e);
 						}
 
 						DbDataArray empowerments = svs.getPOAObjects(dboUser.getObjectId(), "PERSON");
@@ -214,8 +224,6 @@ public class BusinessLogicWS {
 							DbDataObject personObj = empowerments.getItems().get(0);
 							if (personObj.getVal("NAME") != null)
 								firstName = personObj.getVal("NAME").toString();
-//							if (farmerObj.getVal("SURNAME") != null)
-//								lastName = farmerObj.getVal("SURNAME").toString();
 						}
 						svs.createUser((String) dboUser.getVal("USER_NAME"), (String) password.toUpperCase(), firstName,
 								lastName, (String) dboUser.getVal("E_MAIL"), (String) dboUser.getVal("PIN"),
@@ -236,8 +244,8 @@ public class BusinessLogicWS {
 								sendActivationEmail(dboUser, feHost);
 							}
 					} else {
-						jrh.create(MessageType.ERROR, I18n.getText("user.alreadyCreated"),
-								I18n.getText("user.alreadyCreated"), new JsonObject());
+						jrh.create(MessageType.ERROR, I18n.getText("user.notCreated"),
+								I18n.getText("user.notCreated"), new JsonObject());
 					}
 				} else {
 					jrh.create(MessageType.ERROR, I18n.getText("user.farmer_notFound"),
