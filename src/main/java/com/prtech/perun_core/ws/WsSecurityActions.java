@@ -78,6 +78,7 @@ public class WsSecurityActions {
 		String email = "";
 		String fic = "";
 		String idNo = "";
+		boolean farmer = false;
 		JsonObject jso = new JsonObject();
 		if (formVals != null) {
 			for (Entry<String, List<String>> entry : formVals.entrySet()) {
@@ -96,11 +97,13 @@ public class WsSecurityActions {
 						fic = jobj.get("username").getAsString();
 					if (jobj.get("idNo") != null)
 						idNo = jobj.get("idNo").getAsString();
+					if (jobj.get("farmer") != null)
+						farmer = jobj.get("farmer").getAsBoolean();
 				}
 			}
 			if (isValidEmailAddress(email) && password1 != "" && fic != "" && password1.equals(password2)) {
 				BusinessLogicWS blws = new BusinessLogicWS();
-				jso = blws.doRegister(fic, idNo, email, password1, httpRequest);
+				jso = blws.doRegister(farmer, fic, idNo, email, password1, httpRequest);
 			}
 		}
 		return Response.status(200).entity(jso.toString()).build();

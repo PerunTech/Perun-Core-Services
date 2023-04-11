@@ -831,7 +831,6 @@ public class AdminConsole {
 		String accessType = null;
 		ResponseHandler jrh = new ResponseHandler();
 		try {
-			svc = new SvSecurity();
 			svr = new SvReader(session);
 			svr.setAutoCommit(false);
 			svw = new SvWriter(svr);
@@ -1069,6 +1068,98 @@ public class AdminConsole {
 				svs.release();
 				svs.close();
 			}
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+
+	/**
+	 * create code list
+	 * 
+	 */
+	@Path("/save-code-list/sid/{session_id}/parent_id/{parent_id}")
+	@POST
+	@Produces("application/json")
+	public Response saveCodeList(@PathParam("session_id") String session, @PathParam("parent_id") Long parent_id,
+			MultivaluedMap<String, String> formVals, @Context HttpServletRequest httpRequest) throws SvException {
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(session);
+				SvWriter svw = new SvWriter(svr);
+				SvSecurity svs = new SvSecurity(svr);) {
+
+			if (formVals != null) {
+				for (Entry<String, List<String>> entry : formVals.entrySet()) {
+					if (entry.getKey() != null && !entry.getKey().isEmpty()) {
+						String key = entry.getKey();
+						DbDataObject dbC = new DbDataObject();
+						DbDataObject dbL = new DbDataObject();
+						JsonObject jobj = new JsonObject();
+						JsonObject jobCodes = new JsonObject();
+						JsonObject jobLabels = new JsonObject();
+						Gson gs = new Gson();
+						jobj = gs.fromJson(key, JsonObject.class);
+						jobCodes = jobj.getAsJsonObject("SVAROG_CODES");
+						jobLabels = jobj.getAsJsonObject("SVAROG_LABELS");
+						if (jobCodes.entrySet().size() > 0) {
+							if (jobCodes.get("CODE_VALUE") != null)
+								dbC.setVal("CODE_VALUE", jobCodes.get("CODE_VALUE").getAsString());
+							if (jobCodes.get("PARENT_CODE_VALUE") != null)
+								dbC.setVal("PARENT_CODE_VALUE", jobCodes.get("PARENT_CODE_VALUE").getAsString());
+							if (jobCodes.get("LABEL_CODE") != null)
+								dbC.setVal("LABEL_CODE", jobCodes.get("LABEL_CODE").getAsString());
+							if (jobCodes.get("SORT_ORDER") != null)
+								dbC.setVal("SORT_ORDER", jobCodes.get("SORT_ORDER").getAsNumber());
+
+							dbC.setParentId(parent_id);
+							if (jobCodes.get("OBJECT_ID") != null && jobCodes.get("OBJECT_ID").getAsString() != "0") {
+								dbC.setObjectId(jobCodes.get("OBJECT_ID").getAsLong());
+								dbC.setPkid(jobCodes.get("PKID").getAsLong());
+							}
+							dbC.setObjectType(SvReader.getTypeIdByName("SVAROG_CODES"));
+							dbC.setStatus("VALID");
+							svw.saveObject(dbC, false);
+
+							if (jobLabels.entrySet().size() > 0) {
+								if (jobLabels.get("LABEL_DESCR") != null)
+									dbL.setVal("LABEL_DESCR", jobLabels.get("LABEL_DESCR").getAsString());
+								if (jobLabels.get("LABEL_TEXT") != null)
+									dbL.setVal("LABEL_TEXT", jobLabels.get("LABEL_TEXT").getAsString());
+								if (jobLabels.get("LOCALE_ID") != null)
+									dbL.setVal("LOCALE_ID", jobLabels.get("LOCALE_ID").getAsString());
+								if (jobCodes.get("LABEL_CODE") != null)
+									dbL.setVal("LABEL_CODE", jobCodes.get("LABEL_CODE").getAsString());
+
+								dbL.setParentId(parent_id);
+								if (jobLabels.get("OBJECT_ID") != null
+										&& jobLabels.get("OBJECT_ID").getAsString() != "0") {
+									dbL.setObjectId(jobLabels.get("OBJECT_ID").getAsLong());
+									dbL.setPkid(jobLabels.get("PKID").getAsLong());
+								}
+								dbL.setObjectType(SvReader.getTypeIdByName("SVAROG_LABELS"));
+								dbL.setStatus("VALID");
+								svw.saveObject(dbL, false);
+							} else {
+								jrh.create(MessageType.ERROR, I18n.getText("error.invalid_code_label"),
+										I18n.getText("error.invalid_code_label"), new JsonObject());
+							}
+						} else {
+							jrh.create(MessageType.ERROR, I18n.getText("error.invalid_svarog_code"),
+									I18n.getText("error.invalid_svarog_code"), new JsonObject());
+						}
+					}
+				}
+				svw.dbCommit();
+				jrh.create(MessageType.SUCCESS, I18n.getText("saveUser.success.saveCodeElement"),
+						I18n.getText("saveUser.success.saveCodeElement"), new JsonObject());
+			}
+		} catch (SvException e) {
+			if (e.getLabelCode().equals("error.invalid_session")) {
+				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
+						I18n.getText("error.invalid_session"), new JsonObject());
+				return Response.status(401).entity(jrh.getAll().toString()).build();
+			}
+			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
+					new JsonObject());
+			return Response.status(200).entity(jrh.getAll().toString()).build();
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
