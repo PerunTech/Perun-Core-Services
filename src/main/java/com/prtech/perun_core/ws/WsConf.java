@@ -119,12 +119,42 @@ public class WsConf {
 	}
 
 	/**
+	 * Method to return a parameter value for a specific object.
+	 * 
+	 * @param paramName the name of the parameter
+	 * @return Response object with the value if any, otherwise empty JSON object
+	 */
+	@Path("/params/get/sys/{paramName}/")
+	@GET
+	@Produces("text/html;charset=utf-8")
+	public Response getParam(@PathParam("paramName") String paramName, @Context HttpServletRequest httpRequest) {
+		JsonObject jo = new JsonObject();
+		ResponseHandler jrh = new ResponseHandler();
+		try {
+			Object value = SvParameter.getSysParam(paramName, false);
+			if (value != null) {
+				if (value instanceof String)
+					jo.addProperty("VALUE", (String) value);
+				else if (value instanceof Boolean)
+					jo.addProperty("VALUE", (Boolean) value);
+				else if (value instanceof Number)
+					jo.addProperty("VALUE", (Number) value);
+				else
+					jo.addProperty("VALUE", value.toString());
+			}
+		} catch (SvException e) {
+			return PerunUtil.handleException(e, jrh, paramName);
+		}
+		return Response.status(200).entity(jo.toString()).build();
+	}
+
+	/**
 	 * Method to set a String parameter value for a specific object.
 	 * 
-	 * @param token     The session id of the authenticated user
-	 * @param paramName the name of the parameter
-	 * @param parentId  the parentID of the object to which the parameter applies
-	 * @param paramValue  the value of parameter 
+	 * @param token      The session id of the authenticated user
+	 * @param paramName  the name of the parameter
+	 * @param parentId   the parentID of the object to which the parameter applies
+	 * @param paramValue the value of parameter
 	 * @return Response object
 	 */
 	@Path("/params/set/string/{token}/{paramName}/{parentId}/{paramValue}")
@@ -146,10 +176,10 @@ public class WsConf {
 	/**
 	 * Method to set a Boolean parameter value for a specific object.
 	 * 
-	 * @param token     The session id of the authenticated user
-	 * @param paramName the name of the parameter
-	 * @param parentId  the parentID of the object to which the parameter applies
-	 * @param paramValue  the value of parameter 
+	 * @param token      The session id of the authenticated user
+	 * @param paramName  the name of the parameter
+	 * @param parentId   the parentID of the object to which the parameter applies
+	 * @param paramValue the value of parameter
 	 * @return Response object
 	 */
 	@Path("/params/set/boolean/{token}/{paramName}/{parentId}/{paramValue}")
@@ -167,14 +197,14 @@ public class WsConf {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
+
 	/**
 	 * Method to set a Boolean parameter value for a specific object.
 	 * 
-	 * @param token     The session id of the authenticated user
-	 * @param paramName the name of the parameter
-	 * @param parentId  the parentID of the object to which the parameter applies
-	 * @param paramValue  the value of parameter 
+	 * @param token      The session id of the authenticated user
+	 * @param paramName  the name of the parameter
+	 * @param parentId   the parentID of the object to which the parameter applies
+	 * @param paramValue the value of parameter
 	 * @return Response object
 	 */
 	@Path("/params/set/long/{token}/{paramName}/{parentId}/{paramValue}")
@@ -192,14 +222,14 @@ public class WsConf {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
+
 	/**
 	 * Method to set a Boolean parameter value for a specific object.
 	 * 
-	 * @param token     The session id of the authenticated user
-	 * @param paramName the name of the parameter
-	 * @param parentId  the parentID of the object to which the parameter applies
-	 * @param paramValue  the value of parameter 
+	 * @param token      The session id of the authenticated user
+	 * @param paramName  the name of the parameter
+	 * @param parentId   the parentID of the object to which the parameter applies
+	 * @param paramValue the value of parameter
 	 * @return Response object
 	 */
 	@Path("/params/set/double/{token}/{paramName}/{parentId}/{paramValue}")
@@ -217,7 +247,7 @@ public class WsConf {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
+
 	public JsonArray getConfigModules(String token) throws SvException {
 		SvPerunManager spm = null;
 		SvReader svr = null;
