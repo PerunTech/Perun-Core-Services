@@ -124,7 +124,7 @@ public class WsConf {
 	 * @param paramName the name of the parameter
 	 * @return Response object with the value if any, otherwise empty JSON object
 	 */
-	@Path("/params/get/sys/{paramName}/")
+	@Path("/params/get/sys/{paramName}")
 	@GET
 	@Produces("text/html;charset=utf-8")
 	public Response getParam(@PathParam("paramName") String paramName, @Context HttpServletRequest httpRequest) {
