@@ -5422,7 +5422,9 @@ public class WsReactElements {
 				}
 				DbDataArray importArr = new DbDataArray();
 				importArr.addDataItem(vdataObject);
+				svg.setSkipSpatialValidations(true);
 				svg.saveGeometry(importArr);
+				
 				// Handle parcel
 				DbDataObject parc = SvCore.getDbtByName("PARCEL");
 				if (parc != null && tileGeomList != null && vdataType.equals(parc.getObjectId()))
