@@ -193,65 +193,69 @@ public class BusinessLogicWS {
 				farmerExists = verifyValidFarmer(userName, getFarmer);
 				matchingUserNamePinVat = svs.checkIfExistsConditional("FARMER", getFarmer, "FIC",
 						userName.toUpperCase());
-				if (!farmerExists || !matchingUserNamePinVat) {
-					if (farmer) {
-						return jrh.create(MessageType.ERROR, I18n.getText("user.farmer_notFound"),
-								I18n.getText("user.farmer_notFound"), new JsonObject());
-					} else {
+				if (farmer) {
+					if (farmerExists && matchingUserNamePinVat) {
 						dboUser = svs.createUser(userName.toUpperCase(), password.toUpperCase(),
 								firstName.toUpperCase(), lastName.toUpperCase(), eMail, pinVat.toUpperCase(),
 								taxId.toUpperCase(), "EXTERNAL", "PENDING");
-					}
-					if (dboUser != null) {
-						jrh.create(MessageType.SUCCESS, I18n.getText("user.user1_created"),
-								I18n.getText("user.created.activation"), new JsonObject());
-						try {
-							svs.empowerUser(dboUser, "PERSON", getPerson);
-						} catch (Exception e) {
-							if (!(e instanceof IndexOutOfBoundsException))
-								log4j.error("Error empowering user:" + getPerson.toSimpleJson(), e);
-						}
-
-						try {
-							svs.empowerUser(dboUser, "FARMER", getFarmer);
-						} catch (Exception e) {
-							if (!(e instanceof IndexOutOfBoundsException))
-								log4j.error("Error empowering user:" + getFarmer.toSimpleJson(), e);
-						}
-
-						DbDataArray empowerments = svs.getPOAObjects(dboUser.getObjectId(), "PERSON");
-						if (!empowerments.getItems().isEmpty() && empowerments.getItems().get(0) != null) {
-							DbDataObject personObj = empowerments.getItems().get(0);
-							if (personObj.getVal("NAME") != null)
-								firstName = personObj.getVal("NAME").toString();
-						}
-						svs.createUser((String) dboUser.getVal("USER_NAME"), (String) password.toUpperCase(), firstName,
-								lastName, (String) dboUser.getVal("E_MAIL"), (String) dboUser.getVal("PIN"),
-								(String) dboUser.getVal("TAX_ID"), (String) dboUser.getVal("USER_TYPE"), "PENDING",
-								true);
-						/*
-						 * if local than print url f.r to do better solution
-						 */
-						if (svs.getPublicParam("frontend.gui_host") != null
-								&& svs.getPublicParam("frontend.gui_host").trim().length() > 4)
-							if (svs.getPublicParam("frontend.gui_host")
-									.equals("http://192.168.100.155:9090/perun/index.html")) {
-								String guiHost = svs.getPublicParam("frontend.gui_host");
-								String localUrl = guiHost + "#/home/activate?uuid=" + dboUser.getVal("USER_UID");
-								jrh.create(MessageType.SUCCESS, I18n.getText("user.user1_created"), localUrl,
-										new JsonObject());
-							} else {
-								sendActivationEmail(dboUser, feHost);
-							}
 					} else {
-						jrh.create(MessageType.ERROR, I18n.getText("user.notCreated"),
-								I18n.getText("user.notCreated"), new JsonObject());
+						return jrh.create(MessageType.ERROR, I18n.getText("user.farmer_notFound"),
+								I18n.getText("user.farmer_notFound"), new JsonObject());
 					}
 				} else {
-					jrh.create(MessageType.ERROR, I18n.getText("user.farmer_notFound"),
-							I18n.getText("user.farmer_notFound"), new JsonObject());
+					dboUser = svs.createUser(userName.toUpperCase(), password.toUpperCase(), firstName.toUpperCase(),
+							lastName.toUpperCase(), eMail, pinVat.toUpperCase(), taxId.toUpperCase(), "EXTERNAL",
+							"PENDING");
 				}
-			} catch (SvException e) {
+
+				if (dboUser != null) {
+					jrh.create(MessageType.SUCCESS, I18n.getText("user.user1_created"),
+							I18n.getText("user.created.activation"), new JsonObject());
+					try {
+						svs.empowerUser(dboUser, "PERSON", getPerson);
+					} catch (Exception e) {
+						if (!(e instanceof IndexOutOfBoundsException))
+							log4j.error("Error empowering user:" + getPerson.toSimpleJson(), e);
+					}
+
+					try {
+						svs.empowerUser(dboUser, "FARMER", getFarmer);
+					} catch (Exception e) {
+						if (!(e instanceof IndexOutOfBoundsException))
+							log4j.error("Error empowering user:" + getFarmer.toSimpleJson(), e);
+					}
+
+					DbDataArray empowerments = svs.getPOAObjects(dboUser.getObjectId(), "PERSON");
+					if (!empowerments.getItems().isEmpty() && empowerments.getItems().get(0) != null) {
+						DbDataObject personObj = empowerments.getItems().get(0);
+						if (personObj.getVal("NAME") != null)
+							firstName = personObj.getVal("NAME").toString();
+					}
+					svs.createUser((String) dboUser.getVal("USER_NAME"), (String) password.toUpperCase(), firstName,
+							lastName, (String) dboUser.getVal("E_MAIL"), (String) dboUser.getVal("PIN"),
+							(String) dboUser.getVal("TAX_ID"), (String) dboUser.getVal("USER_TYPE"), "PENDING", true);
+					/*
+					 * if local than print url f.r to do better solution
+					 */
+					if (svs.getPublicParam("frontend.gui_host") != null
+							&& svs.getPublicParam("frontend.gui_host").trim().length() > 4)
+						if (svs.getPublicParam("frontend.gui_host")
+								.equals("http://192.168.100.155:9090/perun/index.html")) {
+							String guiHost = svs.getPublicParam("frontend.gui_host");
+							String localUrl = guiHost + "#/home/activate?uuid=" + dboUser.getVal("USER_UID");
+							jrh.create(MessageType.SUCCESS, I18n.getText("user.user1_created"), localUrl,
+									new JsonObject());
+						} else {
+							sendActivationEmail(dboUser, feHost);
+						}
+				} else {
+					jrh.create(MessageType.ERROR, I18n.getText("user.notCreated"), I18n.getText("user.notCreated"),
+							new JsonObject());
+				}
+
+			} catch (
+
+			SvException e) {
 				if (e.getLabelCode().equals("system.error.user_exists")) {
 					jrh.create(MessageType.ERROR, e.getLabelCode(), I18n.getText("user.userExists"), new JsonObject());
 				} else {
