@@ -4146,6 +4146,23 @@ public class WsReactElements {
 				vData.addDataItem(dboObjFound);
 			}
 			retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr);
+			if (pobjectType.compareTo(SvCore.getTypeIdByName("APPLICATION")) == 0 && dboObjFound != null) {
+				Long appDboLong = SvReader.getTypeIdByName("APPLICATION");
+				DbDataObject linkNewAppWithOldOne = SvCore.getLinkType("LINK NEW APPLICATION WITH OLD ONE", appDboLong,
+						appDboLong);
+				DbDataArray linkedApps = svr.getObjectsByLinkedId(objectId, appDboLong, linkNewAppWithOldOne,
+						appDboLong, false, null, 0, 0);
+				if (linkedApps != null && !linkedApps.getItems().isEmpty()) {
+					Gson gson = new Gson();
+					JsonArray jsonArray = gson.fromJson(retString, JsonArray.class);
+					JsonObject asd = (JsonObject) jsonArray.get(0);
+					asd.addProperty("APPLICATION.IS_ANNEX", true);
+					asd.addProperty("APPLICATION.ORIGIN_ID", linkedApps.getItems().get(0).getObjectId());
+					JsonArray jsonArray1 = new JsonArray();
+					jsonArray1.add(asd);
+					retString = jsonArray1.toString();
+				}
+			}
 		} catch (SvException e) {
 			log4j.error(e.getFormattedMessage(), e);
 			return Response.status(401).entity(e.getFormattedMessage()).build();
