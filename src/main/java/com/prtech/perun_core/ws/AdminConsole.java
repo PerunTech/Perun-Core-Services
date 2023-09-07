@@ -1,5 +1,6 @@
 package com.prtech.perun_core.ws;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -32,8 +33,14 @@ import com.prtech.svarog.SvWriter;
 import com.prtech.svarog.svCONST;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
+import com.prtech.svarog_common.DbQueryExpression;
+import com.prtech.svarog_common.DbQueryObject;
+import com.prtech.svarog_common.DbSearch;
+import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.ResponseHandler;
+import com.prtech.svarog_common.DbQueryObject.DbJoinType;
+import com.prtech.svarog_common.DbQueryObject.LinkType;
 import com.prtech.svarog_common.ResponseHandler.MessageType;
 
 @Path("/WsAdminConsole")
@@ -106,17 +113,10 @@ public class AdminConsole {
 	public Response saveUserGroup(@PathParam("session_id") String session, MultivaluedMap<String, String> formVals,
 			@Context HttpServletRequest httpRequest) throws SvException {
 		ResponseHandler jrh = new ResponseHandler();
-
-		SvWriter svw = null;
-		SvReader svr = null;
-		SvSecurity svs = null;
-		DbDataObject dbG = null;
-
-		try {
-			svr = new SvReader(session);
-			svw = new SvWriter(session);
-			svs = new SvSecurity(svr);
-			dbG = new DbDataObject();
+		try (SvReader svr = new SvReader(session);
+				SvWriter svw = new SvWriter(session);
+				SvSecurity svs = new SvSecurity(svr);) {
+			DbDataObject dbG = new DbDataObject();
 			if (formVals != null) {
 				for (Entry<String, List<String>> entry : formVals.entrySet()) {
 					if (entry.getKey() != null && !entry.getKey().isEmpty()) {
@@ -166,19 +166,6 @@ public class AdminConsole {
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
-		} finally {
-			if (svr != null) {
-				svr.release();
-				svr.close();
-			}
-			if (svw != null) {
-				svw.release();
-				svw.close();
-			}
-			if (svs != null) {
-				svs.release();
-				svs.close();
-			}
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
@@ -263,27 +250,16 @@ public class AdminConsole {
 	public Response updateUserGroup(@PathParam("session_id") String session, @PathParam("user_obj") Long user_obj,
 			@PathParam("group_obj") Long group_obj, @PathParam("updateType") String updateType,
 			@Context HttpServletRequest httpRequest) throws SvException {
-		SvReader svr = null;
-		SvWriter svw = null;
-		SvSecurity svs = null;
-
 		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(session);
+				SvWriter svw = new SvWriter(session);
+				SvSecurity svs = new SvSecurity(svr);){
 
-		DbDataObject dboUser = null;
-		DbDataObject dboGroup = null;
-		DbDataArray dboUserGroup = null;
-		DbDataObject dboDefaultUserGroup = null;
+			DbDataArray dboUserGroup = new DbDataArray();
+			DbDataObject dboDefaultUserGroup = new DbDataObject();
 
-		try {
-			dboUser = new DbDataObject();
-			dboGroup = new DbDataObject();
-			dboUserGroup = new DbDataArray();
-			dboDefaultUserGroup = new DbDataObject();
-			svr = new SvReader(session);
-			svw = new SvWriter(session);
-			svs = new SvSecurity(svr);
 
-			dboUser = svr.getObjectById(user_obj, SvReader.getTypeIdByName("SVAROG_USERS"), null);
+			DbDataObject dboUser = svr.getObjectById(user_obj, SvReader.getTypeIdByName("SVAROG_USERS"), null);
 
 			if (dboUser != null) {
 				dboUserGroup = svr.getAllUserGroups(dboUser, false);
@@ -293,7 +269,7 @@ public class AdminConsole {
 						I18n.getText("console.errpr.noUserFound"), new JsonObject());
 			}
 
-			dboGroup = svr.getObjectById(group_obj, SvReader.getTypeIdByName("SVAROG_USER_GROUPS"), null);
+			DbDataObject dboGroup = svr.getObjectById(group_obj, SvReader.getTypeIdByName("SVAROG_USER_GROUPS"), null);
 
 			if (updateType.equals("remove") && dboUser != null && dboGroup != null) {
 				svs.removeUserFromGroup(dboUser, dboGroup);
@@ -324,19 +300,6 @@ public class AdminConsole {
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
-		} finally {
-			if (svr != null) {
-				svr.release();
-				svr.close();
-			}
-			if (svw != null) {
-				svw.release();
-				svw.close();
-			}
-			if (svs != null) {
-				svs.release();
-				svs.close();
-			}
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
@@ -350,17 +313,10 @@ public class AdminConsole {
 	@Produces("application/json")
 	public Response changeUserStatus(@PathParam("session_id") String session, @PathParam("object_id") Long object_id,
 			@PathParam("newstatus") String newstatus, @Context HttpServletRequest httpRequest) throws SvException {
-		SvReader svr = null;
-		SvWriter svw = null;
 		ResponseHandler jrh = new ResponseHandler();
-
-		DbDataObject dboUser = new DbDataObject();
-		String oldStatus = "";
-		try {
-			svr = new SvReader(session);
-			svw = new SvWriter(session);
-			dboUser = svr.getObjectById(object_id, SvReader.getTypeIdByName("SVAROG_USERS"), null);
-			oldStatus = dboUser.getStatus();
+		try (SvReader svr = new SvReader(session); SvWriter svw = new SvWriter(svr);) {
+			DbDataObject dboUser = svr.getObjectById(object_id, SvReader.getTypeIdByName("SVAROG_USERS"), null);
+			String oldStatus = dboUser.getStatus();
 
 			if (!dboUser.getVal("USER_TYPE").equals("EXTERNAL")) {
 				if (!newstatus.equals(oldStatus)) {
@@ -384,16 +340,7 @@ public class AdminConsole {
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
-		} finally {
-			if (svr != null) {
-				svr.release();
-				svr.close();
-			}
-			if (svw != null) {
-				svw.release();
-				svw.close();
-			}
-		}
+		} 
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
 
@@ -647,38 +594,25 @@ public class AdminConsole {
 	@Produces("application/json")
 	public Response getAllGroups(@PathParam("session_id") String session, @Context HttpServletRequest httpRequest)
 			throws SvException {
-		SvReader svr = null;
-		SvWriter svw = null;
-		JsonObject jsonObj = null;
-		JsonArray jsonArray = null;
-		DbDataArray dboAllUserGroup = null;
-
 		ResponseHandler jrh = new ResponseHandler();
-
-		try {
-			svr = new SvReader(session);
-			svw = new SvWriter(session);
-			jsonArray = new JsonArray();
-
-			dboAllUserGroup = svr.getObjects(null, SvReader.getTypeIdByName("SVAROG_USER_GROUPS"), null, 0, 0);
-
+		try (SvReader svr = new SvReader(session); SvWriter svw = new SvWriter(svr);) {
+			JsonArray jsonArray = new JsonArray();
+			DbDataArray dboAllUserGroup = svr.getObjects(null, SvReader.getTypeIdByName("SVAROG_USER_GROUPS"), null, 0, 0);
 			if (dboAllUserGroup != null && !dboAllUserGroup.isEmpty()) {
 				for (DbDataObject dboG : dboAllUserGroup.getItems()) {
-					jsonObj = new JsonObject();
+					JsonObject jsonObj = new JsonObject();
 					String groupName = dboG.getVal("GROUP_NAME").toString();
 					String objectId = dboG.getObjectId().toString();
 					jsonObj.addProperty("groupName", groupName);
 					jsonObj.addProperty("objectId", objectId);
 					jsonArray.add(jsonObj);
 				}
-
 				jrh.create(MessageType.SUCCESS, I18n.getText("console.success.defaultUsers"),
 						I18n.getText("console.success.defaultUsers"), jsonArray);
 			} else {
 				jrh.create(MessageType.WARNING, I18n.getText("console.warning.userGroupNotFound"),
 						I18n.getText("console.warning.userGroupNotFound"), new JsonObject());
 			}
-
 		} catch (SvException e) {
 			if (e.getLabelCode().equals("error.invalid_session")) {
 				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
@@ -688,15 +622,6 @@ public class AdminConsole {
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
-		} finally {
-			if (svr != null) {
-				svr.release();
-				svr.close();
-			}
-			if (svw != null) {
-				svw.release();
-				svw.close();
-			}
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
@@ -720,9 +645,7 @@ public class AdminConsole {
 			jrh.create(MessageType.SUCCESS, I18n.getText("success.userWasRemovedFromOU"),
 					I18n.getText("success.msg.userWasRemovedFromOU"), new JsonObject());
 
-		} catch (
-
-		SvException e) {
+		} catch (SvException e) {
 			if (e.getLabelCode().equals("error.invalid_session")) {
 				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
 						I18n.getText("error.invalid_session"), new JsonObject());
@@ -731,8 +654,6 @@ public class AdminConsole {
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
-		} finally {
-
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
@@ -770,8 +691,6 @@ public class AdminConsole {
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
-		} finally {
-
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
@@ -810,9 +729,7 @@ public class AdminConsole {
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
-		} finally {
-
-		}
+		} 
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
 
@@ -824,17 +741,11 @@ public class AdminConsole {
 	@Produces("application/json")
 	public Response createCustomAcl(@PathParam("session_id") String session, MultivaluedMap<String, String> formVals,
 			@Context HttpServletRequest httpRequest) throws SvException {
-		SvReader svr = null;
-		SvWriter svw = null;
-		SvSecurity svc = null;
 		String[] listAcl = null;
 		String accessType = null;
 		ResponseHandler jrh = new ResponseHandler();
-		try {
-			svr = new SvReader(session);
-			svr.setAutoCommit(false);
-			svw = new SvWriter(svr);
-
+		try (SvReader svr = new SvReader(session); SvWriter svw = new SvWriter(svr);) {
+			svw.setAutoCommit(false);
 			if (formVals != null) {
 				for (Entry<String, List<String>> entry : formVals.entrySet()) {
 					if (entry.getKey() != null && !entry.getKey().isEmpty()) {
@@ -882,20 +793,7 @@ public class AdminConsole {
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
-		} finally {
-			if (svr != null) {
-				svr.release();
-				svr.close();
-			}
-			if (svc != null) {
-				svc.release();
-				svc.close();
-			}
-			if (svw != null) {
-				svw.release();
-				svw.close();
-			}
-		}
+		} 
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
 
@@ -908,16 +806,10 @@ public class AdminConsole {
 	@Produces("application/json")
 	public Response manageCustomAcl(@PathParam("session_id") String session, MultivaluedMap<String, String> formVals,
 			@Context HttpServletRequest httpRequest) throws SvException {
-		SvWriter svw = null;
-		SvSecurity svc = null;
-		SvReader svr = null;
 		DbDataObject group = new DbDataObject();
 		ResponseHandler jrh = new ResponseHandler();
 		String[] listAcl = null;
-		try {
-			svr = new SvReader(session);
-			svc = new SvSecurity(svr);
-
+		try (SvReader svr = new SvReader(session); SvWriter svw = new SvWriter(svr); SvSecurity svc = new SvSecurity(svr);) {
 			if (formVals != null) {
 				for (Entry<String, List<String>> entry : formVals.entrySet()) {
 					if (entry.getKey() != null && !entry.getKey().isEmpty()) {
@@ -967,20 +859,7 @@ public class AdminConsole {
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
-		} finally {
-			if (svr != null) {
-				svr.release();
-				svr.close();
-			}
-			if (svc != null) {
-				svc.release();
-				svc.close();
-			}
-			if (svw != null) {
-				svw.release();
-				svw.close();
-			}
-		}
+		} 
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
 
@@ -993,12 +872,8 @@ public class AdminConsole {
 	@Produces("application/json")
 	public Response executeAll(@PathParam("session_id") String session, @Context HttpServletRequest httpRequest)
 			throws SvException {
-		SvReader svr = null;
-		SvExecManager svx = null;
 		ResponseHandler jrh = new ResponseHandler();
-		try {
-			svr = new SvReader(session);
-			svx = new SvExecManager(svr);
+		try (SvReader svr = new SvReader(session); SvExecManager svx = new SvExecManager(svr);) {
 			svx.initOSGIExecutors();
 			jrh.create(MessageType.SUCCESS, I18n.getText("success.loadedExecturos"),
 					I18n.getText("success.loadedExecturos"), new JsonObject());
@@ -1011,15 +886,6 @@ public class AdminConsole {
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
-		} finally {
-			if (svr != null) {
-				svr.release();
-				svr.close();
-			}
-			if (svx != null) {
-				svx.release();
-				svx.close();
-			}
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
@@ -1033,14 +899,10 @@ public class AdminConsole {
 	@Produces("application/json")
 	public Response updateGroup(@PathParam("session_id") String session, @PathParam("objId") Long objId,
 			@PathParam("accessType") String accessType, @Context HttpServletRequest httpRequest) throws SvException {
-		SvReader svr = null;
-		SvSecurity svs = null;
-		ResponseHandler jrh = new ResponseHandler();
-		try {
-			svr = new SvReader(session);
-			svs = new SvSecurity(svr);
-			DbDataObject group = svr.getObjectById(objId, SvCore.getTypeIdByName("SVAROG_USER_GROUPS"), null);
 
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(session); SvSecurity svs = new SvSecurity(svr);) {
+			DbDataObject group = svr.getObjectById(objId, SvCore.getTypeIdByName("SVAROG_USER_GROUPS"), null);
 			if (group != null) {
 				String groupAccess = "%." + accessType;
 				DbDataArray permissions = svs.getPermissions(groupAccess);
@@ -1059,15 +921,6 @@ public class AdminConsole {
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
-		} finally {
-			if (svr != null) {
-				svr.release();
-				svr.close();
-			}
-			if (svs != null) {
-				svs.release();
-				svs.close();
-			}
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
@@ -1163,4 +1016,153 @@ public class AdminConsole {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
+	
+	
+	
+
+	/**
+	 * return all ACLs for a given group OBJECT_ID
+	 * 
+	 */
+	@Path("/get-acl-by-group/sid/{session_id}/group_object_id/{group_id}")
+	@GET
+	@Produces("application/json")
+	public Response getAclByGroup(@PathParam("session_id") String session, @PathParam("group_id") Long group_id, 
+			@Context HttpServletRequest httpRequest)
+			throws SvException {
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(session)) {
+			JsonArray responseArray = new JsonArray();
+			Gson gson = new Gson();
+			int tablesusedCount = 3;
+			String[] tablesUsedArray = new String[tablesusedCount];
+			Boolean[] tableShowArray = new Boolean[tablesusedCount];
+			tablesUsedArray[0] = ("SVAROG_SID_ACL");
+			tablesUsedArray[1] = ("SVAROG_ACL");
+			tablesUsedArray[2] = ("SVAROG_TABLES");
+			Arrays.fill(tableShowArray, true);
+			DbSearch dbSSidObjectId = new DbSearchCriterion("SID_OBJECT_ID", DbCompareOperand.EQUAL, group_id);
+			DbQueryObject dbtSidAcl = new DbQueryObject(SvCore.getDbtByName("SVAROG_SID_ACL"), dbSSidObjectId,
+					DbJoinType.INNER, null, LinkType.CUSTOM, null, null);
+			dbtSidAcl.addCustomJoinLeft("acl_object_id");
+			dbtSidAcl.addCustomJoinRight("object_id");
+			DbQueryObject dbtAcl = new DbQueryObject(SvCore.getDbtByName("SVAROG_ACL"), null, DbJoinType.LEFT, null,
+					LinkType.CUSTOM_FREETEXT, null, null);
+			dbtAcl.setCustomFreeTextJoin(
+					" on (tbl2.object_id = tbl1.acl_object_id and sysdate between tbl2.dt_insert and tbl2.dt_delete) or tbl2.object_id is null");
+			DbQueryObject dbtTable = new DbQueryObject(SvCore.getDbtByName("SVAROG_TABLES"), null, DbJoinType.INNER,
+					null, null, null, null);
+			DbQueryExpression q = new DbQueryExpression();
+			q.addItem(dbtSidAcl);
+			q.addItem(dbtAcl);
+			q.addItem(dbtTable);
+			DbDataArray ret = svr.getObjects(q, null, null);
+			String jsonStr = WsReactElements.prapareTableQueryData(ret, tablesUsedArray, tableShowArray,
+					tablesusedCount, true, svr);
+			JsonArray tmpResponseArray = gson.fromJson(jsonStr, JsonArray.class);
+			// parse the data so we display only things that we need
+			if (tmpResponseArray.size() > 0) {
+				String[] stringFields = new String[4];
+				String[] longFields = new String[1];
+				stringFields[0] = ("SVAROG_ACL.ACCESS_TYPE");
+				stringFields[1] = ("SVAROG_ACL.LABEL_CODE");
+				stringFields[2] = ("SVAROG_TABLES.TABLE_NAME");
+				stringFields[3] = ("SVAROG_TABLES.LABEL_CODE");
+				responseArray = filterFields(tmpResponseArray, stringFields, longFields);
+			}
+			jrh.create(MessageType.SUCCESS, I18n.getText("console.success.defaultUsers"),
+					I18n.getText("console.success.defaultUsers"), responseArray);
+		} catch (SvException e) {
+			if (e.getLabelCode().equals("error.invalid_session")) {
+				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
+						I18n.getText("error.invalid_session"), new JsonObject());
+				return Response.status(200).entity(jrh.getAll().toString()).build();
+			}
+			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
+					new JsonObject());
+			return Response.status(200).entity(jrh.getAll().toString()).build();
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+	
+	
+	private JsonArray filterFields(JsonArray responseArray, String[] stringFields, String[] longFields) {
+		JsonArray tmpJsonArrayResponse = new JsonArray();
+		for (int i = 0; i < responseArray.size(); i++) {
+			JsonObject temp = (JsonObject) responseArray.get(i);
+			JsonObject newObject = new JsonObject();
+			for (int j = 0; j < stringFields.length; j++)
+				if (temp.has(stringFields[j]))
+					newObject.addProperty(stringFields[j], temp.get(stringFields[j]).getAsString());
+			for (int j = 0; j < longFields.length; j++)
+				if (temp.has(longFields[j]))
+					newObject.addProperty(longFields[j], temp.get(longFields[j]).getAsLong());
+			tmpJsonArrayResponse.add(newObject);
+		}
+		return tmpJsonArrayResponse;
+		
+	}
+
+	/**
+	 * return all ACLs for a given group OBJECT_ID, field list for the show grid
+	 * 
+	 */
+	@Path("/get-acl-by-group-field-list/sid/{session_id}")
+	@GET
+	@Produces("application/json")
+	public Response getAclByGroupFieldList(@PathParam("session_id") String session, 
+			@Context HttpServletRequest httpRequest)
+			throws SvException {
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(session)) {
+			int tablesusedCount = 3;
+			String[] tablesUsedArray = new String[tablesusedCount];
+			Boolean[] svarogShowArray = new Boolean[tablesusedCount];
+			Boolean[] tableShowArray = new Boolean[tablesusedCount];
+			tablesUsedArray[0] = ("SVAROG_SID_ACL");
+			tablesUsedArray[1] = ("SVAROG_ACL");
+			tablesUsedArray[2] = ("SVAROG_TABLES");
+			Arrays.fill(tableShowArray, Boolean.TRUE);
+			Arrays.fill(svarogShowArray, Boolean.FALSE);
+			svarogShowArray[0] = Boolean.TRUE;
+			WsReactElements wsReact = new WsReactElements();
+			JsonArray jsonArrayResponse = wsReact.prepareJsonArrayFromGrid(tablesUsedArray, svarogShowArray,
+					tableShowArray, svr);
+			// remove columns that we don't need in the view so we save on size
+			// of response
+			if (jsonArrayResponse.size() > 0) {
+				JsonArray tmpJsonArrayResponse = new JsonArray();
+				for (int i = 0; i < jsonArrayResponse.size(); i++)
+					if (jsonArrayResponse.get(i) != null && !(jsonArrayResponse.get(i)).isJsonNull()) {
+						JsonObject temp = (JsonObject) jsonArrayResponse.get(i);
+						if (temp.has("key")) {
+							String tmpS = temp.get("key").getAsString().toUpperCase();
+							if ("SVAROG_SID_ACL.ACL_OBJECT_ID".equals(tmpS) || "SVAROG_ACL.ACCESS_TYPE".equals(tmpS)
+									|| "SVAROG_ACL.LABEL_CODE".equals(tmpS) || "SVAROG_TABLES.TABLE_NAME".equals(tmpS)
+									|| "SVAROG_TABLES.LABEL_CODE".equals(tmpS) ) {
+								temp.addProperty("visible", true);
+								if (temp.has("width"))
+									temp.remove("width");
+								tmpJsonArrayResponse.add(temp);
+							}
+						}
+					}
+				jsonArrayResponse = tmpJsonArrayResponse;
+			}
+			jrh.create(MessageType.SUCCESS, I18n.getText("console.success.acl.sid.field.list"),
+					I18n.getText("console.success.acl.sid.field.list"), jsonArrayResponse);
+		} catch (SvException e) {
+			if (e.getLabelCode().equals("error.invalid_session")) {
+				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
+						I18n.getText("error.invalid_session"), new JsonObject());
+				return Response.status(200).entity(jrh.getAll().toString()).build();
+			}
+			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
+					new JsonObject());
+			return Response.status(200).entity(jrh.getAll().toString()).build();
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+	
+	
 }
