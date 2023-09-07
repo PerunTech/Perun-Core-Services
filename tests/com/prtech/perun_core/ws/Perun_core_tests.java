@@ -1158,4 +1158,40 @@ public class Perun_core_tests {
 	//
 	// return result;
 	// }
+	
+	
+	
+	
+
+	@Test
+	public void getAclBygroup() {
+		SvSecurity svc;
+		AdminConsole wsc = new AdminConsole();
+		try {
+			svc = new SvSecurity();
+			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
+			Response test2 = wsc.getAclByGroup(sessionId, 354318158L, null);
+			System.out.print("finish");
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	
+	@Test
+	public void getAclBygroupFieldList() {
+		SvSecurity svc;
+		AdminConsole wsc = new AdminConsole();
+		try {
+			svc = new SvSecurity();
+			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
+			Response test2 = wsc.getAclByGroupFieldList(sessionId, null);
+			System.out.print("finish");
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 }
