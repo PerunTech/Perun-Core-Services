@@ -1068,6 +1068,7 @@ public class AdminConsole {
 				stringFields[1] = ("SVAROG_ACL.LABEL_CODE");
 				stringFields[2] = ("SVAROG_TABLES.TABLE_NAME");
 				stringFields[3] = ("SVAROG_TABLES.LABEL_CODE");
+				longFields[0] = ("SVAROG_SID_ACL.ACL_OBJECT_ID");
 				responseArray = filterFields(tmpResponseArray, stringFields, longFields);
 			}
 			jrh.create(MessageType.SUCCESS, I18n.getText("console.success.defaultUsers"),
@@ -1163,6 +1164,175 @@ public class AdminConsole {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
+	
+	
+	
+
+
+	/**
+	 * return all ACLs for a given user OBJECT_ID
+	 * 
+	 */
+	@Path("/get-acl-by-user/sid/{session_id}/user_object_id/{object_id}")
+	@GET
+	@Produces("application/json")
+	public Response getAclByUser(@PathParam("session_id") String session, @PathParam("object_id") Long object_id, 
+			@Context HttpServletRequest httpRequest)
+			throws SvException {
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(session)) {
+			JsonArray responseArray = new JsonArray();
+			Gson gson = new Gson();
+			int tablesusedCount = 6;
+			String[] tablesUsedArray = new String[tablesusedCount];
+			Boolean[] tableShowArray = new Boolean[tablesusedCount];
+			
+			tablesUsedArray[0] = ("SVAROG_LINK");
+			tablesUsedArray[1] = ("SVAROG_LINK_TYPE");
+			tablesUsedArray[2] = ("SVAROG_USER_GROUPS");
+			tablesUsedArray[3] = ("SVAROG_SID_ACL");
+			tablesUsedArray[4] = ("SVAROG_ACL");
+			tablesUsedArray[5] = ("SVAROG_TABLES");
+			Arrays.fill(tableShowArray, true);
+			
+			DbSearch dbUserObjectId = new DbSearchCriterion("link_obj_id_1", DbCompareOperand.EQUAL, object_id);
+			
+			DbQueryObject dbtLink = new DbQueryObject(SvCore.getDbtByName("SVAROG_LINK"), dbUserObjectId,
+					DbJoinType.INNER, null, LinkType.CUSTOM, null, null);
+			dbtLink.addCustomJoinLeft("link_type_id");
+			dbtLink.addCustomJoinRight("object_id");
+			
+			
+			DbQueryObject dbtLinkType = new DbQueryObject(SvCore.getDbtByName("SVAROG_LINK_TYPE"), null,
+					DbJoinType.INNER, null, LinkType.CUSTOM_FREETEXT, null, null);
+			dbtLinkType.setCustomFreeTextJoin(
+					" on tbl0.link_obj_id_2 = tbl2.object_id ");
+			
+			DbQueryObject dbtUserGroups = new DbQueryObject(SvCore.getDbtByName("SVAROG_USER_GROUPS"), null,
+					DbJoinType.INNER, null, LinkType.CUSTOM, null, null);
+			dbtUserGroups.addCustomJoinLeft("object_id");
+			dbtUserGroups.addCustomJoinRight("sid_object_id");
+
+			DbQueryObject dbtSidAcl = new DbQueryObject(SvCore.getDbtByName("SVAROG_SID_ACL"), null,
+					DbJoinType.INNER, null, LinkType.CUSTOM, null, null);
+			dbtSidAcl.addCustomJoinLeft("acl_object_id");
+			dbtSidAcl.addCustomJoinRight("object_id");
+
+			DbQueryObject dbtAcl = new DbQueryObject(SvCore.getDbtByName("SVAROG_ACL"), null, DbJoinType.LEFT, null,
+					LinkType.CUSTOM_FREETEXT, null, null);
+			dbtAcl.setCustomFreeTextJoin(
+					" on (tbl5.object_id = tbl4.acl_object_id and sysdate between tbl5.dt_insert and tbl5.dt_delete) or tbl5.object_id is null");
+			
+			DbQueryObject dbtTable = new DbQueryObject(SvCore.getDbtByName("SVAROG_TABLES"), null, DbJoinType.INNER,
+					null, null, null, null);
+			DbQueryExpression q = new DbQueryExpression();
+			
+			q.addItem(dbtLink);
+			q.addItem(dbtLinkType);
+			q.addItem(dbtUserGroups);
+			
+			q.addItem(dbtSidAcl);
+			q.addItem(dbtAcl);
+			q.addItem(dbtTable);
+			DbDataArray ret = svr.getObjects(q, null, null);
+			String jsonStr = WsReactElements.prapareTableQueryData(ret, tablesUsedArray, tableShowArray,
+					tablesusedCount, true, svr);
+			JsonArray tmpResponseArray = gson.fromJson(jsonStr, JsonArray.class);
+			// parse the data so we display only things that we need
+			if (tmpResponseArray.size() > 0) {
+				String[] stringFields = new String[6];
+				String[] longFields = new String[1];
+				stringFields[0] = ("SVAROG_LINK.STATUS");
+				stringFields[1] = ("SVAROG_USER_GROUPS.GROUP_NAME");
+				stringFields[2] = ("SVAROG_ACL.ACCESS_TYPE");
+				stringFields[3] = ("SVAROG_ACL.LABEL_CODE");
+				stringFields[4] = ("SVAROG_TABLES.TABLE_NAME");
+				stringFields[5] = ("SVAROG_TABLES.LABEL_CODE");
+
+				longFields[0] = ("SVAROG_SID_ACL.ACL_OBJECT_ID");
+				
+				responseArray = filterFields(tmpResponseArray, stringFields, longFields);
+			}
+			jrh.create(MessageType.SUCCESS, I18n.getText("console.success.defaultUsers"),
+					I18n.getText("console.success.defaultUsers"), responseArray);
+		} catch (SvException e) {
+			if (e.getLabelCode().equals("error.invalid_session")) {
+				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
+						I18n.getText("error.invalid_session"), new JsonObject());
+				return Response.status(200).entity(jrh.getAll().toString()).build();
+			}
+			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
+					new JsonObject());
+			return Response.status(200).entity(jrh.getAll().toString()).build();
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+	
+
+	/**
+	 * return all ACLs for a given group OBJECT_ID, field list for the show grid
+	 * 
+	 */
+	@Path("/get-acl-by-user-field-list/sid/{session_id}")
+	@GET
+	@Produces("application/json")
+	public Response getAclByUserFieldList(@PathParam("session_id") String session, 
+			@Context HttpServletRequest httpRequest)
+			throws SvException {
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(session)) {
+			int tablesusedCount = 6;
+			String[] tablesUsedArray = new String[tablesusedCount];
+			Boolean[] svarogShowArray = new Boolean[tablesusedCount];
+			Boolean[] tableShowArray = new Boolean[tablesusedCount];
+			
+			tablesUsedArray[0] = ("SVAROG_LINK");
+			tablesUsedArray[1] = ("SVAROG_LINK_TYPE");
+			tablesUsedArray[2] = ("SVAROG_USER_GROUPS");
+			tablesUsedArray[3] = ("SVAROG_SID_ACL");
+			tablesUsedArray[4] = ("SVAROG_ACL");
+			tablesUsedArray[5] = ("SVAROG_TABLES");
+			Arrays.fill(tableShowArray, Boolean.TRUE);
+			Arrays.fill(svarogShowArray, Boolean.FALSE);
+			WsReactElements wsReact = new WsReactElements();
+			JsonArray jsonArrayResponse = wsReact.prepareJsonArrayFromGrid(tablesUsedArray, svarogShowArray,
+					tableShowArray, svr);
+			// remove columns that we don't need in the view so we save on size
+			// of response
+			if (jsonArrayResponse.size() > 0) {
+				JsonArray tmpJsonArrayResponse = new JsonArray();
+				for (int i = 0; i < jsonArrayResponse.size(); i++)
+					if (jsonArrayResponse.get(i) != null && !(jsonArrayResponse.get(i)).isJsonNull()) {
+						JsonObject temp = (JsonObject) jsonArrayResponse.get(i);
+						if (temp.has("key")) {
+							String tmpS = temp.get("key").getAsString().toUpperCase();
+							if ("SVAROG_LINK.STATUS".equals(tmpS) || "SVAROG_ACL.ACCESS_TYPE".equals(tmpS)
+									|| "SVAROG_ACL.LABEL_CODE".equals(tmpS) || "SVAROG_TABLES.TABLE_NAME".equals(tmpS)
+									|| "SVAROG_TABLES.LABEL_CODE".equals(tmpS) || "SVAROG_USER_GROUPS.GROUP_NAME".equals(tmpS)   ) {
+								temp.addProperty("visible", true);
+								if (temp.has("width"))
+									temp.remove("width");
+								tmpJsonArrayResponse.add(temp);
+							}
+						}
+					}
+				jsonArrayResponse = tmpJsonArrayResponse;
+			}
+			jrh.create(MessageType.SUCCESS, I18n.getText("console.success.acl.sid.field.list"),
+					I18n.getText("console.success.acl.sid.field.list"), jsonArrayResponse);
+		} catch (SvException e) {
+			if (e.getLabelCode().equals("error.invalid_session")) {
+				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
+						I18n.getText("error.invalid_session"), new JsonObject());
+				return Response.status(200).entity(jrh.getAll().toString()).build();
+			}
+			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
+					new JsonObject());
+			return Response.status(200).entity(jrh.getAll().toString()).build();
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+	
 	
 	
 }
