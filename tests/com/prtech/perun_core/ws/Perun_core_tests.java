@@ -1194,4 +1194,39 @@ public class Perun_core_tests {
 		}
 	}
 	
+	
+
+	
+
+	@Test
+	public void getAclByUser() {
+		SvSecurity svc;
+		AdminConsole wsc = new AdminConsole();
+		try {
+			svc = new SvSecurity();
+			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
+			Response test2 = wsc.getAclByUser(sessionId, 18454889L, null);
+			System.out.print("finish");
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	
+	@Test
+	public void getAclByUserFieldList() {
+		SvSecurity svc;
+		AdminConsole wsc = new AdminConsole();
+		try {
+			svc = new SvSecurity();
+			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
+			Response test2 = wsc.getAclByUserFieldList(sessionId, null);
+			System.out.print("finish");
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 }
