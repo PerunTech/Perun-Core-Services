@@ -86,7 +86,7 @@ public class WsSecurityActions {
 		// up with that, if we want to change ways of user registration we change the
 		// paramter REGISTER_USER in DB and create executor with that name
 		// REGISTER_USER.SOMETHING, then we call that executor from the enviorment
-		try (SvSecurity svs = new SvSecurity(); SvExecManager svx = new SvExecManager(svs)) {
+		try (SvSecurity svs = new SvSecurity();) {
 			String registerEXE = SvParameter.getSysParam("REGISTER_USER", "EDBAR");
 			if (registerEXE.equalsIgnoreCase("no_restictions")) {
 				// create user with no restrictions, for new enviorments
@@ -97,7 +97,7 @@ public class WsSecurityActions {
 				jso = jrh.getAllv1();
 				formVals = null; // so we dont use the edbar create user
 			}
-			else if (!registerEXE.equalsIgnoreCase("EDBAR")) {
+			else if (!registerEXE.equalsIgnoreCase("EDBAR")) try ( SvExecManager svx = new SvExecManager(svs)){
 				// call executor for creating user from the project/enviorment
 				Map<String, Object> params = new HashMap<String, Object>();
 				params.put("formVals", formVals);
