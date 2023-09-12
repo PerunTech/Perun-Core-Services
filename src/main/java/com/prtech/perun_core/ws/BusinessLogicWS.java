@@ -2,9 +2,12 @@ package com.prtech.perun_core.ws;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
 import org.apache.logging.log4j.LogManager;
@@ -86,6 +89,57 @@ public class BusinessLogicWS {
 		return jrh.getAll();
 	}
 
+
+	public JsonObject noRestrictionUser(MultivaluedMap<String, String> formVals, SvSecurity svs, 
+			HttpServletRequest fehost) {
+		JsonObject jbo = null;
+		ResponseHandler jrh = new ResponseHandler();
+		try {
+			String firstName = " ";
+			String lastName = " ";
+			String password1 = null;
+			String password2 = null;
+			String email = "";
+			String userName = "";
+			String idNo = "";
+			String taxId = "";
+			if (formVals != null) {
+				for (Entry<String, List<String>> entry : formVals.entrySet()) {
+					if (entry.getKey() != null && !entry.getKey().isEmpty()) {
+						String key = entry.getKey();
+						JsonObject jobj = new JsonObject();
+						Gson gs = new Gson();
+						jobj = gs.fromJson(key, JsonObject.class);
+						if (jobj.get("eMail") != null)
+							email = jobj.get("eMail").getAsString();
+						if (jobj.get("password") != null)
+							password1 = jobj.get("password").getAsString();
+						if (jobj.get("repeatPassword") != null)
+							password2 = jobj.get("repeatPassword").getAsString();
+						if (jobj.get("username") != null)
+							userName = jobj.get("username").getAsString();
+						if (jobj.get("idNo") != null)
+							idNo = jobj.get("idNo").getAsString();
+					}
+				}
+				if (password1 != "" && userName != "" && password1.equals(password2)) {
+					DbDataObject dboUser = svs.createUser(userName.toUpperCase(), password1.toUpperCase(), firstName.toUpperCase(),
+							lastName.toUpperCase(), email, idNo.toUpperCase(), taxId.toUpperCase(), "EXTERNAL",
+							"VALID");
+					if (dboUser != null )
+						jrh.create(MessageType.SUCCESS, I18n.getText("user.created"), I18n.getText("user.created"), new JsonObject());
+				}
+			}
+			jbo = jrh.getAll();
+		} catch (Exception e) {
+			jrh.create(MessageType.EXCEPTION, I18n.getText("error.creating user"),
+					" agriPluginManager.PluginLogin " + e.getMessage(), new JsonObject());
+			jbo = jrh.getAll();
+		}
+		return jbo;
+	}
+	
+
 	public JsonObject doRegister(Boolean farmer, String fic, String idNo, String email, String password,
 			HttpServletRequest fehost) {
 		JsonObject jbo = null;
@@ -93,7 +147,7 @@ public class BusinessLogicWS {
 			jbo = registerUser(farmer, fic, idNo, email, password, fehost);
 		} catch (Exception e) {
 			ResponseHandler jrh = new ResponseHandler();
-			jrh.create("EXCEPTION", I18n.getText("error.loading.plugin"),
+			jrh.create(MessageType.EXCEPTION, I18n.getText("error.loading.plugin"),
 					" agriPluginManager.PluginLogin " + e.getMessage(), new JsonObject());
 			jbo = jrh.getAll();
 		}
