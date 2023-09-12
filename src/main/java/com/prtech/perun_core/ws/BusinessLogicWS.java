@@ -24,6 +24,7 @@ import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvExecManager;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvSecurity;
+import com.prtech.svarog.SvWriter;
 import com.prtech.svarog.svCONST;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
@@ -126,8 +127,13 @@ public class BusinessLogicWS {
 					DbDataObject dboUser = svs.createUser(userName.toUpperCase(), password1.toUpperCase(), firstName.toUpperCase(),
 							lastName.toUpperCase(), email, idNo.toUpperCase(), taxId.toUpperCase(), "EXTERNAL",
 							"VALID");
-					if (dboUser != null )
+					if (dboUser != null ) try (SvWriter svw = new SvWriter (svs)) {
 						jrh.create(MessageType.SUCCESS, I18n.getText("user.created"), I18n.getText("user.created"), new JsonObject());
+						dboUser.setStatus("VALID");
+						svw.saveObject(dboUser);
+						
+					}
+						
 				}
 			}
 			jbo = jrh.getAll();
