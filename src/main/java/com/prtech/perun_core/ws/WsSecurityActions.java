@@ -39,6 +39,7 @@ import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvExecManager;
+import com.prtech.svarog.SvParameter;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvSecurity;
 import com.prtech.svarog.SvUtil;
@@ -73,6 +74,7 @@ public class WsSecurityActions {
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Produces("application/json")
 	public Response doRegister(MultivaluedMap<String, String> formVals, @Context HttpServletRequest httpRequest) {
+		ResponseHandler jrh = new ResponseHandler();
 		String password1 = null;
 		String password2 = null;
 		String email = "";
@@ -80,6 +82,36 @@ public class WsSecurityActions {
 		String idNo = "";
 		boolean farmer = false;
 		JsonObject jso = new JsonObject();
+		// check for system parameter REGISTER_USER, default is EDBAR so we always end
+		// up with that, if we want to change ways of user registration we change the
+		// paramter REGISTER_USER in DB and create executor with that name
+		// REGISTER_USER.SOMETHING, then we call that executor from the enviorment
+		try (SvSecurity svs = new SvSecurity(); SvExecManager svx = new SvExecManager(svs)) {
+			String registerEXE = SvParameter.getSysParam("REGISTER_USER", "EDBAR");
+			if (registerEXE.equalsIgnoreCase("no_restictions")) {
+				// create user with no restrictions, for new enviorments
+				BusinessLogicWS blws = new BusinessLogicWS();
+				jso = blws.noRestrictionUser(formVals, svs, httpRequest);
+				jrh.create(MessageType.SUCCESS, I18n.getText("createUser.success.incomplete"),
+						I18n.getText("createUser.success.incomplete"), new JsonObject());
+				jso = jrh.getAllv1();
+				formVals = null; // so we dont use the edbar create user
+			}
+			else if (!registerEXE.equalsIgnoreCase("EDBAR")) {
+				// call executor for creating user from the project/enviorment
+				Map<String, Object> params = new HashMap<String, Object>();
+				params.put("formVals", formVals);
+				JsonObject configuration = (JsonObject) svx.execute("REGISTER_USER." + registerEXE, params, null);
+				jrh.create(MessageType.SUCCESS, I18n.getText("createUser.success.incomplete"),
+						I18n.getText("createUser.success.incomplete"), configuration);
+				jso = jrh.getAllv1();
+				formVals = null; // so we dont use the edbar create user
+			}
+		} catch (SvException e) {
+			
+		}
+
+		
 		if (formVals != null) {
 			for (Entry<String, List<String>> entry : formVals.entrySet()) {
 				if (entry.getKey() != null && !entry.getKey().isEmpty()) {
