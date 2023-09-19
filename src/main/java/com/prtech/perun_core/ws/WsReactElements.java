@@ -3981,6 +3981,28 @@ public class WsReactElements {
 	}
 
 	/**
+	 * Wrapper service of getTableWithILike
+	 * 
+	 * @param sessionId    - the session of the logged user
+	 * @param tableName    - the name of the 
+	 * @param fieldName    - String table from which we want to get data
+	 * @param fieldValue   - String value that we are trying to find, will be cast to
+	 *                       Integer for numeric values
+	 * @param recordNumber - Integer how many records we want to pull from the table
+	 * @param httpRequest  - the request
+	 * @return
+	 */
+	@Path("/getTableWithILike/{session_id}/{table_name}/{fieldNAme}/{fieldValue}/{no_rec}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getTableWithILike(@PathParam("session_id") String sessionId,
+			@PathParam("table_name") String tableName, @PathParam("fieldNAme") String fieldName,
+			@PathParam("fieldValue") String fieldValue, @PathParam("no_rec") Integer recordNumber,
+			@Context HttpServletRequest httpRequest) {
+		return getTableWithILike(sessionId, tableName, fieldName, fieldValue, recordNumber, Rc.DESC, httpRequest);
+	}
+
+	/**
 	 * Web service to return any table using one filter "ilike" for one field only ,
 	 * it will also return svarog repo fields DEDICATE for: case insensitive search
 	 * 
@@ -5441,7 +5463,7 @@ public class WsReactElements {
 				importArr.addDataItem(vdataObject);
 				svg.setSkipSpatialValidations(true);
 				svg.saveGeometry(importArr);
-				
+
 				// Handle parcel
 				DbDataObject parc = SvCore.getDbtByName("PARCEL");
 				if (parc != null && tileGeomList != null && vdataType.equals(parc.getObjectId()))
