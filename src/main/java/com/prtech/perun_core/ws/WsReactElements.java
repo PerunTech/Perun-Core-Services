@@ -3988,7 +3988,7 @@ public class WsReactElements {
 	 * @param fieldName    - String table from which we want to get data
 	 * @param fieldValue   - String value that we are trying to find, will be cast to
 	 *                       Integer for numeric values
-	 * @param recordNumber - Integer how many records we want to pull from the tables
+	 * @param recordNumber - Integer how many records we want to pull from the table
 	 * @param httpRequest  - the request
 	 * @return
 	 */
