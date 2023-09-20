@@ -3,10 +3,6 @@ package com.prtech.perun_core.ws;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -46,16 +42,16 @@ import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvSecurity;
+import com.prtech.svarog_common.DbDataArray;
+import com.prtech.svarog_common.DbDataField.DbFieldType;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbQuery;
 import com.prtech.svarog_common.DbQueryExpression;
 import com.prtech.svarog_common.DbQueryObject;
-import com.prtech.svarog_common.DbSearch;
-import com.prtech.svarog_common.DbSearchCriterion;
-import com.prtech.svarog_common.DbDataArray;
-import com.prtech.svarog_common.DbDataField.DbFieldType;
 import com.prtech.svarog_common.DbQueryObject.DbJoinType;
 import com.prtech.svarog_common.DbQueryObject.LinkType;
+import com.prtech.svarog_common.DbSearch;
+import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 
@@ -353,5 +349,4 @@ public class WsReporting {
 				}
 		}
 	}
-
 }
