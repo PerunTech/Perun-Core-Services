@@ -2682,11 +2682,9 @@ public class WsReactElements {
 
 	private void setParcelLinks(DbDataObject vdataObject, List<Geometry> tileGeomList, SvWriter svw)
 			throws SvException {
-
 		DbDataArray intParcelSet = new DbDataArray();
 		Long vdataObjId = vdataObject.getObjectId();
 		Geometry vdataGeom = SvGeometry.getGeometry(vdataObject);
-
 		// Generate intersecting parcel array
 		for (Geometry tgl : tileGeomList) {
 			String tileID = (String) tgl.getUserData();
@@ -2703,7 +2701,6 @@ public class WsReactElements {
 				}
 			}
 		}
-
 		// Generate links for intParcelSet.items and vdataObject
 		if (intParcelSet != null && !intParcelSet.getItems().isEmpty()) {
 			SvLink svLink = new SvLink(svw);
@@ -4393,6 +4390,73 @@ public class WsReactElements {
 		String retString = prepareRetStringPerGetObjectsByLink(sessionId, objectId, statuses, tableName, linkName,
 				linkStatus, rowLimit);
 		return Response.status(200).entity(retString).build();
+	}
+
+	@Path("/getObjectsByLinkPerStatuses/{sessionId}/{objectId}/{statuses}/{tableName}/{linkName}/{linkStatus}/{rowLimit}/{sortOrder}")
+	@GET
+	@Produces("application/json")
+	public Response getObjectsByLinkPerStatuses(@PathParam("sessionId") String sessionId,
+			@PathParam("objectId") Long objectId, @PathParam("statuses") String statuses,
+			@PathParam("tableName") String tableName, @PathParam("linkName") String linkName,
+			@PathParam("linkStatus") String linkStatus, @PathParam("rowLimit") Integer rowLimit,
+			@PathParam("sortOrder") String sortOrder, @Context HttpServletRequest httpRequest) {
+		String retString = prepareRetStringPerGetObjectsByLink(sessionId, objectId, statuses, tableName, linkName,
+				linkStatus, rowLimit, sortOrder);
+		return Response.status(200).entity(retString).build();
+	}
+
+	public String prepareRetStringPerGetObjectsByLink(String sessionId, Long objectId, String statuses,
+			String tableName, String linkName, String linkStatus, Integer rowLimit, String sortOrder) {
+		String retString = "[]";
+		String[] tablesUsedArray = new String[1];
+		Boolean[] tableShowArray = new Boolean[1];
+		int tablesusedCount = 1;
+		SvReader svr = null;
+		Long obj1Type = 0L;
+		Boolean isReverse = true;
+		DbDataArray vData = null;
+		Long tableID = findTableType(tableName);
+		try {
+			svr = new SvReader(sessionId);
+			tablesUsedArray[0] = getTableNameById(tableID, svr);
+			tableShowArray[0] = true;
+			DbDataObject dbLink = findLinkWithAdditionalCheck(getTableNameById(tableID, svr), linkName, objectId, svr);
+			if (dbLink != null) {
+				vData = getDbDataArrayInOrder(dbLink, tableID, objectId, obj1Type, linkStatus, tablesUsedArray,
+						isReverse, rowLimit, svr);
+				if (sortOrder.equalsIgnoreCase("DESC")) {
+					ArrayList<DbDataObject> items = vData.getSortedItems(Rc.PKID, true);
+					vData = new DbDataArray();
+					for (int i = items.size(); --i >= 0;) {
+						vData.addDataItem(items.get(i));
+					}
+				}
+				if (statuses != null && statuses.trim().length() > 0) {
+					vData = filterDataByStatus(statuses, vData);
+				}
+				retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr);
+			} else
+				retString = "LINK NOT FOUND IN DATABASE";
+		} catch (SvException e) {
+			log4j.error(e.getFormattedMessage(), e);
+		} finally {
+			releaseAll(svr);
+		}
+		return retString;
+	}
+
+	public DbDataArray getDbDataArrayInOrder(DbDataObject dbLink, Long tableID, Long objectId, Long obj1Type,
+			String linkStatus, String[] tablesUsedArray, Boolean isReverse, Integer rowLimit, SvReader svr)
+			throws SvException {
+		if (tableID.equals(dbLink.getVal(Rc.LINK_OBJECT_TYPE1))) {
+			isReverse = true;
+			obj1Type = (Long) dbLink.getVal(Rc.LINK_OBJECT_TYPE2);
+		} else {
+			isReverse = false;
+			obj1Type = (Long) dbLink.getVal(Rc.LINK_OBJECT_TYPE1);
+		}
+		return svr.getObjectsByLinkedId(objectId, obj1Type, dbLink, SvCore.getTypeIdByName(tablesUsedArray[0]),
+				isReverse, null, rowLimit, 0, linkStatus);
 	}
 
 	public String prepareRetStringPerGetObjectsByLink(String sessionId, Long objectId, String statuses,
