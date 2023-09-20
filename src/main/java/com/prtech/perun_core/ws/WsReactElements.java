@@ -3655,6 +3655,41 @@ public class WsReactElements {
 	/**
 	 * Web service to return any table using filter "equals" for one or multiple
 	 * fields , it will also return svarog repo fields *(STATUS and PARENT_ID), you
+	 * can use AND/OR for concatenation of filters
+	 * 
+	 * @param sessionId           Session ID (SID) of the web communication between
+	 *                            browser and web server
+	 * @param table_name          String table from which we want to get data
+	 * @param fieldNames          String - names of fields that should be used in
+	 *                            the search criteria. The names are comma separated
+	 * @param criterumConjuctions String - logic operands that should be used in the
+	 *                            search between criteria. The names are comma
+	 *                            separated
+	 * @param fieldValues         String - names of values that should be used in
+	 *                            the search criteria. The values are comma
+	 *                            separated
+	 * @param no_rec              Integer how many records we want to pull from the
+	 *                            table
+	 * @param sortOrder           String for ascending or descending, accepts ASC OR
+	 *                            DESC
+	 * 
+	 * @return Json with all objects found
+	 */
+	@Path("/getTableWithMultipleFilters/{session_id}/{table_name}/{fieldNames}/{criterumConjuctions}/{fieldValues}/{no_rec}/{sortOrder}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getTableWithMultipleFilters(@PathParam("session_id") String sessionId,
+			@PathParam("table_name") String tableName, @PathParam("fieldNames") String fieldNames,
+			@PathParam("criterumConjuctions") String criterumConjuctions, @PathParam("fieldValues") String fieldValues,
+			@PathParam("no_rec") Integer recordNumber, @PathParam("sortOrder") String sortOrder,
+			@Context HttpServletRequest httpRequest) {
+		return getTableWithMultipleFilters(sessionId, tableName, fieldNames, criterumConjuctions, fieldValues,
+				recordNumber, null, sortOrder, httpRequest);
+	}
+
+	/**
+	 * Web service to return any table using filter "equals" for one or multiple
+	 * fields , it will also return svarog repo fields *(STATUS and PARENT_ID), you
 	 * can use AND/OR for concatenation of filters, also has sort field and order
 	 * 
 	 * @param sessionId           Session ID (SID) of the web communication between
@@ -3984,10 +4019,10 @@ public class WsReactElements {
 	 * Wrapper service of getTableWithILike
 	 * 
 	 * @param sessionId    - the session of the logged user
-	 * @param tableName    - the name of the 
+	 * @param tableName    - the name of the
 	 * @param fieldName    - String table from which we want to get data
-	 * @param fieldValue   - String value that we are trying to find, will be cast to
-	 *                       Integer for numeric values
+	 * @param fieldValue   - String value that we are trying to find, will be cast
+	 *                     to Integer for numeric values
 	 * @param recordNumber - Integer how many records we want to pull from the table
 	 * @param httpRequest  - the request
 	 * @return
