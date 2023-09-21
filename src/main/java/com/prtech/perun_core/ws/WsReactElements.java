@@ -6748,6 +6748,17 @@ public class WsReactElements {
 		return linkObjects(sessionId, objectId1, tableName1, objectId2, tableName2, linkName, null, httpRequest);
 	}
 
+	@Path("/linkObjects/{session_id}/{objectId1}/{tableName1}/{objectId2}/{tableName2}/{linkName}")
+	@GET
+	@Produces("application/json")
+	public Response linkObjectsGet(@PathParam("session_id") String sessionId, @PathParam("objectId1") Long objectId1,
+			@PathParam("tableName1") String tableName1, @PathParam("objectId2") Long objectId2,
+			@PathParam("tableName2") String tableName2, @PathParam("linkName") String linkName,
+			@Context HttpServletRequest httpRequest) {
+
+		return linkObjects(sessionId, objectId1, tableName1, objectId2, tableName2, linkName, null, httpRequest);
+	}
+
 	/**
 	 * method to create link between 2 objects, for now it will not check if link
 	 * already exist
