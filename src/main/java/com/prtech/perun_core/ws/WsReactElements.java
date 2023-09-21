@@ -4186,12 +4186,10 @@ public class WsReactElements {
 		String[] tablesUsedArray = new String[1];
 		Boolean[] tableShowArray = new Boolean[1];
 		int tablesusedCount = 1;
-		SvReader svr = null;
 		Long pobjectType = 0L;
-		try {
+		try (SvReader svr = new SvReader(sessionId)) {
 			// try to find the type with ID
 			pobjectType = findTableType(objectName);
-			svr = new SvReader(sessionId);
 			tablesUsedArray[0] = getTableNameById(pobjectType, svr);
 			tableShowArray[0] = true;
 			DbDataArray vData = new DbDataArray();
@@ -4218,10 +4216,11 @@ public class WsReactElements {
 				}
 			}
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
-		} finally {
-			releaseAll(svr);
+			// exception for IACS business logic escaped
+			if (retString.equals("") || e.getConfigData().equals("APPLICATION")) {
+				log4j.error(e.getFormattedMessage(), e);
+				return Response.status(401).entity(e.getFormattedMessage()).build();
+			}
 		}
 		return Response.status(200).entity(retString).build();
 	}
