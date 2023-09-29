@@ -4198,7 +4198,8 @@ public class WsReactElements {
 				vData.addDataItem(dboObjFound);
 			}
 			retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr);
-			if (pobjectType.compareTo(SvCore.getTypeIdByName("APPLICATION")) == 0 && dboObjFound != null) {
+			//if (pobjectType.compareTo(SvCore.getTypeIdByName("APPLICATION")) == 0 && dboObjFound != null) {
+			if ("APPLICATION".equalsIgnoreCase(tablesUsedArray[0]) && dboObjFound != null) {
 				Long appDboLong = SvReader.getTypeIdByName("APPLICATION");
 				DbDataObject linkNewAppWithOldOne = SvCore.getLinkType("LINK NEW APPLICATION WITH OLD ONE", appDboLong,
 						appDboLong);
