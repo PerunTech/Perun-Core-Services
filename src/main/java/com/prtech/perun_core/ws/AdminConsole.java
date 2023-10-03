@@ -22,6 +22,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.SvConf;
+import com.prtech.svarog.SvConf.SvDbType;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvExecManager;
@@ -1048,8 +1049,10 @@ public class AdminConsole {
 			dbtSidAcl.addCustomJoinRight("object_id");
 			DbQueryObject dbtAcl = new DbQueryObject(SvCore.getDbtByName("SVAROG_ACL"), null, DbJoinType.LEFT, null,
 					LinkType.CUSTOM_FREETEXT, null, null);
+			SvDbType dbType = SvConf.getDbType();
+			String timestamp = dbType.equals(SvDbType.ORACLE)? "sysdate" : "current_timestamp";
 			dbtAcl.setCustomFreeTextJoin(
-					" on (tbl2.object_id = tbl1.acl_object_id and sysdate between tbl2.dt_insert and tbl2.dt_delete) or tbl2.object_id is null");
+					" on (tbl2.object_id = tbl1.acl_object_id and "+timestamp+" between tbl2.dt_insert and tbl2.dt_delete) or tbl2.object_id is null");
 			DbQueryObject dbtTable = new DbQueryObject(SvCore.getDbtByName("SVAROG_TABLES"), null, DbJoinType.INNER,
 					null, null, null, null);
 			DbQueryExpression q = new DbQueryExpression();
@@ -1220,9 +1223,10 @@ public class AdminConsole {
 
 			DbQueryObject dbtAcl = new DbQueryObject(SvCore.getDbtByName("SVAROG_ACL"), null, DbJoinType.LEFT, null,
 					LinkType.CUSTOM_FREETEXT, null, null);
+			SvDbType dbType = SvConf.getDbType();
+			String timestamp = dbType.equals(SvDbType.ORACLE)? "sysdate" : "current_timestamp";
 			dbtAcl.setCustomFreeTextJoin(
-					" on (tbl5.object_id = tbl4.acl_object_id and sysdate between tbl5.dt_insert and tbl5.dt_delete) or tbl5.object_id is null");
-			
+					" on (tbl5.object_id = tbl4.acl_object_id and "+timestamp+" between tbl5.dt_insert and tbl5.dt_delete) or tbl5.object_id is null");
 			DbQueryObject dbtTable = new DbQueryObject(SvCore.getDbtByName("SVAROG_TABLES"), null, DbJoinType.INNER,
 					null, null, null, null);
 			DbQueryExpression q = new DbQueryExpression();
