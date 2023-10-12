@@ -257,16 +257,14 @@ public class WsConf {
 			Gson gson = new Gson();
 			svr = new SvReader(token);
 			spm = new SvPerunManager(token);
-
+			DbDataObject userDbo = SvCore.getUserBySession(token);
 			if (svr.isAdmin()) {
-				DbDataObject userDbo = SvCore.getUserBySession(token);
 				if (userDbo.getVal("USER_NAME").equals("ADMIN")) {
 					accessCard = true;
 				} else {
 					accessCard = false;
 				}
 			}
-
 			if (accessCard) {
 				JsonObject jObj = new JsonObject();
 				for (Entry<String, SvPerunInstance> plugins : spm.getPerunPlugins()) {
@@ -276,7 +274,11 @@ public class WsConf {
 					jObj.addProperty("title", I18n.getText(dbocard.getLabelCode()));
 					jObj.addProperty("text", I18n.getLongText(dbocard.getLabelCode()));
 					jObj.addProperty("card_hidden", cardIsHidden(dbocard.getDboPlugin()));
-					jObj.addProperty("cardDirectAccess", manageCardAccess(dbocard.getDboPlugin(), svr));
+					if (!userDbo.getVal("USER_NAME").equals("ADMIN")) {
+						jObj.addProperty("cardDirectAccess", manageCardAccess(dbocard.getDboPlugin(), svr));
+					} else {
+						jObj.addProperty("cardDirectAccess", false);
+					}
 					jObj.addProperty("hasPersistReducer", hasReducer(dbocard.getDboPlugin()));
 					if (dbocard.getImgPath() != null) {
 						jObj.addProperty("imgPath", dbocard.getImgPath());
