@@ -4217,8 +4217,8 @@ public class WsReactElements {
 				}
 			}
 		} catch (SvException e) {
-			// exception for IACS business logic escaped
-			if (retString.equals("") || e.getConfigData().equals("APPLICATION")) {
+			// exception for IACS business logic escaped         
+			if (retString.equals("") || !e.getConfigData().equals("APPLICATION")) {
 				log4j.error(e.getFormattedMessage(), e);
 				return Response.status(401).entity(e.getFormattedMessage()).build();
 			}
