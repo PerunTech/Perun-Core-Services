@@ -438,6 +438,7 @@ public class Perun_core_tests {
 		}
 	}
 
+	
 	@Test
 	public void assigneUserToGroup() {
 		SvSecurity svc;
@@ -463,8 +464,8 @@ public class Perun_core_tests {
 		SvSecurity svc;
 		try {
 			svc = new SvSecurity();
-			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("notvalid"));
-			Response test = wsc.getTableJSONSchema(sessionId, "LAND_USE_PLAN", null);
+			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
+			Response test = wsc.getTableJSONSchema(sessionId, "BANKACC", null);
 			System.out.print(test);
 		} catch (SvException e) {
 			// TODO Auto-generated catch block
@@ -479,8 +480,8 @@ public class Perun_core_tests {
 		SvSecurity svc;
 		try {
 			svc = new SvSecurity();
-			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("notvalid"));
-			Response test = wsc.getRowDataByObjectId(sessionId, 698497726L, "APPLICATION", null);
+			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
+			Response test = wsc.getRowDataByObjectId(sessionId, 17302L, "FARM", null);
 			System.out.print(test);
 		} catch (SvException e) {
 			// TODO Auto-generated catch block
