@@ -438,6 +438,7 @@ public class Perun_core_tests {
 		}
 	}
 
+	
 	@Test
 	public void assigneUserToGroup() {
 		SvSecurity svc;
