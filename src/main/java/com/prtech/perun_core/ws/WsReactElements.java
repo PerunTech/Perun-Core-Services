@@ -4590,7 +4590,7 @@ public class WsReactElements {
 							jLeaf.addProperty("minLength", jsonreactGUI.get("minLength").getAsNumber());
 						if (jsonreactGUI != null && jsonreactGUI.has("maxLength"))
 							jLeaf.addProperty("maxLength", jsonreactGUI.get("maxLength").getAsLong());
-						if (Rc.NUMERIC.equals(tempDboField.getVal(Rc.FIELD_TYPE).toString()))
+						if (Rc.NUMERIC.equals(tempDboField.getVal(Rc.FIELD_TYPE).toString())) {
 							if (jsonreactGUI != null && jsonreactGUI.has("maximum")) {
 								if (jsonreactGUI.get("maximum") != null
 										&& !jsonreactGUI.get("maximum").getAsString().trim().equals("")) {
@@ -4599,7 +4599,13 @@ public class WsReactElements {
 							} else {
 								jLeaf.addProperty("maximum", 999999999999999L);
 							}
-
+							if (jsonreactGUI != null && jsonreactGUI.has("minimum")) {
+								if (jsonreactGUI.get("minimum") != null
+										&& !jsonreactGUI.get("minimum").getAsString().trim().equals("")) {
+									jLeaf.addProperty("minimum", jsonreactGUI.get("minimum").getAsLong());
+								}
+							}
+						}
 						if (jsonreactGUI != null && jsonreactGUI.has("inputDescValue"))
 							jLeaf.addProperty("inputDescValue", jsonreactGUI.get("inputDescValue").getAsString());
 						if (jsonreactGUI != null && jsonreactGUI.has("descriptionValue"))
