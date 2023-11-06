@@ -29,8 +29,8 @@ public class DbInit implements IDbInit {
 	public static DbDataTable form_wizard() {
 		DbDataTable dbe = new DbDataTable();
 		dbe.setDbTableName("form_wizard");
-		dbe.setDbRepoName("{MASTER_REPO}");
-		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setDbRepoName(CONST_MASTER_REPO);
+		dbe.setDbSchema(CONST_DEFAULT_SCHEMA);
 		dbe.setIsSystemTable(false);
 		dbe.setIsRepoTable(false);
 		dbe.setLabel_code("master_repo.form_wizard");
