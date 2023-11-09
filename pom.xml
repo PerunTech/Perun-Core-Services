@@ -5,7 +5,7 @@
 
 	<groupId>org.peruntech</groupId>
 	<artifactId>perun-core-services</artifactId>
-	<version>4.0.0-SNAPSHOT</version>
+	<version>4.0.0</version>
 	<packaging>bundle</packaging>
 	<name>Perun Core Services</name>
 	<url>https://gitlab.prtech.mk/perunv3/perun-core-services/</url>
