@@ -39,6 +39,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
+import com.prtech.perun.PerunUtil;
 import com.prtech.svarog.CodeList;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.SvComplexCache;
@@ -3301,8 +3302,7 @@ public class WsReactElements {
 				}
 			}
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting table field list");
 		}
 		return Response.status(200).entity(jArray.toString()).build();
 	}
@@ -3352,8 +3352,7 @@ public class WsReactElements {
 				}
 			}
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting table field list full");
 		} finally {
 			releaseAll(svr);
 		}
@@ -3381,8 +3380,7 @@ public class WsReactElements {
 			retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, doTranslate, svr,
 					true, mapFieldDenormalizedField).toString();
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting table data");
 		} finally {
 			releaseAll(svr);
 		}
@@ -3445,8 +3443,7 @@ public class WsReactElements {
 			retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, doTranslate,
 					mapFieldDenormalizedField, svr);
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting table data");
 		} finally {
 			releaseAll(svr);
 		}
@@ -3589,12 +3586,8 @@ public class WsReactElements {
 
 				retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr);
 			}
-		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
-		} catch (UnsupportedEncodingException e) {
-			log4j.error(e.toString(), e);
-			return Response.status(401).entity(e.toString()).build();
+		} catch (SvException | UnsupportedEncodingException e) {
+			return PerunUtil.handleException(e, "Error getting table with filter");
 		} finally {
 			releaseAll(svr);
 		}
@@ -3816,8 +3809,7 @@ public class WsReactElements {
 				}
 			}
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting table with multiple filters");
 		} finally {
 			releaseAll(svr);
 		}
@@ -3870,11 +3862,7 @@ public class WsReactElements {
 				return Response.status(200).entity("empty").build();
 			}
 		} catch (SvException e) {
-			log4j.error(e.getStackTrace(), e);
-			return Response.status(401).entity(e.getLabelCode()).build();
-		} catch (Exception e) {
-			log4j.error(e.getStackTrace());
-			return Response.status(401).entity(e.getMessage()).build();
+			return PerunUtil.handleException(e, "Error getting table with multiple filters");
 		}
 		return Response.status(200).entity(jArrayResultSet.toString()).build();
 	}
@@ -3916,8 +3904,7 @@ public class WsReactElements {
 			retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr, true,
 					mapFieldDenormalizedField).toString();
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error searching table");
 		} finally {
 			releaseAll(svr);
 		}
@@ -3975,12 +3962,8 @@ public class WsReactElements {
 			retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true,
 					mapFieldDenormalizedField, svr);
 
-		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
-		} catch (UnsupportedEncodingException e) {
-			log4j.error(e.toString(), e);
-			return Response.status(401).entity(e.toString()).build();
+		} catch (SvException | UnsupportedEncodingException e) {
+			return PerunUtil.handleException(e, "Error searching table with like");
 		} finally {
 			releaseAll(svr);
 		}
@@ -4102,12 +4085,8 @@ public class WsReactElements {
 			}
 
 			retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr);
-		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
-		} catch (UnsupportedEncodingException e) {
-			log4j.error(e.toString(), e);
-			return Response.status(401).entity(e.toString()).build();
+		} catch (SvException | UnsupportedEncodingException e) {
+			return PerunUtil.handleException(e, "Error searching table with like");
 		} finally {
 			releaseAll(svr);
 		}
@@ -4158,8 +4137,7 @@ public class WsReactElements {
 			}
 			retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr);
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting objects by parent");
 		} finally {
 			releaseAll(svr);
 		}
@@ -4187,7 +4165,7 @@ public class WsReactElements {
 		Boolean[] tableShowArray = new Boolean[1];
 		int tablesusedCount = 1;
 		Long pobjectType = 0L;
-		try (SvReader svr = new SvReader(sessionId)) {
+		try (SvReader svr = new SvReader(sessionId);) {
 			// try to find the type with ID
 			pobjectType = findTableType(objectName);
 			tablesUsedArray[0] = getTableNameById(pobjectType, svr);
@@ -4198,30 +4176,32 @@ public class WsReactElements {
 				vData.addDataItem(dboObjFound);
 			}
 			retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr);
-			//if (pobjectType.compareTo(SvCore.getTypeIdByName("APPLICATION")) == 0 && dboObjFound != null) {
-			if ("APPLICATION".equalsIgnoreCase(tablesUsedArray[0]) && dboObjFound != null) {
-				Long appDboLong = SvReader.getTypeIdByName("APPLICATION");
-				DbDataObject linkNewAppWithOldOne = SvCore.getLinkType("LINK NEW APPLICATION WITH OLD ONE", appDboLong,
-						appDboLong);
-				DbDataArray linkedApps = svr.getObjectsByLinkedId(objectId, appDboLong, linkNewAppWithOldOne,
-						appDboLong, false, null, 0, 0);
-				if (linkedApps != null && !linkedApps.getItems().isEmpty()) {
-					Gson gson = new Gson();
-					JsonArray jsonArray = gson.fromJson(retString, JsonArray.class);
-					JsonObject asd = (JsonObject) jsonArray.get(0);
-					asd.addProperty("APPLICATION.IS_ANNEX", true);
-					asd.addProperty("APPLICATION.ORIGIN_ID", linkedApps.getItems().get(0).getObjectId());
-					JsonArray jsonArray1 = new JsonArray();
-					jsonArray1.add(asd);
-					retString = jsonArray1.toString();
+			// if (pobjectType.compareTo(SvCore.getTypeIdByName("APPLICATION")) == 0 &&
+			// dboObjFound != null) {
+
+			// this is strictly AFSARD code, should be removed.
+			String clientName = SvParameter.getSysParam("CLIENT_NAME", "UKNOWN");
+			if (clientName.equals("AFSARD")) {
+				if ("APPLICATION".equalsIgnoreCase(tablesUsedArray[0]) && dboObjFound != null) {
+					Long appDboLong = SvReader.getTypeIdByName("APPLICATION");
+					DbDataObject linkNewAppWithOldOne = SvCore.getLinkType("LINK NEW APPLICATION WITH OLD ONE",
+							appDboLong, appDboLong);
+					DbDataArray linkedApps = svr.getObjectsByLinkedId(objectId, appDboLong, linkNewAppWithOldOne,
+							appDboLong, false, null, 0, 0);
+					if (linkedApps != null && !linkedApps.getItems().isEmpty()) {
+						Gson gson = new Gson();
+						JsonArray jsonArray = gson.fromJson(retString, JsonArray.class);
+						JsonObject asd = (JsonObject) jsonArray.get(0);
+						asd.addProperty("APPLICATION.IS_ANNEX", true);
+						asd.addProperty("APPLICATION.ORIGIN_ID", linkedApps.getItems().get(0).getObjectId());
+						JsonArray jsonArray1 = new JsonArray();
+						jsonArray1.add(asd);
+						retString = jsonArray1.toString();
+					}
 				}
 			}
 		} catch (SvException e) {
-			// exception for IACS business logic escaped         
-			if (retString.equals("") || !e.getConfigData().equals("APPLICATION")) {
-				log4j.error(e.getFormattedMessage(), e);
-				return Response.status(401).entity(e.getFormattedMessage()).build();
-			}
+			return PerunUtil.handleException(e, "Error getting row by Id");
 		}
 		return Response.status(200).entity(retString).build();
 	}
@@ -4288,8 +4268,7 @@ public class WsReactElements {
 			DbDataArray vData = svr.getObjectsHistory(dbse, SvReader.getTypeIdByName(objectName), 0, 0);
 			retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr);
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting history by Parent Id");
 		} finally {
 			releaseAll(svr);
 		}
@@ -4334,8 +4313,7 @@ public class WsReactElements {
 			DbDataArray vData = svr.getObjectsHistory(dbse, SvReader.getTypeIdByName(objectName), 0, 0);
 			retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr);
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting history by Object Id");
 		} finally {
 			releaseAll(svr);
 		}
@@ -4374,9 +4352,13 @@ public class WsReactElements {
 			@PathParam("table_name") String tableName, @PathParam("linkName") String linkName,
 			@PathParam("link_status") String linkStatus, @PathParam("rowLimit") Integer rowLimit,
 			@Context HttpServletRequest httpRequest) {
-		String retString = prepareRetStringPerGetObjectsByLink(sessionId, objectId, null, tableName, linkName,
-				linkStatus, rowLimit);
-		return Response.status(200).entity(retString).build();
+		try {
+			String retString = prepareRetStringPerGetObjectsByLink(sessionId, objectId, null, tableName, linkName,
+					linkStatus, rowLimit);
+			return Response.status(200).entity(retString).build();
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error getting Objects By Link Per Statuses");
+		}
 	}
 
 	@Path("/getObjectsByLinkPerStatuses/{sessionId}/{objectId}/{statuses}/{table_name}/{linkName}/{rowLimit}/{link_status}")
@@ -4387,9 +4369,14 @@ public class WsReactElements {
 			@PathParam("statuses") String statuses, @PathParam("linkName") String linkName,
 			@PathParam("link_status") String linkStatus, @PathParam("rowLimit") Integer rowLimit,
 			@Context HttpServletRequest httpRequest) {
-		String retString = prepareRetStringPerGetObjectsByLink(sessionId, objectId, statuses, tableName, linkName,
-				linkStatus, rowLimit);
-		return Response.status(200).entity(retString).build();
+		try {
+
+			String retString = prepareRetStringPerGetObjectsByLink(sessionId, objectId, statuses, tableName, linkName,
+					linkStatus, rowLimit);
+			return Response.status(200).entity(retString).build();
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error getting Objects By Link Per Statuses");
+		}
 	}
 
 	@Path("/getObjectsByLinkPerStatuses/{sessionId}/{objectId}/{statuses}/{tableName}/{linkName}/{linkStatus}/{rowLimit}/{sortOrder}")
@@ -4400,13 +4387,19 @@ public class WsReactElements {
 			@PathParam("tableName") String tableName, @PathParam("linkName") String linkName,
 			@PathParam("linkStatus") String linkStatus, @PathParam("rowLimit") Integer rowLimit,
 			@PathParam("sortOrder") String sortOrder, @Context HttpServletRequest httpRequest) {
-		String retString = prepareRetStringPerGetObjectsByLink(sessionId, objectId, statuses, tableName, linkName,
-				linkStatus, rowLimit, sortOrder);
-		return Response.status(200).entity(retString).build();
+		try {
+			String retString = prepareRetStringPerGetObjectsByLink(sessionId, objectId, statuses, tableName, linkName,
+					linkStatus, rowLimit, sortOrder);
+			return Response.status(200).entity(retString).build();
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error getting Objects By Link Per Statuses");
+		}
+
 	}
 
 	public String prepareRetStringPerGetObjectsByLink(String sessionId, Long objectId, String statuses,
-			String tableName, String linkName, String linkStatus, Integer rowLimit, String sortOrder) {
+			String tableName, String linkName, String linkStatus, Integer rowLimit, String sortOrder)
+			throws SvException {
 		String retString = "[]";
 		String[] tablesUsedArray = new String[1];
 		Boolean[] tableShowArray = new Boolean[1];
@@ -4437,8 +4430,6 @@ public class WsReactElements {
 				retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr);
 			} else
 				retString = "LINK NOT FOUND IN DATABASE";
-		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
 		} finally {
 			releaseAll(svr);
 		}
@@ -4460,7 +4451,7 @@ public class WsReactElements {
 	}
 
 	public String prepareRetStringPerGetObjectsByLink(String sessionId, Long objectId, String statuses,
-			String tableName, String linkName, String linkStatus, Integer rowLimit) {
+			String tableName, String linkName, String linkStatus, Integer rowLimit) throws SvException {
 		String retString = "";
 		String[] tablesUsedArray = new String[1];
 		Boolean[] tableShowArray = new Boolean[1];
@@ -4491,8 +4482,6 @@ public class WsReactElements {
 				retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr);
 			} else
 				retString = "LINK NOT FOUND IN DATABASE";
-		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
 		} finally {
 			releaseAll(svr);
 		}
@@ -4696,11 +4685,8 @@ public class WsReactElements {
 					jData.add(Rc.REQUIRED, element);
 				}
 			}
-		} catch (
-
-		SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+		} catch (SvException e) {
+			return PerunUtil.handleException(e, "Error getting Table JSON Schema");
 		} finally {
 			releaseAll(svr);
 			releaseAll(svp);
@@ -4796,8 +4782,7 @@ public class WsReactElements {
 				}
 			}
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting Table UI Schema");
 		} finally {
 			releaseAll(svr);
 		}
@@ -4888,8 +4873,7 @@ public class WsReactElements {
 				return Response.status(200).entity("no child objects found").build();
 			}
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting form data by parent");
 		} finally {
 			releaseAll(svr);
 			releaseAll(svp);
@@ -5012,8 +4996,7 @@ public class WsReactElements {
 					}
 				}
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting table form data");
 		} finally {
 			releaseAll(svr);
 			releaseAll(svp);
@@ -5135,8 +5118,7 @@ public class WsReactElements {
 				}
 			}
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting Form JSON Schema");
 		} finally {
 			releaseAll(svr);
 		}
@@ -5179,79 +5161,79 @@ public class WsReactElements {
 				typetoGet = svr.getObjectsByLinkedId(formObject.getObjectId(), svCONST.OBJECT_TYPE_FORM_TYPE, dbLink,
 						svCONST.OBJECT_TYPE_FORM_FIELD_TYPE, false, null, 0, 0);
 			}
+	
+			if (typetoGet != null && !typetoGet.getItems().isEmpty())
+				for (int i = 0; i < typetoGet.getItems().size(); i++) {
+					JsonObject jsonreactGUI = null;
+					JsonObject jsonObj = null;
+					JsonObject jsonUISchema = null;
+					JsonObject jsonUISchemaFalseProp = null;
+					JsonObject jsonUISchemaTrueProp = null;
+
+					if (typetoGet.getItems().get(i).getVal(Rc.GUI_METADATA) != null)
+						try {
+							jsonObj = gson.fromJson(typetoGet.getItems().get(i).getVal(Rc.GUI_METADATA).toString(),
+									JsonObject.class);
+						} catch (JsonSyntaxException e) {
+							// bad json syntax
+						}
+
+					if (jsonObj != null)
+						jsonreactGUI = (JsonObject) jsonObj.get(Rc.REACT);
+					if (jsonreactGUI != null && jsonreactGUI.has(Rc.UISCHEMA))
+						try {
+							jsonUISchema = gson.fromJson(jsonreactGUI.get(Rc.UISCHEMA).toString(), JsonObject.class);
+							jsonUISchemaTrueProp = gson.fromJson(jsonreactGUI.get(Rc.UISCHEMA).toString(),
+									JsonObject.class);
+							jsonUISchemaFalseProp = gson.fromJson(jsonreactGUI.get(Rc.UISCHEMA).toString(),
+									JsonObject.class);
+						} catch (JsonSyntaxException e) {
+							// bad json syntax
+						}
+					if (jsonUISchema != null && jsonUISchemaTrueProp != null && jsonUISchemaFalseProp != null) {
+						jsonUISchemaTrueProp.addProperty("ui:readonly", true);
+						jsonUISchemaFalseProp.addProperty("ui:readonly", false);
+						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(), jsonUISchema);
+					} else {
+						jsonUISchema = new JsonObject();
+						jsonUISchemaTrueProp = new JsonObject();
+						jsonUISchemaTrueProp.addProperty("ui:readonly", true);
+						jsonUISchemaFalseProp = new JsonObject();
+						jsonUISchemaFalseProp.addProperty("ui:readonly", false);
+					}
+					/* scenarios based on user_group and app status f.r */
+					switch (scenario.toString()) {
+					case "1":
+						if (jsonUISchema != null)
+							jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(), jsonUISchema);
+						break;
+					case "2":
+						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(), jsonUISchemaTrueProp);
+						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString() + "_1ST",
+								jsonUISchemaFalseProp);
+						break;
+					case "3":
+						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(), jsonUISchemaTrueProp);
+						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString() + "_1ST",
+								jsonUISchemaTrueProp);
+						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString() + "_2ND",
+								jsonUISchemaFalseProp);
+						break;
+					case "4":
+						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(), jsonUISchemaTrueProp);
+						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString() + "_1ST",
+								jsonUISchemaTrueProp);
+						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString() + "_2ND",
+								jsonUISchemaTrueProp);
+						break;
+					default:
+					}
+				}
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting Form UI Schema");
 		} finally {
 			releaseAll(svr);
 		}
-		if (typetoGet != null && !typetoGet.getItems().isEmpty())
-			for (int i = 0; i < typetoGet.getItems().size(); i++) {
-				JsonObject jsonreactGUI = null;
-				JsonObject jsonObj = null;
-				JsonObject jsonUISchema = null;
-				JsonObject jsonUISchemaFalseProp = null;
-				JsonObject jsonUISchemaTrueProp = null;
-
-				if (typetoGet.getItems().get(i).getVal(Rc.GUI_METADATA) != null)
-					try {
-						jsonObj = gson.fromJson(typetoGet.getItems().get(i).getVal(Rc.GUI_METADATA).toString(),
-								JsonObject.class);
-					} catch (JsonSyntaxException e) {
-						// bad json syntax
-					}
-
-				if (jsonObj != null)
-					jsonreactGUI = (JsonObject) jsonObj.get(Rc.REACT);
-				if (jsonreactGUI != null && jsonreactGUI.has(Rc.UISCHEMA))
-					try {
-						jsonUISchema = gson.fromJson(jsonreactGUI.get(Rc.UISCHEMA).toString(), JsonObject.class);
-						jsonUISchemaTrueProp = gson.fromJson(jsonreactGUI.get(Rc.UISCHEMA).toString(),
-								JsonObject.class);
-						jsonUISchemaFalseProp = gson.fromJson(jsonreactGUI.get(Rc.UISCHEMA).toString(),
-								JsonObject.class);
-					} catch (JsonSyntaxException e) {
-						// bad json syntax
-					}
-				if (jsonUISchema != null && jsonUISchemaTrueProp != null && jsonUISchemaFalseProp != null) {
-					jsonUISchemaTrueProp.addProperty("ui:readonly", true);
-					jsonUISchemaFalseProp.addProperty("ui:readonly", false);
-					jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(), jsonUISchema);
-				} else {
-					jsonUISchema = new JsonObject();
-					jsonUISchemaTrueProp = new JsonObject();
-					jsonUISchemaTrueProp.addProperty("ui:readonly", true);
-					jsonUISchemaFalseProp = new JsonObject();
-					jsonUISchemaFalseProp.addProperty("ui:readonly", false);
-				}
-				/* scenarios based on user_group and app status f.r */
-				switch (scenario.toString()) {
-				case "1":
-					if (jsonUISchema != null)
-						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(), jsonUISchema);
-					break;
-				case "2":
-					jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(), jsonUISchemaTrueProp);
-					jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString() + "_1ST",
-							jsonUISchemaFalseProp);
-					break;
-				case "3":
-					jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(), jsonUISchemaTrueProp);
-					jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString() + "_1ST",
-							jsonUISchemaTrueProp);
-					jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString() + "_2ND",
-							jsonUISchemaFalseProp);
-					break;
-				case "4":
-					jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(), jsonUISchemaTrueProp);
-					jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString() + "_1ST",
-							jsonUISchemaTrueProp);
-					jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString() + "_2ND",
-							jsonUISchemaTrueProp);
-					break;
-				default:
-				}
-			}
 		return Response.status(200).entity(jsonData.toString()).build();
 	}
 
@@ -5312,8 +5294,7 @@ public class WsReactElements {
 						jsonData1 = addValueToJsonObjectForm1(jsonData1, formObjectWithData, tempFieldType);
 			}
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting Form Data");
 		} finally {
 			releaseAll(svr);
 		}
@@ -5644,37 +5625,8 @@ public class WsReactElements {
 			}
 			jrh.create(MessageType.SUCCESS, I18n.getText("perrun.success.save"), I18n.getText("perrun.success.save"),
 					vjsData);
-		} catch (SvException e) {
-
-			if (e instanceof SvException) {
-				SvException ex = (SvException) e;
-
-				jrh.create(MessageType.ERROR, I18n.getText("perrun.error.save"), I18n.getText(ex.getLabelCode()),
-						new JsonObject());
-				if (ex.getLabelCode().equals("error.invalid_session")) {
-
-					jrh.create(MessageType.ERROR, I18n.getText(ex.getLabelCode()), I18n.getText(ex.getJsonMessage()),
-							new JsonObject());
-					log4j.error(ex.getFormattedMessage());
-					return Response.status(401).entity(jrh.getAll().toString()).build();
-				} else {
-					log4j.error(ex.getLabelCode(), ex);
-					if (ex.getLabelCode().startsWith("sys")) {
-						return Response.status(500).entity(jrh.getAll().toString()).build();
-					}
-				}
-
-			} else {
-				log4j.error(e.getMessage(), e);
-				jrh.create(MessageType.ERROR, I18n.getText("perrun.error.save"), I18n.getText("perrun.error.save"),
-						new JsonObject());
-				return Response.status(500).entity(jrh.getAll().toString()).build();
-			}
-		} catch (SQLException e) {
-			log4j.error(e.getMessage(), e);
-			jrh.create(MessageType.ERROR, I18n.getText("perrun.error.save"), I18n.getText("perrun.error.save"),
-					new JsonObject());
-			return Response.status(500).entity(jrh.getAll().toString()).build();
+		} catch (SvException | SQLException e) {
+			return PerunUtil.handleException(e, "Error Saving Data");
 		} finally {
 			releaseAll(svr);
 			releaseAll(svw);
@@ -5926,37 +5878,8 @@ public class WsReactElements {
 			}
 			jrh.create(MessageType.SUCCESS, I18n.getText("perrun.success.save"), I18n.getText("perrun.success.save"),
 					vjsData);
-		} catch (SvException e) {
-
-			if (e instanceof SvException) {
-				SvException ex = (SvException) e;
-
-				jrh.create(MessageType.ERROR, I18n.getText("perrun.error.save"), I18n.getText(ex.getLabelCode()),
-						new JsonObject());
-				if (ex.getLabelCode().equals("error.invalid_session")) {
-
-					jrh.create(MessageType.ERROR, I18n.getText(ex.getLabelCode()), I18n.getText(ex.getJsonMessage()),
-							new JsonObject());
-					log4j.error(ex.getFormattedMessage());
-					return Response.status(401).entity(jrh.getAll().toString()).build();
-				} else {
-					log4j.error(ex.getLabelCode(), ex);
-					if (ex.getLabelCode().startsWith("sys")) {
-						return Response.status(500).entity(jrh.getAll().toString()).build();
-					}
-				}
-
-			} else {
-				log4j.error(e.getMessage(), e);
-				jrh.create(MessageType.ERROR, I18n.getText("perrun.error.save"), I18n.getText("perrun.error.save"),
-						new JsonObject());
-				return Response.status(500).entity(jrh.getAll().toString()).build();
-			}
-		} catch (SQLException e) {
-			log4j.error(e.getMessage(), e);
-			jrh.create(MessageType.ERROR, I18n.getText("perrun.error.save"), I18n.getText("perrun.error.save"),
-					new JsonObject());
-			return Response.status(500).entity(jrh.getAll().toString()).build();
+		} catch (SvException | SQLException e) {
+			return PerunUtil.handleException(e, "Error Saving Data with Link");
 		} finally {
 			releaseAll(svr);
 			releaseAll(svw);
@@ -6084,14 +6007,7 @@ public class WsReactElements {
 			jsonData.addProperty(Rc.PKID, vformObject.getPkid());
 			jsonData.addProperty(Rc.PARENT_ID, vformObject.getParentId());
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			try {
-				if (svw != null)
-					svw.dbRollback();
-			} catch (SvException e1) {
-				log4j.error(e1);
-			}
-			return Response.status(401).entity(e.getJsonMessage()).build();
+			return PerunUtil.handleException(e, "Error creating form with fields");
 		} finally {
 			releaseAll(svr);
 			releaseAll(svw);
@@ -6138,8 +6054,7 @@ public class WsReactElements {
 				retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr);
 			}
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting documents by parent");
 		} finally {
 			releaseAll(svr);
 		}
@@ -6203,8 +6118,7 @@ public class WsReactElements {
 			joinCritFromPrev.append(" ] ");
 			retString = joinCritFromPrev.toString();
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting transposed form by parent");
 		} finally {
 			releaseAll(svr);
 		}
@@ -6287,8 +6201,7 @@ public class WsReactElements {
 				}
 			}
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting transposed form by parent field list");
 		} finally {
 			releaseAll(svr);
 		}
@@ -6328,8 +6241,7 @@ public class WsReactElements {
 			vData = getYesNoDocuments(applicationId, supportType, svr);
 			retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr);
 		} catch (SvException e) {
-			debugSvException(e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting Y/N documents by parent");
 		} finally {
 			releaseAll(svr);
 		}
@@ -6415,8 +6327,7 @@ public class WsReactElements {
 					}
 				}
 		} catch (SvException e) {
-			debugSvException(e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting Y/N documents support type");
 		} finally {
 			releaseAll(svr);
 		}
@@ -6443,8 +6354,7 @@ public class WsReactElements {
 			if (listYesNDoc != null && !listYesNDoc.isEmpty())
 				jData = jsonYesNoDocFormJsonSchema(listYesNDoc, suppType, svr, scenario);
 		} catch (SvException e) {
-			debugSvException(e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting Y/N documents form schema");
 		} finally {
 			releaseAll(svr);
 		}
@@ -6563,12 +6473,8 @@ public class WsReactElements {
 			svr = new SvReader(sessionId);
 			DbDataArray ynDocBySuppType = listOfYNDocForSupportType(supportType, svr);
 			jData = jsonYesNoDocFormUiSchema(ynDocBySuppType, scenario);
-		} catch (JsonSyntaxException e) {
-			debugException(e);
-			return Response.status(401).entity(e.getMessage()).build();
-		} catch (SvException e) {
-			debugSvException(e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+		} catch (JsonSyntaxException | SvException e) {
+			return PerunUtil.handleException(e, "Error getting Y/N documents form UI schema");
 		} finally {
 			releaseAll(svr);
 		}
@@ -6633,8 +6539,7 @@ public class WsReactElements {
 			DbDataArray filteredListYesNDocForApp = listYesNDocForApp.applyFilter(filter);
 			jData = jsonYesNoDocFormData(filteredListYesNDocForApp);
 		} catch (SvException e) {
-			debugSvException(e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting Y/N documents form data");
 		} finally {
 			releaseAll(svr);
 		}
@@ -6733,8 +6638,7 @@ public class WsReactElements {
 				svw.dbCommit();
 			}
 		} catch (SvException e) {
-			log4j.debug(e);
-			return Response.status(401).entity(e.getJsonMessage()).build();
+			return PerunUtil.handleException(e, "Error creating Y/N document");
 		} finally {
 			releaseAll(svr);
 			releaseAll(svw);
@@ -6825,19 +6729,7 @@ public class WsReactElements {
 			}
 
 		} catch (Exception e) {
-			if (e instanceof SvException) {
-				SvException e1 = (SvException) e;
-				if (e1.getLabelCode().equals("error.invalid_session")) {
-					log4j.error(e1.getFormattedMessage());
-					jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
-							I18n.getText("error.invalid_session"), new JsonObject());
-					return Response.status(401).entity(jrh.getAll().toString()).build();
-				}
-
-				log4j.error(e1.getFormattedMessage(), e1);
-			}
-			log4j.error(e.getMessage(), e);
-
+			return PerunUtil.handleException(e, jrh, "Errror linking objects");
 		} finally {
 			releaseAll(svr);
 			releaseAll(svl);
@@ -6930,8 +6822,7 @@ public class WsReactElements {
 			} else
 				throw new SvException("link_type.not_found", null);
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, jrh, "Errror deleting link");
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
@@ -6961,8 +6852,7 @@ public class WsReactElements {
 						SvCore.getDbtByName("SVAROG_CONVERSATION").getObjectId(), null);
 			retString = prepareConversationHeader(conversationObject, svr).toString();
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error fetching conversation header");
 		} finally {
 			releaseAll(svr);
 		}
@@ -6993,8 +6883,7 @@ public class WsReactElements {
 						SvCore.getDbtByName("SVAROG_CONVERSATION").getObjectId(), null);
 				retString = prepareConversationData(svr, conversationObject).toString();
 			} catch (SvException e) {
-				log4j.error(e.getFormattedMessage(), e);
-				return Response.status(401).entity(e.getFormattedMessage()).build();
+				return PerunUtil.handleException(e, "Error fetching conversation data");
 			} finally {
 				releaseAll(svr);
 				releaseAll(svl);
@@ -7050,8 +6939,7 @@ public class WsReactElements {
 				retString = prapareTableQueryData(conversations, tablesUsedArray, tableShowArray, tablesusedCount, true,
 						svr);
 			} catch (SvException e) {
-				log4j.error(e.getFormattedMessage(), e);
-				return Response.status(401).entity(e.getFormattedMessage()).build();
+				return PerunUtil.handleException(e, "Error fetching conversation grid data");
 			} finally {
 				releaseAll(svr);
 			}
@@ -7081,8 +6969,7 @@ public class WsReactElements {
 						SvCore.getDbtByName("SVAROG_CONVERSATION").getObjectId(), null);
 				retString = processListOfMessages(svr, conversationObject).toString();
 			} catch (SvException e) {
-				log4j.error(e.getFormattedMessage(), e);
-				return Response.status(401).entity(e.getFormattedMessage()).build();
+				return PerunUtil.handleException(e, "Error fetching conversation messages");
 			} finally {
 				releaseAll(svr);
 			}
@@ -7184,7 +7071,7 @@ public class WsReactElements {
 							.build();
 				}
 			} catch (SvException | JsonSyntaxException e) {
-				res = Response.status(401).entity(e.getMessage()).build();
+				res = PerunUtil.handleException(e, "Error creating conversation");
 			} finally {
 				releaseAll(svr);
 				releaseAll(svw);
@@ -7256,10 +7143,8 @@ public class WsReactElements {
 			}
 			jrh.create(MessageType.SUCCESS, I18n.getText("fields.grid.list.loaded"),
 					I18n.getText("configuration.loaded"), jsonArrayResponse);
-		} catch (JsonSyntaxException e) {
-			jrh.create(MessageType.ERROR, I18n.getText("error.converting.data"), e.getMessage(), jsonArrayResponse);
-		} catch (SvException e) {
-			jrh = ResponseHandler.responseHandlerByException(e);
+		} catch (JsonSyntaxException | SvException e) {
+			return PerunUtil.handleException(e, "Error fetching object history fields");
 		} finally {
 			if (svr != null) {
 				svr.release();
@@ -7326,7 +7211,7 @@ public class WsReactElements {
 			jrh.create(MessageType.SUCCESS, I18n.getText("data.read"), "SvarogConfiguration.objectHistory ",
 					jsonArrayResponse);
 		} catch (SvException e) {
-			jrh = ResponseHandler.responseHandlerByException(e);
+			return PerunUtil.handleException(e, "Error getting object history");
 		} finally {
 			if (svr != null) {
 				svr.release();
@@ -7497,15 +7382,7 @@ public class WsReactElements {
 				}
 			}
 		} catch (SvException e) {
-			if (e.getLabelCode().equals("error.invalid_session")) {
-				log4j.error(e.getFormattedMessage());
-				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
-						I18n.getText("error.invalid_session"), new JsonObject());
-				return Response.status(401).entity(jrh.getAll().toString()).build();
-			}
-			log4j.error(e.getFormattedMessage(), e);
-		} catch (Exception e1) {
-			log4j.error(e1.getMessage(), e1);
+			return PerunUtil.handleException(e, "Error delete object");
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
@@ -7536,9 +7413,7 @@ public class WsReactElements {
 		String toStatus = "";
 		jrh.create(MessageType.ERROR, I18n.getText("change.status.error.object"),
 				I18n.getText("change.status.error.object"), new JsonObject());
-		SvWriter svw = null;
-		SvReader svr = null;
-		try {
+		try (SvReader svr = new SvReader(token); SvWriter svw = new SvWriter(svr)) {
 			if (formVals != null)
 				for (Entry<String, List<String>> entry : formVals.entrySet()) {
 					if (entry.getKey() != null && !entry.getKey().isEmpty()) {
@@ -7561,8 +7436,7 @@ public class WsReactElements {
 				toStatus = jsonData.get("status").getAsString();
 			}
 			if (objectId != null && objectTypeId != null && !toStatus.equals("")) {
-				svr = new SvReader(token);
-				svw = new SvWriter(svr);
+
 				DbDataObject dboToChangeStatus = null;
 				DbDataObject tmp = svr.getObjectById(objectId, objectTypeId, null);
 				if (tmp.getObjectType().equals(svCONST.OBJECT_TYPE_FORM_TYPE)) {
@@ -7578,26 +7452,8 @@ public class WsReactElements {
 						I18n.getText("change.status.success.object"), dboToChangeStatus.toSimpleJson());
 			}
 		} catch (Exception e) {
-			if (e instanceof SvException) {
-				SvException e1 = (SvException) e;
-				if (e1.getLabelCode().equals("error.invalid_session")) {
-					log4j.error(e1.getFormattedMessage());
-					jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
-							I18n.getText("error.invalid_session"), new JsonObject());
-					return Response.status(401).entity(jrh.getAll().toString()).build();
-				}
-				jrh.create(MessageType.ERROR, I18n.getText("change.status.error.object"),
-						I18n.getText(e1.getLabelCode()), new JsonObject());
-			}
-			log4j.error(e.getMessage(), e);
+			return PerunUtil.handleException(e, "Error changing status");
 
-		} finally {
-			if (svr != null) {
-				svr.release();
-			}
-			if (svw != null) {
-				svw.release();
-			}
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
@@ -7608,8 +7464,7 @@ public class WsReactElements {
 	public Response deleteLinkObject(@PathParam("session_id") String sessionId, MultivaluedMap<String, String> formVals,
 			@Context HttpServletRequest httpRequest) {
 		ResponseHandler jrh = new ResponseHandler();
-		SvWriter svw = null;
-		SvReader svr = null;
+
 		Long objectId1 = null;
 		Long objectId2 = null;
 		String objectType1 = "";
@@ -7617,7 +7472,7 @@ public class WsReactElements {
 		String linkType = "";
 		String jsonObjString = "";
 
-		try {
+		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr);) {
 			if (formVals != null)
 				for (Entry<String, List<String>> entry : formVals.entrySet()) {
 					if (entry.getKey() != null && !entry.getKey().isEmpty()) {
@@ -7629,8 +7484,6 @@ public class WsReactElements {
 			JsonObject jsonData = null;
 			Gson gson = new Gson();
 			jsonData = gson.fromJson(jsonObjString, JsonObject.class);
-			svr = new SvReader(sessionId);
-			svw = new SvWriter(svr);
 
 			if (jsonData.has("objectId1")) {
 				objectId1 = jsonData.get("objectId1").getAsLong();
@@ -7671,36 +7524,7 @@ public class WsReactElements {
 			jrh.create(MessageType.SUCCESS, I18n.getText("success.delete.object"),
 					I18n.getText("success.delete.object"), new JsonObject());
 		} catch (Exception e) {
-			if (e instanceof SvException) {
-				SvException ex = (SvException) e;
-
-				jrh.create(MessageType.ERROR, I18n.getText("error.delete.object"), I18n.getText(ex.getLabelCode()),
-						new JsonObject());
-				if (ex.getLabelCode().equals("error.invalid_session")) {
-
-					jrh.create(MessageType.ERROR, I18n.getText(ex.getLabelCode()), I18n.getText(ex.getJsonMessage()),
-							new JsonObject());
-					log4j.error(ex.getFormattedMessage());
-				} else {
-					log4j.error(ex.getLabelCode(), ex);
-					if (ex.getLabelCode().startsWith("sys")) {
-						return Response.status(500).entity(jrh.getAll()).build();
-					}
-				}
-
-			} else {
-				log4j.error(e.getMessage(), e);
-				jrh.create(MessageType.ERROR, I18n.getText("error.delete.object"), I18n.getText("error.delete.object"),
-						new JsonObject());
-				return Response.status(500).entity(jrh.getAll()).build();
-			}
-		} finally {
-			if (svr != null) {
-				svr.release();
-			}
-			if (svw != null) {
-				svw.release();
-			}
+			return PerunUtil.handleException(e, "Error deleting link");
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
@@ -8043,8 +7867,7 @@ public class WsReactElements {
 			}
 			jData.add(Rc.PROPERTIES, jFields);
 		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
+			return PerunUtil.handleException(e, "Error getting Search JSON Schema");
 		} finally {
 			releaseAll(svr);
 		}
@@ -8102,31 +7925,7 @@ public class WsReactElements {
 			jrh.create(MessageType.SUCCESS, I18n.getText("perrun.success.save"), I18n.getText("perrun.success.save"),
 					vdataObject.toSimpleJson());
 		} catch (SvException e) {
-
-			if (e instanceof SvException) {
-				SvException ex = (SvException) e;
-
-				jrh.create(MessageType.ERROR, I18n.getText("perrun.error.save"), I18n.getText(ex.getLabelCode()),
-						new JsonObject());
-				if (ex.getLabelCode().equals("error.invalid_session")) {
-
-					jrh.create(MessageType.ERROR, I18n.getText(ex.getLabelCode()), I18n.getText(ex.getJsonMessage()),
-							new JsonObject());
-					log4j.error(ex.getFormattedMessage());
-					return Response.status(401).entity(jrh.getAll().toString()).build();
-				} else {
-					log4j.error(ex.getLabelCode(), ex);
-					if (ex.getLabelCode().startsWith("sys")) {
-						return Response.status(500).entity(jrh.getAll().toString()).build();
-					}
-				}
-
-			} else {
-				log4j.error(e.getMessage(), e);
-				jrh.create(MessageType.ERROR, I18n.getText("perrun.error.save"), I18n.getText("perrun.error.save"),
-						new JsonObject());
-				return Response.status(500).entity(jrh.getAll().toString()).build();
-			}
+			return PerunUtil.handleException(e, "Error creating multi step form");
 		} finally {
 			releaseAll(svr);
 			releaseAll(svw);
@@ -8318,15 +8117,13 @@ public class WsReactElements {
 			@PathParam("deleteChildren") Boolean deleteChildren, @PathParam("deleteLinks") Boolean deleteLinks,
 			MultivaluedMap<String, String> formVals, @Context HttpServletRequest httpRequest) {
 		ResponseHandler jrh = new ResponseHandler();
-		SvWriter svw = null;
-		SvReader svr = null;
 
 		Long objectId = null;
 		Long objectTypeId = null;
 		String jsonObjString = "";
 		jrh.create(MessageType.ERROR, I18n.getText("delete.error.object"), I18n.getText("delete.error.object"),
 				new JsonObject());
-		try {
+		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
 			if (formVals != null)
 				for (Entry<String, List<String>> entry : formVals.entrySet()) {
 					if (entry.getKey() != null && !entry.getKey().isEmpty()) {
@@ -8338,8 +8135,6 @@ public class WsReactElements {
 			JsonObject jsonData = null;
 			Gson gson = new Gson();
 			jsonData = gson.fromJson(jsonObjString, JsonObject.class);
-			svr = new SvReader(sessionId);
-			svw = new SvWriter(svr);
 
 			if (jsonData.has("OBJECT_ID")) {
 				objectId = jsonData.get("OBJECT_ID").getAsLong();
@@ -8365,27 +8160,8 @@ public class WsReactElements {
 							I18n.getText("delete.success.object"), new JsonObject());
 				}
 			}
-		} catch (Exception e1) {
-			if (e1 instanceof SvException) {
-				SvException e = (SvException) e1;
-				if (e.getLabelCode().equals("error.invalid_session")) {
-					log4j.error(e.getFormattedMessage());
-					jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
-							I18n.getText("error.invalid_session"), new JsonObject());
-					return Response.status(401).entity(jrh.getAll().toString()).build();
-				}
-				log4j.error(e.getFormattedMessage(), e);
-			} else {
-				log4j.error(e1.getMessage(), e1);
-			}
-
-		} finally {
-			if (svr != null) {
-				svr.release();
-			}
-			if (svw != null) {
-				svw.release();
-			}
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error deleting object");
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
@@ -8446,12 +8222,8 @@ public class WsReactElements {
 			retString = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true,
 					mapFieldDenormalizedField, svr);
 
-		} catch (SvException e) {
-			log4j.error(e.getFormattedMessage(), e);
-			return Response.status(401).entity(e.getFormattedMessage()).build();
-		} catch (UnsupportedEncodingException e) {
-			log4j.error(e.toString(), e);
-			return Response.status(401).entity(e.toString()).build();
+		} catch (SvException | UnsupportedEncodingException e) {
+			return PerunUtil.handleException(e, "Error in geting DataExceptionFilter");
 		} finally {
 			releaseAll(svr);
 		}
@@ -8481,7 +8253,7 @@ public class WsReactElements {
 	public Response setNoteDescriptionPerDbObject(@PathParam("sessionId") String sessionId,
 			@PathParam("objectId") Long objectId, @PathParam("noteName") String noteName,
 			@PathParam("skipDuplicateTextSave") boolean skipDuplicateTextSave, MultivaluedMap<String, String> postData,
-			@Context HttpServletRequest httpRequest) throws SvException {
+			@Context HttpServletRequest httpRequest) {
 		ResponseHandler jrh = new ResponseHandler();
 		DbDataObject dboNote = null;
 		String noteText = Rc.EMPTY_STRING;
@@ -8519,6 +8291,8 @@ public class WsReactElements {
 				}
 				svw.dbCommit();
 			}
+		} catch (SvException e) {
+			return PerunUtil.handleException(e, "Error setting note form per object");
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
@@ -8542,7 +8316,7 @@ public class WsReactElements {
 	@Produces("text/html;charset=utf-8")
 	public Response getNoteFormDataPerDbObject(@PathParam("sessionId") String sessionId,
 			@PathParam("objectId") Long objectId, @PathParam("noteName") String noteName,
-			@Context HttpServletRequest httpRequest) throws SvException {
+			@Context HttpServletRequest httpRequest) {
 		JsonObject responseJson = new JsonObject();
 		Long noteObjectId = 0L;
 		WsReactElements wre = new WsReactElements();
@@ -8556,6 +8330,8 @@ public class WsReactElements {
 				responseJson = (new Gson()).fromJson(stringifiedJsonResponse, JsonObject.class);
 				responseJson.addProperty(Rc.NOTE_TEXT, svn.getNote(objectId, noteName));
 			}
+		} catch (SvException e) {
+			return PerunUtil.handleException(e, "Error getting note form per object");
 		}
 		return Response.status(200).entity(responseJson.toString()).build();
 	}
@@ -8592,16 +8368,7 @@ public class WsReactElements {
 			jrh.create(MessageType.SUCCESS, I18n.getText("success.get_options"), I18n.getText("success.get_options"),
 					jArray);
 		} catch (SvException e) {
-			String errMsg = e.getJsonMessage();
-			log4j.error(errMsg, e);
-			if (e.getLabelCode().equals("error.invalid_session")) {
-				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
-						I18n.getText("error.invalid_session"), new JsonObject());
-				return Response.status(200).entity(jrh.getAll().toString()).build();
-			}
-			jrh.create(MessageType.ERROR, I18n.getText("ipard_spa.error.get_options"),
-					I18n.getText("ipard_spa.error.get_options"), new JsonObject());
-			return Response.status(200).entity(jrh.getAll().toString()).build();
+			return PerunUtil.handleException(e, "Error getting options from Table");
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
@@ -8626,7 +8393,7 @@ public class WsReactElements {
 			rdr = new DbReader();
 			translatedValue = rdr.getTableNameByType(objType, svr);
 		} catch (Exception e) {
-			log4j.error("General error in processing getTranslatedTableObjectType:", e);
+			return PerunUtil.handleException(e, "Error getting Translated Table Object Type");
 		} finally {
 			if (svr != null) {
 				svr.release();
@@ -8651,8 +8418,7 @@ public class WsReactElements {
 		try {
 			tableTypeId = SvCore.getTypeIdByName(tableName);
 		} catch (Exception e) {
-			log4j.error(e.getStackTrace(), e);
-			return Response.status(401).entity(e.getMessage()).build();
+			return PerunUtil.handleException(e, "Error getting type by name");
 		}
 		return Response.status(200).entity(String.valueOf(tableTypeId)).build();
 	}
