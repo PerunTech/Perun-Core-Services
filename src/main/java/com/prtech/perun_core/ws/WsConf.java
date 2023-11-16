@@ -149,6 +149,28 @@ public class WsConf {
 	}
 
 	/**
+	 * Method to return a parameter value for a specific object.
+	 * 
+	 * @param paramName the name of the parameter
+	 * @return Response object with the value if any, otherwise empty JSON object
+	 */
+	@Path("/params/get/conf/{sessionId}/{paramName}")
+	@GET
+	@Produces("text/html;charset=utf-8")
+	public Response getConf(@PathParam("sessionId") String sessionId, @PathParam("paramName") String paramName,
+			@Context HttpServletRequest httpRequest) {
+		JsonObject jo = new JsonObject();
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvParameter svp = new SvParameter(sessionId)) {
+			if (paramName.startsWith("sys.gis"))
+				jo.addProperty("VALUE", (String) SvConf.getParam(paramName));
+		} catch (SvException e) {
+			return PerunUtil.handleException(e, jrh, "Error fetching parameter");
+		}
+		return Response.status(200).entity(jo.toString()).build();
+	}
+
+	/**
 	 * Method to set a String parameter value for a specific object.
 	 * 
 	 * @param token      The session id of the authenticated user
@@ -275,7 +297,7 @@ public class WsConf {
 					jObj.addProperty("text", I18n.getLongText(dbocard.getLabelCode()));
 					jObj.addProperty("card_hidden", cardIsHidden(dbocard.getDboPlugin()));
 					if (!userDbo.getVal("USER_NAME").equals("ADMIN")) {
-						
+
 						jObj.addProperty("cardDirectAccess", manageCardAccess(dbocard.getDboPlugin(), svr));
 					} else {
 						jObj.addProperty("cardDirectAccess", false);
