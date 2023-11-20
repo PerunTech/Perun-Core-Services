@@ -1,5 +1,7 @@
 package com.prtech.perun_core.ws;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
@@ -21,15 +23,19 @@ import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.Encoded;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
+
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 
@@ -42,12 +48,14 @@ import com.google.gson.reflect.TypeToken;
 import com.prtech.perun.PerunUtil;
 import com.prtech.svarog.CodeList;
 import com.prtech.svarog.I18n;
+import com.prtech.svarog.Sv;
 import com.prtech.svarog.SvComplexCache;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvConversation;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvExecManager;
+import com.prtech.svarog.SvFileStore;
 import com.prtech.svarog.SvGeometry;
 import com.prtech.svarog.SvLink;
 import com.prtech.svarog.SvMessage;
@@ -84,8 +92,13 @@ import org.locationtech.jts.geom.Polygon;
 import com.prtech.svarog_geojson.GeoJsonReader;
 import com.prtech.svarog_geojson.GeoJsonWriter;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.glassfish.jersey.media.multipart.FormDataBodyPart;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.glassfish.jersey.media.multipart.FormDataMultiPart;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 
 @Path("/ReactElements")
 public class WsReactElements {
@@ -8422,4 +8435,183 @@ public class WsReactElements {
 		}
 		return Response.status(200).entity(String.valueOf(tableTypeId)).build();
 	}
+	
+	
+	/**
+	 * method to get list of files attached to object with OBJECT_ID from table OBJECT_TYPE,
+	 * we only filter those types that match FILE_TYPE, FILE_TYPE is a codelist
+	 * 
+	 * @param sessionId   String connection token
+	 * @param objectId    Long OBJECT_ID of where we search uploaded files
+	 * @param objectType  String name of the table for OBJECT_ID
+	 * @param fileType    String code for the attached type of file its a codelist
+	 *                    named FILE_TYPE, usual values ATTACHMENT, PRINT
+	 * @param httpRequest
+	 * @return
+	 */
+	@GET
+	@Path("/getUploadedFiles/sid/{sessionId}/object-id/{objectId}/object-type/{objectType}/file-type/{fileType}")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Encoded
+	public Response getUploadedFiles(@PathParam("sessionId") String sessionId, @PathParam("objectId") Long objectId,
+			@PathParam("objectType") String objectType, @PathParam("fileType") String fileType,
+			@Context HttpServletRequest httpRequest) {
+		JsonObject jResult = new JsonObject();
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(sessionId); SvFileStore sfs = new SvFileStore(svr)) {
+			DbDataObject dbo = svr.getObjectById(objectId, SvCore.getTypeIdByName(objectType), null);
+			if (dbo != null) {
+				if ("0".equalsIgnoreCase(fileType)) 
+					fileType = null;
+				DbDataArray dbArraySvFiles = sfs.getFiles(dbo, fileType, null);
+				if (!dbArraySvFiles.isEmpty())
+					jResult = dbArraySvFiles.toSimpleJson();
+			}
+			jrh.create(MessageType.SUCCESS, I18n.getText(getLocaleId(svr), "data.read"), I18n.getText(getLocaleId(svr), "data.read"), jResult);
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error getting uploaded files");
+		}
+		return Response.status(200).entity(jrh.getAll().toString())
+				.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_TYPE.withCharset("utf-8")).build();
+	}
+
+	/**
+	 * method to download a file with given OBJECT_ID that will be saved as FILENAME
+	 * 
+	 * @param sessionId   String connection token
+	 * @param objectId    Long OBJECT_ID of the file in SVAROG_FILES
+	 * @param fileName    String what we want saved file to be names
+	 * @param httpRequest
+	 * @return
+	 */
+	@GET
+	@Path("/downloadFile/sid/{sessionId}/object-id/{objectId}/file-name/{fileName}")
+	public Response downloadFile(@PathParam("sessionId") String sessionId, @PathParam("objectId") Long objectId,
+			@PathParam("fileName") String fileName, @Context HttpServletRequest httpRequest) {
+		StreamingOutput fileStream = new StreamingOutput() {
+			@Override
+			public void write(java.io.OutputStream output) throws IOException {
+				try (SvReader svr = new SvReader(sessionId); SvFileStore sfs = new SvFileStore(svr)) {
+					DbDataObject dboSVFile = svr.getObjectById(objectId, svCONST.OBJECT_TYPE_FILE, null);
+					if (dboSVFile != null) {
+						output.write(sfs.getFileAsByte(dboSVFile));
+					}
+				} catch (Exception e) {
+					log4j.error("Error occurred while downloading file... {}", e);
+				} finally {
+					output.close();
+				}
+			}
+		};
+		return Response.ok(fileStream, MediaType.APPLICATION_OCTET_STREAM)
+				.header("content-disposition", "attachment; filename = " + fileName).build();
+	}
+
+	
+	/** Method to uplaod a file and link it to a object
+	 * 
+	 * @param sessionId  String connection token
+	 * @param objectId   Long OBJECT_ID of where want to save the file
+	 * @param objectType String name of the table for OBJECT_ID
+	 * @param fileType   String code for the attached type of file its a codelist
+	 *                   named FILE_TYPE, usual values ATTACHMENT, PRINT
+	 * @param note       String
+	 * @param fileInput  InputStream
+	 * @param fileDetail FormDataContentDisposition
+	 * @return
+	 */
+	@Path("/uploadFile/sid/{sessionId}/object-id/{objectId}/object-type/{objectType}/file-type/{fileType}/note/{note}")
+	@POST
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	@Encoded
+	@Produces("text/html;charset=utf-8")
+	public Response uploadFile(@PathParam("sessionId") String sessionId, @PathParam("objectId") Long objectId,
+			@PathParam("objectType") String objectType, @PathParam("fileType") String fileType,
+			@PathParam("note") String note, @FormDataParam("file") InputStream fileInput,
+			@FormDataParam("file") FormDataContentDisposition fileDetail) {
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(sessionId);) {
+			DbDataObject dbo = svr.getObjectById(objectId, SvCore.getTypeIdByName(objectType), null);
+			String fileName = new String(fileDetail.getFileName().getBytes(StandardCharsets.ISO_8859_1),
+					StandardCharsets.UTF_8).replace(",", " ");
+
+			byte[] data = IOUtils.toByteArray(fileInput);
+
+			if (data.length < 1) {
+				throw new SvException(I18n.getText(getLocaleId(svr), "error.cannot_upload_empty_file"), svr.getInstanceUser());
+			}
+
+			if (note != null && note.trim().equalsIgnoreCase("null")) {
+				note = "";
+			}
+			uploadFile(dbo, fileName, note, new DateTime(), data, fileType, 0L, svr);
+			svr.dbCommit();
+			jrh.create(MessageType.SUCCESS, I18n.getText(getLocaleId(svr), "success.message.upload_file"),
+					I18n.getText(getLocaleId(svr), "success.message.upload_file"), new JsonObject());
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error uploading files");
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+
+	/**
+	 * Upload service that can handle multiple files at once and
+	 * 
+	 * @param sessionId   String connection token
+	 * @param objectId    Long OBJECT_ID of where want to save the files
+	 * @param objectType  String name of the table for OBJECT_ID
+	 * @param fdmp FormDataMultiPart
+	 * @param httpRequest
+	 * @return
+	 */
+	@Path("/upload/files/sid/{sid}/object-id/{objectId}/object-type/{objectType}/file-type/{fileType}")
+	@POST
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	@Produces("application/json")
+	public Response uploadFilesUsingFormDataMultipart(@PathParam("sid") String sessionId,
+			@PathParam("objectId") Long objectId, @PathParam("objectType") Long objectType, FormDataMultiPart fdmp,
+			@PathParam("fileType") String fileType, @Context HttpServletRequest httpRequest) {
+		ResponseHandler jrh = new ResponseHandler();
+
+		try (SvReader svr = new SvReader(sessionId); SvFileStore svfs = new SvFileStore(svr);) {
+			byte[] data = null;
+			DbDataObject dbo = svr.getObjectById(objectId, objectType, null);
+			Map<String, List<FormDataBodyPart>> mapFormData = fdmp.getFields();
+			for (Map.Entry<String, List<FormDataBodyPart>> entry : mapFormData.entrySet()) {
+				for (FormDataBodyPart part : entry.getValue()) {
+					try (InputStream is = part.getValueAs(InputStream.class)) {
+						data = IOUtils.toByteArray(is);
+						FormDataContentDisposition fdcd = part.getFormDataContentDisposition();
+						String fileName = new String(fdcd.getFileName().getBytes(StandardCharsets.ISO_8859_1),
+								StandardCharsets.UTF_8).replace(",", " ");
+						uploadFile(dbo, fileName, null, new DateTime(), data, fileType, 0L, svr);
+					}
+				}
+			}
+			svfs.dbCommit();
+			jrh.create(MessageType.SUCCESS, I18n.getText(getLocaleId(svr), "perrun.success.save"), I18n.getText(getLocaleId(svr), "perrun.success.save"),
+					new JsonObject());
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error uploading files");
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+
+	private void uploadFile(DbDataObject dbo, String fileName, String note, DateTime fileDate, byte[] data,
+			String fileType, Long fileStoreId, SvReader svr) throws SvException {
+		try (SvFileStore svfs = new SvFileStore(svr);) {
+			DbDataObject dboFile = new DbDataObject();
+			dboFile.setObjectType(svCONST.OBJECT_TYPE_FILE);
+			dboFile.setVal("FILE_TYPE", fileType);
+			dboFile.setVal("FILE_NAME", fileName);
+			dboFile.setVal("FILE_SIZE", data.length);
+			dboFile.setVal("FILE_DATE", fileDate);
+			dboFile.setVal("FILE_NOTES", note);
+			dboFile.setVal("FILE_STORE_ID", fileStoreId);
+			svfs.saveFile(dboFile, dbo, data, true);
+		}
+	}
+	
+	
+	
 }
