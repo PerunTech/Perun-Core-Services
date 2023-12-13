@@ -8644,7 +8644,7 @@ public class WsReactElements {
 				codelistId = Long.parseLong(fieldDbo.getVal("CODE_LIST_ID").toString());
 			DbSearchExpression srchExpr = new DbSearchExpression();
 			DbSearchCriterion filterByParentCodeValue = new DbSearchCriterion("CODE_VALUE",
-					DbCompareOperand.LIKE, parentCodeValue + '%');
+					DbCompareOperand.LIKE, parentCodeValue + "_%");
 			DbSearchCriterion filterByParentId = new DbSearchCriterion("PARENT_ID", DbCompareOperand.EQUAL, codelistId);
 			srchExpr.addDbSearchItem(filterByParentCodeValue).addDbSearchItem(filterByParentId);
 			DbDataArray searchResult = svr.getObjects(srchExpr, svCONST.OBJECT_TYPE_CODE, null, 0, 0);
