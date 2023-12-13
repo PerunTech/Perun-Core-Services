@@ -8642,6 +8642,8 @@ public class WsReactElements {
 			Long codelistId = 0L;
 			if (fieldDbo != null && fieldDbo.getVal("CODE_LIST_ID") != null)
 				codelistId = Long.parseLong(fieldDbo.getVal("CODE_LIST_ID").toString());
+			else 
+				throw new SvException(I18n.getText(getLocaleId(svr), "error.codelist.not.set"), svr.getInstanceUser());
 			DbSearchExpression srchExpr = new DbSearchExpression();
 			DbSearchCriterion filterByParentCodeValue = new DbSearchCriterion("CODE_VALUE",
 					DbCompareOperand.LIKE, parentCodeValue + "_%");
@@ -8663,7 +8665,7 @@ public class WsReactElements {
 		} catch (Exception e) {
 			return PerunUtil.handleException(e, "Error in dependant dropdown");
 		}
-		return Response.status(200).entity(result).build();
+		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
 
 }
