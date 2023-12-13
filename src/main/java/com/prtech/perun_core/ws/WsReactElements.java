@@ -8612,6 +8612,58 @@ public class WsReactElements {
 		}
 	}
 	
-	
-	
+	/** method to get depenency dropdown items for a codelist with selected item, with option to be multiple levels nested
+	 * 
+	 * @param sessionId String token for connecing to Database
+	 * @param tableName String TABLE in which the object (field) is locate
+	 * @param fieldName String name of the field
+	 * @param parentCodeValue  String value (CODE) to filter by
+	 * @return
+	 */
+	@Path("/getDependentDropdown/sid/{sessionId}/table-name/{tableName}/field-name/{fieldName}/parent-code-value/{parentCodeValue}")
+	@GET
+	@Produces("text/html;charset=utf-8")
+	public Response getDependentDropdown(@PathParam("sessionId") String sessionId,
+			@PathParam("tableName") String tableName, @PathParam("fieldName") String fieldName,
+			@PathParam("parentCodeValue") String parentCodeValue) {
+		JsonObject result = new JsonObject();
+		ResponseHandler jrh = new ResponseHandler();
+		DbDataArray resultArray = new DbDataArray();
+		try (SvReader svr = new SvReader(sessionId);) {
+			DbDataObject tableDbo = SvCore.getDbtByName(tableName.toUpperCase());
+			DbSearchCriterion searchParent = new DbSearchCriterion("PARENT_ID", DbCompareOperand.EQUAL,
+					tableDbo.getObjectId());
+			DbSearchCriterion searchField = new DbSearchCriterion("FIELD_NAME", DbCompareOperand.EQUAL,
+					fieldName.toUpperCase());
+			DbSearchExpression dbse = new DbSearchExpression().addDbSearchItem(searchParent)
+					.addDbSearchItem(searchField);
+			DbDataArray ar = svr.getObjects(dbse, SvReader.getTypeIdByName("SVAROG_FIELDS"), null, 0, 0);
+			DbDataObject fieldDbo = (ar != null && ar.getItems().size() == 1) ? ar.getItems().get(0) : null;
+			Long codelistId = 0L;
+			if (fieldDbo != null && fieldDbo.getVal("CODE_LIST_ID") != null)
+				codelistId = Long.parseLong(fieldDbo.getVal("CODE_LIST_ID").toString());
+			DbSearchExpression srchExpr = new DbSearchExpression();
+			DbSearchCriterion filterByParentCodeValue = new DbSearchCriterion("CODE_VALUE",
+					DbCompareOperand.LIKE, parentCodeValue + "_%");
+			DbSearchCriterion filterByParentId = new DbSearchCriterion("PARENT_ID", DbCompareOperand.EQUAL, codelistId);
+			srchExpr.addDbSearchItem(filterByParentCodeValue).addDbSearchItem(filterByParentId);
+			DbDataArray searchResult = svr.getObjects(srchExpr, svCONST.OBJECT_TYPE_CODE, null, 0, 0);
+
+			if (searchResult != null && !searchResult.getItems().isEmpty()) {
+				for (DbDataObject item : searchResult.getItems()) {
+					String translatedCodeItem = I18n.getText(getLocaleId(svr), item.getVal("LABEL_CODE").toString());
+					item.setVal("LBL_TRANSL", translatedCodeItem);
+					resultArray.addDataItem(item);
+				}
+			}
+			if (!resultArray.getItems().isEmpty())
+				result = resultArray.toSimpleJson();
+			jrh.create(MessageType.SUCCESS, I18n.getText(getLocaleId(svr), "success.dependancy.dropdown"),
+					I18n.getText(getLocaleId(svr), "success.dependancy.dropdown"), result);
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error in dependant dropdown");
+		}
+		return Response.status(200).entity(result).build();
+	}
+
 }
