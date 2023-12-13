@@ -8665,7 +8665,7 @@ public class WsReactElements {
 		} catch (Exception e) {
 			return PerunUtil.handleException(e, "Error in dependant dropdown");
 		}
-		return Response.status(200).entity(result).build();
+		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
 
 }
