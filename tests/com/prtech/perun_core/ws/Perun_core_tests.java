@@ -1230,4 +1230,20 @@ public class Perun_core_tests {
 		}
 	}
 	
+	@Test
+	public void getDependencyDropdown() {
+		WsReactElements wsc = new WsReactElements();
+		SvSecurity svc;
+		try {
+			svc = new SvSecurity();
+			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
+			Response test = wsc.getDependentDropdown(sessionId, "AHV_SINGLE_ANIMAL", "ANIMAL_RACE", "2");
+			System.out.print(test);
+		} catch (SvException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+	
 }
