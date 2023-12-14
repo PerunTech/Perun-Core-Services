@@ -2744,12 +2744,27 @@ public class WsReactElements {
 		try {
 			GeometryFactory gf = new GeometryFactory();
 			Coordinate coord = new Coordinate();
-
-			String dmsLat = dbo.getVal(Rc.LATITUDE).toString();
-			String dmsLon = dbo.getVal(Rc.LONGITUDE).toString();
-
-			Double ddLat = Double.valueOf(dmsLat);
-			Double ddLon = Double.valueOf(dmsLon); 
+			
+			Double ddLat = 0.00;
+			Double ddLon = 0.00;
+			String defaultSchema = SvConf.getDefaultSchema();
+			
+			if(defaultSchema.equals("NAITS_BARBADOS")) {
+					String dmsLat = dbo.getVal(Rc.LATITUDE).toString();
+					String dmsLon = dbo.getVal(Rc.LONGITUDE).toString();
+					ddLat = Double.valueOf(dmsLat);
+					ddLon = Double.valueOf(dmsLon);
+			}else {
+				String[] dmsLat = dbo.getVal("GPS_NORTH").toString().split("[°']+");
+				String[] dmsLon = dbo.getVal("GPS_EAST").toString().split("[°']+");
+				ddLat = Double.valueOf(dmsLat[0]) + Double.valueOf(dmsLat[1]) / 60 
+						+ Double.valueOf(dmsLat[2]) / 3600;
+				ddLon = Double.valueOf(dmsLon[0]) + Double.valueOf(dmsLon[1]) / 60
+						+ Double.valueOf(dmsLon[2]) / 3600;
+			}
+			
+			
+			 
 
 			cst = svr.dbGetConn().prepareStatement(
 					"SELECT 	ST_X (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?),	?) , ?) ),ST_Y (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?), ?), ?) );");
