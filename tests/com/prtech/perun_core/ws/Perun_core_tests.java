@@ -1237,7 +1237,7 @@ public class Perun_core_tests {
 		try {
 			svc = new SvSecurity();
 			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
-			Response test = wsc.getDependentDropdown(sessionId, "AHV_SINGLE_ANIMAL", "ANIMAL_RACE", "2");
+			Response test = wsc.getDependentDropdown(sessionId, "SINGLE_ANIMAL_RACE", "2");
 			System.out.print(test);
 		} catch (SvException e) {
 			// TODO Auto-generated catch block
