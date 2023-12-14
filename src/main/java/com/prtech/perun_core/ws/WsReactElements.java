@@ -92,6 +92,8 @@ import org.locationtech.jts.geom.Polygon;
 import com.prtech.svarog_geojson.GeoJsonReader;
 import com.prtech.svarog_geojson.GeoJsonWriter;
 
+import zmq.io.net.tcp.TcpAddress;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -2743,13 +2745,11 @@ public class WsReactElements {
 			GeometryFactory gf = new GeometryFactory();
 			Coordinate coord = new Coordinate();
 
-			String[] dmsLat = dbo.getVal("GPS_NORTH").toString().split("[°']+");
-			String[] dmsLon = dbo.getVal("GPS_EAST").toString().split("[°']+");
+			String dmsLat = dbo.getVal(Rc.LATITUDE).toString();
+			String dmsLon = dbo.getVal(Rc.LONGITUDE).toString();
 
-			Double ddLat = Double.valueOf(dmsLat[0]) + Double.valueOf(dmsLat[1]) / 60
-					+ Double.valueOf(dmsLat[2]) / 3600;
-			Double ddLon = Double.valueOf(dmsLon[0]) + Double.valueOf(dmsLon[1]) / 60
-					+ Double.valueOf(dmsLon[2]) / 3600;
+			Double ddLat = Double.valueOf(dmsLat);
+			Double ddLon = Double.valueOf(dmsLon); 
 
 			cst = svr.dbGetConn().prepareStatement(
 					"SELECT 	ST_X (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?),	?) , ?) ),ST_Y (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?), ?), ?) );");
