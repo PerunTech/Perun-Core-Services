@@ -8620,34 +8620,19 @@ public class WsReactElements {
 	 * @param parentCodeValue  String value (CODE) to filter by
 	 * @return
 	 */
-	@Path("/getDependentDropdown/sid/{sessionId}/table-name/{tableName}/field-name/{fieldName}/parent-code-value/{parentCodeValue}")
+	@Path("/getDependentDropdown/sid/{sessionId}/codelist-name/{codelistName}/parent-code-value/{parentCodeValue}")
 	@GET
 	@Produces("text/html;charset=utf-8")
 	public Response getDependentDropdown(@PathParam("sessionId") String sessionId,
-			@PathParam("tableName") String tableName, @PathParam("fieldName") String fieldName,
-			@PathParam("parentCodeValue") String parentCodeValue) {
+			@PathParam("codelistName") String codelistName,		@PathParam("parentCodeValue") String parentCodeValue) {
 		JsonObject result = new JsonObject();
 		ResponseHandler jrh = new ResponseHandler();
 		DbDataArray resultArray = new DbDataArray();
 		try (SvReader svr = new SvReader(sessionId);) {
-			DbDataObject tableDbo = SvCore.getDbtByName(tableName.toUpperCase());
-			DbSearchCriterion searchParent = new DbSearchCriterion("PARENT_ID", DbCompareOperand.EQUAL,
-					tableDbo.getObjectId());
-			DbSearchCriterion searchField = new DbSearchCriterion("FIELD_NAME", DbCompareOperand.EQUAL,
-					fieldName.toUpperCase());
-			DbSearchExpression dbse = new DbSearchExpression().addDbSearchItem(searchParent)
-					.addDbSearchItem(searchField);
-			DbDataArray ar = svr.getObjects(dbse, SvReader.getTypeIdByName("SVAROG_FIELDS"), null, 0, 0);
-			DbDataObject fieldDbo = (ar != null && ar.getItems().size() == 1) ? ar.getItems().get(0) : null;
-			Long codelistId = 0L;
-			if (fieldDbo != null && fieldDbo.getVal("CODE_LIST_ID") != null)
-				codelistId = Long.parseLong(fieldDbo.getVal("CODE_LIST_ID").toString());
-			else 
-				throw new SvException(I18n.getText(getLocaleId(svr), "error.codelist.not.set"), svr.getInstanceUser());
 			DbSearchExpression srchExpr = new DbSearchExpression();
-			DbSearchCriterion filterByParentCodeValue = new DbSearchCriterion("CODE_VALUE",
-					DbCompareOperand.LIKE, parentCodeValue + "_%");
-			DbSearchCriterion filterByParentId = new DbSearchCriterion("PARENT_ID", DbCompareOperand.EQUAL, codelistId);
+			DbSearchCriterion filterByParentCodeValue = new DbSearchCriterion("CODE_VALUE", DbCompareOperand.LIKE,
+					parentCodeValue + "_%");
+			DbSearchCriterion filterByParentId = new DbSearchCriterion("PARENT_CODE_VALUE", DbCompareOperand.EQUAL, codelistName);
 			srchExpr.addDbSearchItem(filterByParentCodeValue).addDbSearchItem(filterByParentId);
 			DbDataArray searchResult = svr.getObjects(srchExpr, svCONST.OBJECT_TYPE_CODE, null, 0, 0);
 
