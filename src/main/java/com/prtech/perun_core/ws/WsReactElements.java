@@ -5526,13 +5526,13 @@ public class WsReactElements {
 					}
 				}
 				// Set geom by gps coordinates
-				String gpsN = (String) vdataObject.getVal("GPS_NORTH");
-				String gpsE = (String) vdataObject.getVal("GPS_EAST");
+				String gpsN = (String) vdataObject.getVal(Rc.LATITUDE);
+				String gpsE = (String) vdataObject.getVal(Rc.LONGITUDE);
 
 				if (gpsN != null && gpsE != null) {
-					if (gpsN.equals("00°00'00''") || gpsE.equals("00°00'00''")) {
-						vdataObject.setVal("GPS_NORTH", null);
-						vdataObject.setVal("GPS_EAST", null);
+					if (gpsN.equals("00.000000") || gpsE.equals("00.000000")) {
+						vdataObject.setVal(Rc.LATITUDE, null);
+						vdataObject.setVal(Rc.LONGITUDE, null);
 					} else {
 						setPointFromLatLng(svr, vdataObject);
 					}
