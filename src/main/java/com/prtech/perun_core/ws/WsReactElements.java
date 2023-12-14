@@ -5426,6 +5426,7 @@ public class WsReactElements {
 					jsonObjString = key;
 				}
 			}
+		String defaultSchema = SvConf.getDefaultSchema();
 		SvReader svr = null;
 		SvWriter svw = null;
 		SvGeometry svg = null;
@@ -5541,17 +5542,33 @@ public class WsReactElements {
 					}
 				}
 				// Set geom by gps coordinates
-				String gpsN = (String) vdataObject.getVal(Rc.LATITUDE);
-				String gpsE = (String) vdataObject.getVal(Rc.LONGITUDE);
+				String gpsN = null;
+				String gpsE = null;
+				if(defaultSchema.equals("NAITS_BARBADOS")) {
+					gpsN = (String) vdataObject.getVal(Rc.LATITUDE);
+					gpsE = (String) vdataObject.getVal(Rc.LONGITUDE);
+					if (gpsN != null && gpsE != null) {
+						if (gpsN.equals("00.000000") || gpsE.equals("00.000000")) {
+							vdataObject.setVal(Rc.LATITUDE, null);
+							vdataObject.setVal(Rc.LONGITUDE, null);
+						} else {
+							setPointFromLatLng(svr, vdataObject);
+						}
+					}
+				}else {
+					 gpsN = (String) vdataObject.getVal("GPS_NORTH");
+					 gpsE = (String) vdataObject.getVal("GPS_EAST");
 
-				if (gpsN != null && gpsE != null) {
-					if (gpsN.equals("00.000000") || gpsE.equals("00.000000")) {
-						vdataObject.setVal(Rc.LATITUDE, null);
-						vdataObject.setVal(Rc.LONGITUDE, null);
-					} else {
-						setPointFromLatLng(svr, vdataObject);
+					if (gpsN != null && gpsE != null) {
+						if (gpsN.equals("00°00'00''") || gpsE.equals("00°00'00''")) {
+							vdataObject.setVal("GPS_NORTH", null);
+							vdataObject.setVal("GPS_EAST", null);
+						} else {
+							setPointFromLatLng(svr, vdataObject);
+						}
 					}
 				}
+				
 				DbDataObject lu = SvCore.getDbtByName("LAND_USE_PLAN");
 				if (gsaa != null && lu != null && vdataType.equals(lu.getObjectId())) {
 					SvGeometry.setGeometry(vdataObject, gsaa);
