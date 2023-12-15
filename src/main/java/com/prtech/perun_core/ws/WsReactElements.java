@@ -48,7 +48,6 @@ import com.google.gson.reflect.TypeToken;
 import com.prtech.perun.PerunUtil;
 import com.prtech.svarog.CodeList;
 import com.prtech.svarog.I18n;
-import com.prtech.svarog.Sv;
 import com.prtech.svarog.SvComplexCache;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvConversation;
@@ -91,7 +90,6 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import com.prtech.svarog_geojson.GeoJsonReader;
 import com.prtech.svarog_geojson.GeoJsonWriter;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -2742,15 +2740,35 @@ public class WsReactElements {
 		try {
 			GeometryFactory gf = new GeometryFactory();
 			Coordinate coord = new Coordinate();
-
-			String[] dmsLat = dbo.getVal("GPS_NORTH").toString().split("[°']+");
-			String[] dmsLon = dbo.getVal("GPS_EAST").toString().split("[°']+");
-
-			Double ddLat = Double.valueOf(dmsLat[0]) + Double.valueOf(dmsLat[1]) / 60
-					+ Double.valueOf(dmsLat[2]) / 3600;
-			Double ddLon = Double.valueOf(dmsLon[0]) + Double.valueOf(dmsLon[1]) / 60
-					+ Double.valueOf(dmsLon[2]) / 3600;
-
+			
+			Double ddLat = 0.00;
+			Double ddLon = 0.00;
+			boolean fallback = false;
+			
+			if(dbo.getVal(Rc.LATITUDE) != null && dbo.getVal(Rc.LATITUDE) != null ) {
+				String dmsLat = dbo.getVal(Rc.LATITUDE).toString();
+				String dmsLon = dbo.getVal(Rc.LONGITUDE).toString();
+				
+				try {
+					ddLat = Double.valueOf(dmsLat);
+					ddLon = Double.valueOf(dmsLon);
+				}catch(Exception ex) {
+					fallback = true;
+				}
+				
+			}else {
+				fallback = true;
+			}
+			
+			if(fallback) {
+				String[] dmsLat = dbo.getVal("GPS_NORTH").toString().split("[°']+");
+				String[] dmsLon = dbo.getVal("GPS_EAST").toString().split("[°']+");
+				ddLat = Double.valueOf(dmsLat[0]) + Double.valueOf(dmsLat[1]) / 60 
+						+ Double.valueOf(dmsLat[2]) / 3600;
+				ddLon = Double.valueOf(dmsLon[0]) + Double.valueOf(dmsLon[1]) / 60
+						+ Double.valueOf(dmsLon[2]) / 3600;
+			}
+			
 			cst = svr.dbGetConn().prepareStatement(
 					"SELECT 	ST_X (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?),	?) , ?) ),ST_Y (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?), ?), ?) );");
 			// x params
@@ -5526,17 +5544,34 @@ public class WsReactElements {
 					}
 				}
 				// Set geom by gps coordinates
-				String gpsN = (String) vdataObject.getVal("GPS_NORTH");
-				String gpsE = (String) vdataObject.getVal("GPS_EAST");
+				
+				String gpsN = null;
+				String gpsE = null;
+				if(vdataObject.getVal(Rc.LATITUDE)!= null && vdataObject.getVal(Rc.LONGITUDE) != null) {
+					gpsN = (String) vdataObject.getVal(Rc.LATITUDE);
+					gpsE = (String) vdataObject.getVal(Rc.LONGITUDE);
+					if (gpsN != null && gpsE != null) {
+						if (gpsN.equals("0") || gpsE.equals("0")) {
+							vdataObject.setVal(Rc.LATITUDE, null);
+							vdataObject.setVal(Rc.LONGITUDE, null);
+						} else {
+							setPointFromLatLng(svr, vdataObject);
+						}
+					} 
+				}else {
+					 gpsN = (String) vdataObject.getVal("GPS_NORTH");
+					 gpsE = (String) vdataObject.getVal("GPS_EAST");
 
-				if (gpsN != null && gpsE != null) {
-					if (gpsN.equals("00°00'00''") || gpsE.equals("00°00'00''")) {
-						vdataObject.setVal("GPS_NORTH", null);
-						vdataObject.setVal("GPS_EAST", null);
-					} else {
-						setPointFromLatLng(svr, vdataObject);
+					if (gpsN != null && gpsE != null) {
+						if (gpsN.equals("00°00'00''") || gpsE.equals("00°00'00''")) {
+							vdataObject.setVal("GPS_NORTH", null);
+							vdataObject.setVal("GPS_EAST", null);
+						} else {
+							setPointFromLatLng(svr, vdataObject);
+						}
 					}
 				}
+				
 				DbDataObject lu = SvCore.getDbtByName("LAND_USE_PLAN");
 				if (gsaa != null && lu != null && vdataType.equals(lu.getObjectId())) {
 					SvGeometry.setGeometry(vdataObject, gsaa);
@@ -5648,7 +5683,7 @@ public class WsReactElements {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-
+	
 	public Response createTableRecordWithLink(SvCore svc, @PathParam("table_name") String tableName,
 			@PathParam("parent_id") Long parentId, @PathParam("JsonString") String jsonString,
 			@PathParam("object_id_to_link") Long objectIdToLink,

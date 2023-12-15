@@ -52,6 +52,8 @@ public class Rc {
 	public static final String DT_DELETE = "DT_DELETE";
 	public static final String META_PKID = "META_PKID";
 	public static final String GEOM = "GEOM";
+	public static final String LONGITUDE = "LONGITUDE";	
+	public static final String LATITUDE = "LATITUDE";	
 	public static final String SYSTEM_TABLE = "SYSTEM_TABLE";
 	public static final String REFERENTIAL_TABLE = "REFERENTIAL_TABLE";
 	public static final String REFERENTIAL_FIELD = "REFERENTIAL_FIELD";
