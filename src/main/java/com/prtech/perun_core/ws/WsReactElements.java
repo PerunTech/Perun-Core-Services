@@ -48,7 +48,6 @@ import com.google.gson.reflect.TypeToken;
 import com.prtech.perun.PerunUtil;
 import com.prtech.svarog.CodeList;
 import com.prtech.svarog.I18n;
-import com.prtech.svarog.Sv;
 import com.prtech.svarog.SvComplexCache;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvConversation;
@@ -91,9 +90,6 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import com.prtech.svarog_geojson.GeoJsonReader;
 import com.prtech.svarog_geojson.GeoJsonWriter;
-
-import zmq.io.net.tcp.TcpAddress;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
