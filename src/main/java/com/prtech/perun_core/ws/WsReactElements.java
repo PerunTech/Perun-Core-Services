@@ -2226,7 +2226,6 @@ public class WsReactElements {
 		case Rc.NVARCHAR:
 		case "TEXT":
 			jLeaf.addProperty(Rc.TYPE, Rc.STRING);
-			jLeaf.addProperty("format", "file");
 			break;
 		case Rc.NUMERIC:
 			if (!isTable) {
@@ -2741,33 +2740,35 @@ public class WsReactElements {
 		try {
 			GeometryFactory gf = new GeometryFactory();
 			Coordinate coord = new Coordinate();
-
+			
 			Double ddLat = 0.00;
 			Double ddLon = 0.00;
 			boolean fallback = false;
-
-			if (dbo.getVal(Rc.LATITUDE) != null && dbo.getVal(Rc.LATITUDE) != null) {
+			
+			if(dbo.getVal(Rc.LATITUDE) != null && dbo.getVal(Rc.LATITUDE) != null ) {
 				String dmsLat = dbo.getVal(Rc.LATITUDE).toString();
 				String dmsLon = dbo.getVal(Rc.LONGITUDE).toString();
-
+				
 				try {
 					ddLat = Double.valueOf(dmsLat);
 					ddLon = Double.valueOf(dmsLon);
-				} catch (Exception ex) {
+				}catch(Exception ex) {
 					fallback = true;
 				}
-
-			} else {
+				
+			}else {
 				fallback = true;
 			}
-
-			if (fallback) {
+			
+			if(fallback) {
 				String[] dmsLat = dbo.getVal("GPS_NORTH").toString().split("[°']+");
 				String[] dmsLon = dbo.getVal("GPS_EAST").toString().split("[°']+");
-				ddLat = Double.valueOf(dmsLat[0]) + Double.valueOf(dmsLat[1]) / 60 + Double.valueOf(dmsLat[2]) / 3600;
-				ddLon = Double.valueOf(dmsLon[0]) + Double.valueOf(dmsLon[1]) / 60 + Double.valueOf(dmsLon[2]) / 3600;
+				ddLat = Double.valueOf(dmsLat[0]) + Double.valueOf(dmsLat[1]) / 60 
+						+ Double.valueOf(dmsLat[2]) / 3600;
+				ddLon = Double.valueOf(dmsLon[0]) + Double.valueOf(dmsLon[1]) / 60
+						+ Double.valueOf(dmsLon[2]) / 3600;
 			}
-
+			
 			cst = svr.dbGetConn().prepareStatement(
 					"SELECT 	ST_X (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?),	?) , ?) ),ST_Y (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?), ?), ?) );");
 			// x params
@@ -5191,7 +5192,7 @@ public class WsReactElements {
 				typetoGet = svr.getObjectsByLinkedId(formObject.getObjectId(), svCONST.OBJECT_TYPE_FORM_TYPE, dbLink,
 						svCONST.OBJECT_TYPE_FORM_FIELD_TYPE, false, null, 0, 0);
 			}
-
+	
 			if (typetoGet != null && !typetoGet.getItems().isEmpty())
 				for (int i = 0; i < typetoGet.getItems().size(); i++) {
 					JsonObject jsonreactGUI = null;
@@ -5238,22 +5239,19 @@ public class WsReactElements {
 							jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(), jsonUISchema);
 						break;
 					case "2":
-						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(),
-								jsonUISchemaTrueProp);
+						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(), jsonUISchemaTrueProp);
 						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString() + "_1ST",
 								jsonUISchemaFalseProp);
 						break;
 					case "3":
-						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(),
-								jsonUISchemaTrueProp);
+						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(), jsonUISchemaTrueProp);
 						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString() + "_1ST",
 								jsonUISchemaTrueProp);
 						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString() + "_2ND",
 								jsonUISchemaFalseProp);
 						break;
 					case "4":
-						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(),
-								jsonUISchemaTrueProp);
+						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString(), jsonUISchemaTrueProp);
 						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString() + "_1ST",
 								jsonUISchemaTrueProp);
 						jsonData.add(typetoGet.getItems().get(i).getVal(Rc.LABEL_CODE).toString() + "_2ND",
@@ -5546,10 +5544,10 @@ public class WsReactElements {
 					}
 				}
 				// Set geom by gps coordinates
-
+				
 				String gpsN = null;
 				String gpsE = null;
-				if (vdataObject.getVal(Rc.LATITUDE) != null && vdataObject.getVal(Rc.LONGITUDE) != null) {
+				if(vdataObject.getVal(Rc.LATITUDE)!= null && vdataObject.getVal(Rc.LONGITUDE) != null) {
 					gpsN = (String) vdataObject.getVal(Rc.LATITUDE);
 					gpsE = (String) vdataObject.getVal(Rc.LONGITUDE);
 					if (gpsN != null && gpsE != null) {
@@ -5559,10 +5557,10 @@ public class WsReactElements {
 						} else {
 							setPointFromLatLng(svr, vdataObject);
 						}
-					}
-				} else {
-					gpsN = (String) vdataObject.getVal("GPS_NORTH");
-					gpsE = (String) vdataObject.getVal("GPS_EAST");
+					} 
+				}else {
+					 gpsN = (String) vdataObject.getVal("GPS_NORTH");
+					 gpsE = (String) vdataObject.getVal("GPS_EAST");
 
 					if (gpsN != null && gpsE != null) {
 						if (gpsN.equals("00°00'00''") || gpsE.equals("00°00'00''")) {
@@ -5573,7 +5571,7 @@ public class WsReactElements {
 						}
 					}
 				}
-
+				
 				DbDataObject lu = SvCore.getDbtByName("LAND_USE_PLAN");
 				if (gsaa != null && lu != null && vdataType.equals(lu.getObjectId())) {
 					SvGeometry.setGeometry(vdataObject, gsaa);
@@ -5685,7 +5683,7 @@ public class WsReactElements {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-
+	
 	public Response createTableRecordWithLink(SvCore svc, @PathParam("table_name") String tableName,
 			@PathParam("parent_id") Long parentId, @PathParam("JsonString") String jsonString,
 			@PathParam("object_id_to_link") Long objectIdToLink,
@@ -8472,11 +8470,11 @@ public class WsReactElements {
 		}
 		return Response.status(200).entity(String.valueOf(tableTypeId)).build();
 	}
-
+	
+	
 	/**
-	 * method to get list of files attached to object with OBJECT_ID from table
-	 * OBJECT_TYPE, we only filter those types that match FILE_TYPE, FILE_TYPE is a
-	 * codelist
+	 * method to get list of files attached to object with OBJECT_ID from table OBJECT_TYPE,
+	 * we only filter those types that match FILE_TYPE, FILE_TYPE is a codelist
 	 * 
 	 * @param sessionId   String connection token
 	 * @param objectId    Long OBJECT_ID of where we search uploaded files
@@ -8498,14 +8496,13 @@ public class WsReactElements {
 		try (SvReader svr = new SvReader(sessionId); SvFileStore sfs = new SvFileStore(svr)) {
 			DbDataObject dbo = svr.getObjectById(objectId, SvCore.getTypeIdByName(objectType), null);
 			if (dbo != null) {
-				if ("0".equalsIgnoreCase(fileType))
+				if ("0".equalsIgnoreCase(fileType)) 
 					fileType = null;
 				DbDataArray dbArraySvFiles = sfs.getFiles(dbo, fileType, null);
 				if (!dbArraySvFiles.isEmpty())
 					jResult = dbArraySvFiles.toSimpleJson();
 			}
-			jrh.create(MessageType.SUCCESS, I18n.getText(getLocaleId(svr), "data.read"),
-					I18n.getText(getLocaleId(svr), "data.read"), jResult);
+			jrh.create(MessageType.SUCCESS, I18n.getText(getLocaleId(svr), "data.read"), I18n.getText(getLocaleId(svr), "data.read"), jResult);
 		} catch (Exception e) {
 			return PerunUtil.handleException(e, "Error getting uploaded files");
 		}
@@ -8545,8 +8542,8 @@ public class WsReactElements {
 				.header("content-disposition", "attachment; filename = " + fileName).build();
 	}
 
-	/**
-	 * Method to uplaod a file and link it to a object
+	
+	/** Method to uplaod a file and link it to a object
 	 * 
 	 * @param sessionId  String connection token
 	 * @param objectId   Long OBJECT_ID of where want to save the file
@@ -8576,8 +8573,7 @@ public class WsReactElements {
 			byte[] data = IOUtils.toByteArray(fileInput);
 
 			if (data.length < 1) {
-				throw new SvException(I18n.getText(getLocaleId(svr), "error.cannot_upload_empty_file"),
-						svr.getInstanceUser());
+				throw new SvException(I18n.getText(getLocaleId(svr), "error.cannot_upload_empty_file"), svr.getInstanceUser());
 			}
 
 			if (note != null && note.trim().equalsIgnoreCase("null")) {
@@ -8599,7 +8595,7 @@ public class WsReactElements {
 	 * @param sessionId   String connection token
 	 * @param objectId    Long OBJECT_ID of where want to save the files
 	 * @param objectType  String name of the table for OBJECT_ID
-	 * @param fdmp        FormDataMultiPart
+	 * @param fdmp FormDataMultiPart
 	 * @param httpRequest
 	 * @return
 	 */
@@ -8628,8 +8624,8 @@ public class WsReactElements {
 				}
 			}
 			svfs.dbCommit();
-			jrh.create(MessageType.SUCCESS, I18n.getText(getLocaleId(svr), "perrun.success.save"),
-					I18n.getText(getLocaleId(svr), "perrun.success.save"), new JsonObject());
+			jrh.create(MessageType.SUCCESS, I18n.getText(getLocaleId(svr), "perrun.success.save"), I18n.getText(getLocaleId(svr), "perrun.success.save"),
+					new JsonObject());
 		} catch (Exception e) {
 			return PerunUtil.handleException(e, "Error uploading files");
 		}
@@ -8650,22 +8646,20 @@ public class WsReactElements {
 			svfs.saveFile(dboFile, dbo, data, true);
 		}
 	}
-
-	/**
-	 * method to get depenency dropdown items for a codelist with selected item,
-	 * with option to be multiple levels nested
+	
+	/** method to get depenency dropdown items for a codelist with selected item, with option to be multiple levels nested
 	 * 
-	 * @param sessionId       String token for connecing to Database
-	 * @param tableName       String TABLE in which the object (field) is locate
-	 * @param fieldName       String name of the field
-	 * @param parentCodeValue String value (CODE) to filter by
+	 * @param sessionId String token for connecing to Database
+	 * @param tableName String TABLE in which the object (field) is locate
+	 * @param fieldName String name of the field
+	 * @param parentCodeValue  String value (CODE) to filter by
 	 * @return
 	 */
 	@Path("/getDependentDropdown/sid/{sessionId}/codelist-name/{codelistName}/parent-code-value/{parentCodeValue}")
 	@GET
 	@Produces("text/html;charset=utf-8")
 	public Response getDependentDropdown(@PathParam("sessionId") String sessionId,
-			@PathParam("codelistName") String codelistName, @PathParam("parentCodeValue") String parentCodeValue) {
+			@PathParam("codelistName") String codelistName,		@PathParam("parentCodeValue") String parentCodeValue) {
 		JsonObject result = new JsonObject();
 		ResponseHandler jrh = new ResponseHandler();
 		DbDataArray resultArray = new DbDataArray();
@@ -8673,8 +8667,7 @@ public class WsReactElements {
 			DbSearchExpression srchExpr = new DbSearchExpression();
 			DbSearchCriterion filterByParentCodeValue = new DbSearchCriterion("CODE_VALUE", DbCompareOperand.LIKE,
 					parentCodeValue + "_%");
-			DbSearchCriterion filterByParentId = new DbSearchCriterion("PARENT_CODE_VALUE", DbCompareOperand.EQUAL,
-					codelistName);
+			DbSearchCriterion filterByParentId = new DbSearchCriterion("PARENT_CODE_VALUE", DbCompareOperand.EQUAL, codelistName);
 			srchExpr.addDbSearchItem(filterByParentCodeValue).addDbSearchItem(filterByParentId);
 			DbDataArray searchResult = svr.getObjects(srchExpr, svCONST.OBJECT_TYPE_CODE, null, 0, 0);
 
