@@ -5388,7 +5388,7 @@ public class WsReactElements {
 		return createTableRecordWithLink(sessionId, tableName, parentId, "", -5L, "", "", null, formVals, httpRequest);
 
 	}
-
+	
 	/**
 	 * Web service to save an object that was entered in a form and then create link
 	 * for that object to another existing object, link type will be automatic
@@ -5552,8 +5552,8 @@ public class WsReactElements {
 				String gpsN = null;
 				String gpsE = null;
 				if (vdataObject.getVal(Rc.LATITUDE) != null && vdataObject.getVal(Rc.LONGITUDE) != null) {
-					gpsN = (String) vdataObject.getVal(Rc.LATITUDE);
-					gpsE = (String) vdataObject.getVal(Rc.LONGITUDE);
+					gpsN = String.valueOf(vdataObject.getVal(Rc.LATITUDE));
+					gpsE = String.valueOf(vdataObject.getVal(Rc.LONGITUDE));
 					if (gpsN != null && gpsE != null) {
 						if (gpsN.equals("0") || gpsE.equals("0")) {
 							vdataObject.setVal(Rc.LATITUDE, null);
