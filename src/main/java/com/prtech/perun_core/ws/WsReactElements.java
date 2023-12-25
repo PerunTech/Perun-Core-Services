@@ -2748,13 +2748,13 @@ public class WsReactElements {
 			Double ddLon = 0.00;
 			boolean fallback = false;
 
-			if (dbo.getVal(Rc.LATITUDE) != null && dbo.getVal(Rc.LATITUDE) != null) {
+			if (dbo.getVal(Rc.LATITUDE) != null && dbo.getVal(Rc.LONGITUDE) != null) {
 				String dmsLat = dbo.getVal(Rc.LATITUDE).toString();
 				String dmsLon = dbo.getVal(Rc.LONGITUDE).toString();
 
 				try {
-					ddLat = Double.valueOf(dmsLat);
-					ddLon = Double.valueOf(dmsLon);
+					ddLat = Double.valueOf(dmsLon);
+					ddLon = Double.valueOf(dmsLat);
 				} catch (Exception ex) {
 					fallback = true;
 				}
@@ -2787,8 +2787,8 @@ public class WsReactElements {
 
 			rs = cst.executeQuery();
 			while (rs.next()) {
-				coord.x = rs.getDouble(1);
-				coord.y = rs.getDouble(2);
+				coord.x = rs.getDouble(2);
+				coord.y = rs.getDouble(1);
 			}
 
 			Point point = gf.createPoint(coord);
@@ -5388,7 +5388,281 @@ public class WsReactElements {
 		return createTableRecordWithLink(sessionId, tableName, parentId, "", -5L, "", "", null, formVals, httpRequest);
 
 	}
-	
+	public Response createTableRecordWithLink2( String sessionId,
+			String tableName, 
+			 Long parentId,
+			String jsonString, 
+			Long objectIdToLink,
+			 String tableNameToLink, 
+			 String linkName,
+			 String linkNote, JsonObject jsonData,
+			HttpServletRequest httpRequest) {
+		ResponseHandler jrh = new ResponseHandler();
+		SvReader svr = null;
+		SvWriter svw = null;
+		SvGeometry svg = null;
+		SvLink svl = null;
+		DbDataArray vData = null;
+		DbDataObject vdataObject = null;
+		DbDataObject tmpObject = null;
+		DbDataObject linkObject = new DbDataObject();
+		Boolean isReverse = false;
+		Long vtableTypeID = 0L;
+		Long vlinkToTableTypeID = 0L;
+		Gson gson = new Gson();
+		try {
+			// connect, translate names to IDs and prepare empty objects
+			svr = new SvReader(sessionId);
+			svw = new SvWriter(svr);
+			svg = new SvGeometry(svr);
+			svl = new SvLink(svr);
+			svw.dbSetAutoCommit(false);
+			// if we are editing, try to load the old object
+			// try if object (record) already exist, then only change the
+			// svarog_data , if object does not exist, just get type
+			if (jsonData != null && jsonData.has(Rc.OBJECT_TYPE) && jsonData.has(Rc.PKID)) {
+				vtableTypeID = jsonData.get(Rc.OBJECT_TYPE).getAsLong();
+				tmpObject = svr.getObjectById(jsonData.get(Rc.OBJECT_ID).getAsLong(), vtableTypeID, null);
+
+				vdataObject = new DbDataObject();
+				vdataObject.fromJson(tmpObject.toJson());
+				vdataObject.setPkid(jsonData.get(Rc.PKID).getAsLong());
+
+			} else
+				vtableTypeID = findTableType(tableName);
+			if (vdataObject == null)
+				vdataObject = new DbDataObject();
+			if (jsonData != null && jsonData.has(Rc.STATUS))
+				vdataObject.setStatus(jsonData.get(Rc.STATUS).getAsString());
+			if (tableNameToLink != null && !tableNameToLink.trim().equals("") && !tableNameToLink.equals("null")
+					&& !tableNameToLink.equals("0"))
+				vlinkToTableTypeID = SvCore.getTypeIdByName(tableNameToLink);
+
+			vdataObject.setObjectType(vtableTypeID);
+			vdataObject.setParentId(parentId);
+			// if typeId is from GEOM type, set GEOM_TYPE flag to true
+			if (SvCore.hasGeometries(vtableTypeID)) {
+				vdataObject.setGeometryType(true);
+			}
+			// loop all fields in the table, get data for all of them from
+			// formData
+			vData = svr.getObjectsByParentId(vtableTypeID, svCONST.OBJECT_TYPE_FIELD, null, 0, 0, Rc.SORT_ORDER);
+
+			if (vdataObject.getObjectType().equals(svCONST.OBJECT_TYPE_MESSAGE)) {
+				SvMessage svm = new SvMessage();
+				DbDataObject conversationObj = svr.getObjectById(parentId, svCONST.OBJECT_TYPE_CONVERSATION, null);
+				if (conversationObj == null)
+					throw (new SvException("message.user.not.found", svr.getInstanceUser()));
+				vdataObject = svm.saveMessage(svr, conversationObj, null, jsonData);
+			} else
+				for (int j = 0; j < vData.getItems().size(); j++) {
+					String tmpFieldname = vData.getItems().get(j).getVal(Rc.FIELD_NAME).toString();
+					if (processField(tmpFieldname)
+							&& !"".equalsIgnoreCase(vData.getItems().get(j).getVal(Rc.FIELD_TYPE).toString())) {
+
+						vdataObject = addValueToDataObject(vdataObject, tmpFieldname, vData.getItems().get(j),
+								jsonData);
+					}
+				}
+			JsonArray multiCoord = (JsonArray) jsonData.get(Rc.MULTYPOLYARRAY);
+			if (multiCoord != null && multiCoord.size() > 0)
+				try {
+					SvGeometry.setGeometry(vdataObject, createGeomFromJsonPolygons(multiCoord));
+				} catch (Exception e9) {
+					if (log4j.isDebugEnabled())
+						log4j.debug(e9);
+					if (log4j.isDebugEnabled())
+						log4j.debug("error generating geometry from coordinates");
+				}
+			JsonElement jPoly = jsonData.get(Rc.MULTIPOLYGEOMETRY);
+			if (jPoly != null) {
+				try {
+					GeometryFactory gf = SvUtil.sdiFactory;
+					GeoJsonReader jtsGeoReader = new GeoJsonReader(gf);
+					Geometry polyGeom = jtsGeoReader.read(jPoly.toString());
+					String polyType = polyGeom.getGeometryType();
+
+					if ("Polygon".equalsIgnoreCase(polyType))
+						polyGeom = gf.createMultiPolygon(new Polygon[] { (Polygon) polyGeom });
+
+					SvGeometry.setGeometry(vdataObject, polyGeom);
+				} catch (Exception e9) {
+					if (log4j.isDebugEnabled())
+						log4j.debug(e9);
+					if (log4j.isDebugEnabled())
+						log4j.debug("error generating geometry from coordinates");
+				}
+
+			}
+			// we have to save the object so we have Id for the link ( if there
+			// is one)
+			if (!vdataObject.isGeometryType()) {
+				svw.saveObject(vdataObject);
+			} else {
+				Long vdataType = vdataObject.getObjectType();
+				// Handle land cover
+				DbDataObject cover = SvCore.getDbtByName("SDI_COVER");
+				if (cover != null && vdataType.equals(cover.getObjectId())) {
+					Geometry coverGeom = getCoverGeometry(vdataObject, svr);
+					if (coverGeom.getNumPoints() < 3) {
+						throw new SvException("perun.main.sdi.parent_no_contain_polygon", svg.getInstanceUser());
+					} else {
+						SvGeometry.setGeometry(vdataObject, coverGeom);
+					}
+				}
+				// Set geom by gps coordinates
+				String gpsN = String.valueOf(vdataObject.getVal(Rc.LATITUDE));
+				String gpsE = String.valueOf(vdataObject.getVal(Rc.LONGITUDE));
+
+				if (gpsN != null && gpsE != null) {
+					if (gpsN.equals("00.000000") || gpsE.equals("00.000000")) {
+						vdataObject.setVal(Rc.LONGITUDE, null);
+						vdataObject.setVal(Rc.LATITUDE, null);
+					} else {
+						setPointFromLatLng(svr, vdataObject);
+					}
+				}
+				DbDataObject lu = SvCore.getDbtByName("LAND_USE_PLAN");
+				if (gsaa != null && lu != null && vdataType.equals(lu.getObjectId())) {
+					SvGeometry.setGeometry(vdataObject, gsaa);
+				}
+				// Handle tiles and save
+				// THIS PIECE OF CODE WILL BE MOVED IN SVAROG. Method Name:
+				// SvGeometry.invalidateGeoCache(DbDataArray dba)
+				/**/
+				List<Geometry> tileGeomList = null;
+				Geometry vdataGeom = SvGeometry.getGeometry(vdataObject);
+				
+				if (vdataGeom != null) {
+					Envelope env = vdataGeom.getEnvelopeInternal();
+					tileGeomList = SvGeometry.getTileGeometries(env);
+					for (Geometry tgl : tileGeomList) {
+						String tileID = (String) tgl.getUserData();
+						SvSDITile tile = SvGeometry.getTile(vdataObject.getObjectType(), tileID, null);
+						tile.setIsTileDirty(true);
+					}
+				}
+					svg.setAllowNullGeometry(true);
+				
+				DbDataArray importArr = new DbDataArray();
+				importArr.addDataItem(vdataObject);
+				svg.setSkipSpatialValidations(true);
+				svg.saveGeometry(importArr);
+
+				// Handle parcel
+				DbDataObject parc = SvCore.getDbtByName("PARCEL");
+				if (parc != null && tileGeomList != null && vdataType.equals(parc.getObjectId()))
+					this.setParcelLinks(vdataObject, tileGeomList, svw);
+			}
+			// check if we have link and object_id in parameters, we better link
+			// new object to the one passed in parameters
+			if ((objectIdToLink != 0) && !("".equals(linkName))) {
+				linkObject = SvCore.getLinkType(linkName, vlinkToTableTypeID, vtableTypeID);
+				if (linkObject == null) {
+					isReverse = true;
+					linkObject = SvCore.getLinkType(linkName, vtableTypeID, vlinkToTableTypeID);
+					if (linkObject == null) {
+						svw.dbRollback();
+						if (svw != null)
+							svw.release();
+						if (svr != null)
+							svr.release();
+						throw new SvException("perun.link_not_found_336_396", svg.getInstanceUser());
+					}
+				}
+
+				if (isReverse) {
+					DbSearchExpression dbSearch = new DbSearchExpression();
+					DbSearchCriterion crit1 = new DbSearchCriterion("LINK_TYPE_ID", DbCompareOperand.EQUAL,
+							linkObject.getObjectId());
+					crit1.setNextCritOperand(DbLogicOperand.AND.toString());
+					DbSearchCriterion crit2 = new DbSearchCriterion("LINK_OBJ_ID_1", DbCompareOperand.EQUAL,
+							vdataObject.getObjectId());
+					crit2.setNextCritOperand(DbLogicOperand.AND.toString());
+					DbSearchCriterion crit3 = new DbSearchCriterion("LINK_OBJ_ID_2", DbCompareOperand.EQUAL,
+							objectIdToLink);
+					dbSearch.addDbSearchItem(crit1);
+					dbSearch.addDbSearchItem(crit2);
+					dbSearch.addDbSearchItem(crit3);
+					DbDataArray linkExist = svr.getObjects(dbSearch, svCONST.OBJECT_TYPE_LINK, null, 0, 0);
+					if (linkExist == null || linkExist.getItems().isEmpty())
+						svl.linkObjects(vdataObject.getObjectId(), objectIdToLink, linkObject.getObjectId(), linkNote);
+				} else {
+					DbSearchExpression dbSearch = new DbSearchExpression();
+					DbSearchCriterion crit1 = new DbSearchCriterion("LINK_TYPE_ID", DbCompareOperand.EQUAL,
+							linkObject.getObjectId());
+					crit1.setNextCritOperand(DbLogicOperand.AND.toString());
+					DbSearchCriterion crit2 = new DbSearchCriterion("LINK_OBJ_ID_1", DbCompareOperand.EQUAL,
+							objectIdToLink);
+					crit2.setNextCritOperand(DbLogicOperand.AND.toString());
+					DbSearchCriterion crit3 = new DbSearchCriterion("LINK_OBJ_ID_2", DbCompareOperand.EQUAL,
+							vdataObject.getObjectId());
+					dbSearch.addDbSearchItem(crit1);
+					dbSearch.addDbSearchItem(crit2);
+					dbSearch.addDbSearchItem(crit3);
+					DbDataArray linkExist = svr.getObjects(dbSearch, svCONST.OBJECT_TYPE_LINK, null, 0, 0);
+					if (linkExist == null || linkExist.getItems().isEmpty())
+						svl.linkObjects(objectIdToLink, vdataObject.getObjectId(), linkObject.getObjectId(), linkNote);
+				}
+				svl.dbCommit();
+				if (svl != null)
+					svl.release();
+			}
+			JsonObject vjsData = vdataObject.toSimpleJson();
+			if (!vdataObject.isGeometryType())
+				svw.dbCommit();
+			else {
+				// already commited, svg.saveGeometry always autoCommits
+				svg.dbCommit();
+				Geometry g = SvGeometry.getGeometry(vdataObject);
+				if (g != null) {
+					GeoJsonWriter gjr = new GeoJsonWriter(SvConf.getParam("sys.gis.precision_scale").trim().length());
+					Gson gs = new Gson();
+					JsonObject jo = gs.fromJson(gjr.write(g), JsonObject.class);
+					vjsData.add("GEOM", jo);
+				}
+			}
+			jrh.create(MessageType.SUCCESS, I18n.getText("perrun.success.save"), I18n.getText("perrun.success.save"),
+					vjsData);
+		}catch (SvException e) {
+
+			if (e instanceof SvException) {
+				SvException ex = (SvException) e;
+
+				jrh.create(MessageType.ERROR, I18n.getText("perrun.error.save"), I18n.getText(ex.getLabelCode()),
+						new JsonObject());
+				if (ex.getLabelCode().equals("error.invalid_session")) {
+
+					jrh.create(MessageType.ERROR, I18n.getText(ex.getLabelCode()), I18n.getText(ex.getJsonMessage()),
+							new JsonObject());
+					log4j.error(ex.getFormattedMessage());
+					return Response.status(401).entity(jrh.getAll().toString()).build();
+				} else {
+					log4j.error(ex.getLabelCode(), ex);
+					if (ex.getLabelCode().startsWith("sys")) {
+						return Response.status(500).entity(jrh.getAll().toString()).build();
+					}
+				}
+
+			} else {
+				log4j.error(e.getMessage(), e);
+				jrh.create(MessageType.ERROR, I18n.getText("perrun.error.save"), I18n.getText("perrun.error.save"),
+						new JsonObject());
+				return Response.status(500).entity(jrh.getAll().toString()).build();
+			}
+		} catch (SQLException e) {
+			log4j.error(e.getMessage(), e);
+			jrh.create(MessageType.ERROR, I18n.getText("perrun.error.save"), I18n.getText("perrun.error.save"),
+					new JsonObject());
+			return Response.status(500).entity(jrh.getAll().toString()).build();
+		} finally {
+			releaseAll(svr);
+			releaseAll(svw);
+			releaseAll(svg);
+			releaseAll(svl);
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
 	/**
 	 * Web service to save an object that was entered in a form and then create link
 	 * for that object to another existing object, link type will be automatic
