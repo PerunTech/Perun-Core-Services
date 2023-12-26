@@ -88,6 +88,7 @@ import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
+
 import com.prtech.svarog_geojson.GeoJsonReader;
 import com.prtech.svarog_geojson.GeoJsonWriter;
 import org.apache.commons.io.IOUtils;
@@ -2739,56 +2740,59 @@ public class WsReactElements {
 	public void setPointFromLatLng(SvReader svr, DbDataObject dbo) throws SQLException, SvException {
 		PreparedStatement cst = null;
 		ResultSet rs = null;
+		String dmsLat = null;
+		String dmsLon = null;
+		String[] dmsLats = null;
+		String[] dmsLons = null;
 
 		try {
 			GeometryFactory gf = new GeometryFactory();
 			Coordinate coord = new Coordinate();
-
 			Double ddLat = 0.00;
 			Double ddLon = 0.00;
 			boolean fallback = false;
-
-			if (dbo.getVal(Rc.LATITUDE) != null && dbo.getVal(Rc.LATITUDE) != null) {
-				String dmsLat = dbo.getVal(Rc.LATITUDE).toString();
-				String dmsLon = dbo.getVal(Rc.LONGITUDE).toString();
-
+			if (dbo.getVal(Rc.LATITUDE) != null && dbo.getVal(Rc.LONGITUDE) != null) {
+				dmsLat = dbo.getVal(Rc.LATITUDE).toString();
+				dmsLon = dbo.getVal(Rc.LONGITUDE).toString();
 				try {
 					ddLat = Double.valueOf(dmsLat);
 					ddLon = Double.valueOf(dmsLon);
 				} catch (Exception ex) {
 					fallback = true;
 				}
-
 			} else {
 				fallback = true;
 			}
 
 			if (fallback) {
-				String[] dmsLat = dbo.getVal("GPS_NORTH").toString().split("[°']+");
-				String[] dmsLon = dbo.getVal("GPS_EAST").toString().split("[°']+");
-				ddLat = Double.valueOf(dmsLat[0]) + Double.valueOf(dmsLat[1]) / 60 + Double.valueOf(dmsLat[2]) / 3600;
-				ddLon = Double.valueOf(dmsLon[0]) + Double.valueOf(dmsLon[1]) / 60 + Double.valueOf(dmsLon[2]) / 3600;
-			}
-
-			cst = svr.dbGetConn().prepareStatement(
-					"SELECT 	ST_X (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?),	?) , ?) ),ST_Y (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?), ?), ?) );");
-			// x params
-			cst.setDouble(1, ddLon);
-			cst.setDouble(2, ddLat);
-			cst.setInt(3, 4326);
-			cst.setInt(4, 32638);
-			cst.setInt(5, 32638);
-			// y params
-			cst.setDouble(6, ddLon);
-			cst.setDouble(7, ddLat);
-			cst.setInt(8, 4326);
-			cst.setInt(9, 32638);
-			cst.setInt(10, 32638);
-
-			rs = cst.executeQuery();
-			while (rs.next()) {
-				coord.x = rs.getDouble(1);
-				coord.y = rs.getDouble(2);
+				dmsLats = dbo.getVal("GPS_NORTH").toString().split("[°']+");
+				dmsLons = dbo.getVal("GPS_EAST").toString().split("[°']+");
+				ddLat = Double.valueOf(dmsLats[0]) + Double.valueOf(dmsLats[1]) / 60
+						+ Double.valueOf(dmsLats[2]) / 3600;
+				ddLon = Double.valueOf(dmsLons[0]) + Double.valueOf(dmsLons[1]) / 60
+						+ Double.valueOf(dmsLons[2]) / 3600;
+				cst = svr.dbGetConn().prepareStatement(
+						"SELECT 	ST_X (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?),	?) , ?) ),ST_Y (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?), ?), ?) );");
+				// x params
+				cst.setDouble(1, ddLon);
+				cst.setDouble(2, ddLat);
+				cst.setInt(3, 4326);
+				cst.setInt(4, 32638);
+				cst.setInt(5, 32638);
+				// y params
+				cst.setDouble(6, ddLon);
+				cst.setDouble(7, ddLat);
+				cst.setInt(8, 4326);
+				cst.setInt(9, 32638);
+				cst.setInt(10, 32638);
+				rs = cst.executeQuery();
+				while (rs.next()) {
+					coord.x = rs.getDouble(1);
+					coord.y = rs.getDouble(2);
+				}
+			} else {
+				coord.x = ddLon;
+				coord.y = ddLat;
 			}
 
 			Point point = gf.createPoint(coord);
@@ -5388,7 +5392,7 @@ public class WsReactElements {
 		return createTableRecordWithLink(sessionId, tableName, parentId, "", -5L, "", "", null, formVals, httpRequest);
 
 	}
-	
+
 	/**
 	 * Web service to save an object that was entered in a form and then create link
 	 * for that object to another existing object, link type will be automatic
