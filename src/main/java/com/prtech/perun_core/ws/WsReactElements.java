@@ -4,10 +4,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -2749,23 +2751,18 @@ public class WsReactElements {
 		try {
 			GeometryFactory gf = new GeometryFactory();
 			Coordinate coord = new Coordinate();
-
-			int defaultSrid = Integer.parseInt(SvConf.getSDISrid());
 			Double ddLat = 0.00;
 			Double ddLon = 0.00;
 			boolean fallback = false;
-
 			if (dbo.getVal(Rc.LATITUDE) != null && dbo.getVal(Rc.LONGITUDE) != null) {
 				dmsLat = dbo.getVal(Rc.LATITUDE).toString();
 				dmsLon = dbo.getVal(Rc.LONGITUDE).toString();
-
 				try {
 					ddLat = Double.valueOf(dmsLat);
 					ddLon = Double.valueOf(dmsLon);
 				} catch (Exception ex) {
 					fallback = true;
 				}
-
 			} else {
 				fallback = true;
 			}
@@ -2777,52 +2774,28 @@ public class WsReactElements {
 						+ Double.valueOf(dmsLats[2]) / 3600;
 				ddLon = Double.valueOf(dmsLons[0]) + Double.valueOf(dmsLons[1]) / 60
 						+ Double.valueOf(dmsLons[2]) / 3600;
-			}
-			boolean retrieve = false;
-			cst = svr.dbGetConn().prepareStatement(
-					"SELECT 	ST_X (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?),	?) , ?) ),ST_Y (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?), ?), ?) );");
-			// x params
-			cst.setDouble(1, ddLon);
-			cst.setDouble(2, ddLat);
-			cst.setInt(3, defaultSrid);
-			cst.setInt(4, 32638);
-			cst.setInt(5, 32638);
-			// y params
-			cst.setDouble(6, ddLon);
-			cst.setDouble(7, ddLat);
-			cst.setInt(8, defaultSrid);
-			cst.setInt(9, 32638);
-			cst.setInt(10, 32638);
-			try {
-				rs = cst.executeQuery();
-			} catch (PSQLException ex) {
-				retrieve = true;
-			}
-			if (retrieve) {
-				ddLat = Double.valueOf(dmsLon);
-				ddLon = Double.valueOf(dmsLat);
+				cst = svr.dbGetConn().prepareStatement(
+						"SELECT 	ST_X (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?),	?) , ?) ),ST_Y (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?), ?), ?) );");
 				// x params
 				cst.setDouble(1, ddLon);
 				cst.setDouble(2, ddLat);
-				cst.setInt(3, defaultSrid);
+				cst.setInt(3, 4326);
 				cst.setInt(4, 32638);
 				cst.setInt(5, 32638);
 				// y params
 				cst.setDouble(6, ddLon);
 				cst.setDouble(7, ddLat);
-				cst.setInt(8, defaultSrid);
+				cst.setInt(8, 4326);
 				cst.setInt(9, 32638);
 				cst.setInt(10, 32638);
 				rs = cst.executeQuery();
 				while (rs.next()) {
-					coord.x = rs.getDouble(2);
-					coord.y = rs.getDouble(1);
-				}
-			} else {
-				while (rs.next()) {
 					coord.x = rs.getDouble(1);
 					coord.y = rs.getDouble(2);
 				}
+			} else {
+				coord.x = ddLon;
+				coord.y = ddLat;
 			}
 
 			Point point = gf.createPoint(coord);
