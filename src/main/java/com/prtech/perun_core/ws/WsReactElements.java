@@ -4994,8 +4994,8 @@ public class WsReactElements {
 					Geometry geom = SvGeometry.getGeometry(reqObject);
 					JsonArray jArray = new JsonArray();
 					if ("GEOM".equalsIgnoreCase(tmpField)) {
-						String useRealGeom = svp.getParamString("param.useRealGeom");
-						if (useRealGeom != null && "Y".equalsIgnoreCase(useRealGeom) && geom != null) {
+						Boolean useRealGeom = SvParameter.getSysParam("USE_FORM_DATA_REAL_GEOMETRY", Boolean.TRUE);
+						if (useRealGeom && geom != null) {
 							GeoJsonWriter geoj = new GeoJsonWriter();
 							String stringedPoly = geoj.write(geom);
 							JsonObject jsonedPoly = new JsonObject();
