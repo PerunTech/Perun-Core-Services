@@ -17,6 +17,8 @@ import javax.ws.rs.core.Response;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Polygon;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -82,6 +84,42 @@ public class PerunUtil extends SvUtil {
 		}
 	}
 
+	public static DbDataObject getGeometryField(Long objetType) {
+		DbDataArray a = SvCore.getFields(objetType);
+		DbDataObject geomField = null;
+		for (DbDataObject f : a.getItems()) {
+			String type = f.getAsString("FIELD_TYPE");
+			String name = f.getAsString("FIELD_NAME");
+			if (type.equals("GEOMETRY") && !name.equals("CENTROID")) {
+				geomField = f;
+				break;
+			}
+		}
+
+		return geomField;
+
+	}
+	/**
+	 * Method to ensure the geometry type is consistent.
+	 * @param g The geometry
+	 * @param typeId The type id
+	 * @return
+	 */
+	public static Geometry verifyGeometryType(Geometry g, Long typeId) {
+		// TODO Auto-generated method stub
+		DbDataObject geomField = getGeometryField(typeId);
+		String geomType = geomField.getAsString("GEOMETRY_TYPE");
+
+		if (g.getGeometryType().equalsIgnoreCase(geomType))
+			return g;
+		else if (g.getGeometryType().equals(Geometry.TYPENAME_POLYGON)
+				&& geomType.equalsIgnoreCase(Geometry.TYPENAME_MULTIPOLYGON))
+			return sdiFactory.createMultiPolygon(new Polygon[] { (Polygon) g });
+		else if (g.getGeometryType().equals(Geometry.TYPENAME_MULTIPOLYGON)
+				&& geomType.equalsIgnoreCase(Geometry.TYPENAME_POLYGON))
+			return g.getGeometryN(0);
+		return null;
+	}
 	/**
 	 * Method to fetch the parent object and update the current data with a specific
 	 * field from the parent. Not the most optimal process but it works.

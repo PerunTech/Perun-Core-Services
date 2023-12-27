@@ -5521,11 +5521,7 @@ public class WsReactElements {
 					GeometryFactory gf = SvUtil.sdiFactory;
 					GeoJsonReader jtsGeoReader = new GeoJsonReader(gf);
 					Geometry polyGeom = jtsGeoReader.read(jPoly.toString());
-					String polyType = polyGeom.getGeometryType();
-
-					if ("Polygon".equalsIgnoreCase(polyType))
-						polyGeom = gf.createMultiPolygon(new Polygon[] { (Polygon) polyGeom });
-
+					polyGeom = PerunUtil.verifyGeometryType(polyGeom, vtableTypeID);
 					SvGeometry.setGeometry(vdataObject, polyGeom);
 				} catch (Exception e9) {
 					if (log4j.isDebugEnabled())
