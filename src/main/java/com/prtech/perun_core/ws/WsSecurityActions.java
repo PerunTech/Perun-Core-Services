@@ -9,6 +9,7 @@ import java.util.Properties;
 import java.util.UUID;
 
 import javax.mail.Message;
+import javax.mail.MessagingException;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.Transport;
@@ -96,22 +97,21 @@ public class WsSecurityActions {
 						I18n.getText("createUser.success.incomplete"), new JsonObject());
 				jso = jrh.getAllv1();
 				formVals = null; // so we dont use the edbar create user
-			}
-			else if (!registerEXE.equalsIgnoreCase("EDBAR")) try ( SvExecManager svx = new SvExecManager(svs)){
-				// call executor for creating user from the project/enviorment
-				Map<String, Object> params = new HashMap<String, Object>();
-				params.put("formVals", formVals);
-				JsonObject configuration = (JsonObject) svx.execute("REGISTER_USER." + registerEXE, params, null);
-				jrh.create(MessageType.SUCCESS, I18n.getText("createUser.success.incomplete"),
-						I18n.getText("createUser.success.incomplete"), configuration);
-				jso = jrh.getAllv1();
-				formVals = null; // so we dont use the edbar create user
-			}
+			} else if (!registerEXE.equalsIgnoreCase("EDBAR"))
+				try (SvExecManager svx = new SvExecManager(svs)) {
+					// call executor for creating user from the project/enviorment
+					Map<String, Object> params = new HashMap<String, Object>();
+					params.put("formVals", formVals);
+					JsonObject configuration = (JsonObject) svx.execute("REGISTER_USER." + registerEXE, params, null);
+					jrh.create(MessageType.SUCCESS, I18n.getText("createUser.success.incomplete"),
+							I18n.getText("createUser.success.incomplete"), configuration);
+					jso = jrh.getAllv1();
+					formVals = null; // so we dont use the edbar create user
+				}
 		} catch (SvException e) {
-			
+
 		}
 
-		
 		if (formVals != null) {
 			for (Entry<String, List<String>> entry : formVals.entrySet()) {
 				if (entry.getKey() != null && !entry.getKey().isEmpty()) {
@@ -268,7 +268,6 @@ public class WsSecurityActions {
 		JsonObject retval = new JsonObject();
 		DbDataObject dbo = new DbDataObject();
 		BusinessLogicWS bls = new BusinessLogicWS();
-		SvSecurity svc = null;
 		if (formVals != null) {
 			for (Entry<String, List<String>> entry : formVals.entrySet()) {
 				if (entry.getKey() != null && !entry.getKey().isEmpty()) {
@@ -285,69 +284,80 @@ public class WsSecurityActions {
 					password = password.toUpperCase();
 				}
 			}
-			svc = new SvSecurity();
-			dbo = svc.getUser(username);
+			try (SvSecurity svc = new SvSecurity()) {
+				dbo = svc.getUser(username);
+			}
 			retval = bls.checkBeforeSend(dbo, edbr, httpRequest);
 		}
 		return Response.status(200).entity(retval.toString()).build();
 	}
 
 	public void sendMail(String recipientAddress, String mailSubject, String mailBody,
-			HashMap<String, String> extParams) {
-		SvSecurity svs = null;
-		try {
-			svs = new SvSecurity();
-			for (Entry<String, String> ent : extParams.entrySet()) {
-				mailBody = mailBody.replace(ent.getKey(), ent.getValue());
+			HashMap<String, String> extParams) throws SvException {
+
+		for (Entry<String, String> ent : extParams.entrySet()) {
+			mailBody = mailBody.replace(ent.getKey(), ent.getValue());
+		}
+
+		// Sender's email ID needs to be mentioned
+		String from = SvParameter.getSysParam("mail.from", "NOT_CONFIGURED");
+		String username = SvParameter.getSysParam("mail.username", "NOT_CONFIGURED");
+		String password = SvParameter.getSysParam("mail.password", "NOT_CONFIGURED");
+		String mailFormat = SvParameter.getSysParam("mail.format", "text/html; charset=UTF-8");
+		String host = SvParameter.getSysParam("mail.smtp.host", "NOT_CONFIGURED");
+		String port = SvParameter.getSysParam("mail.smtp.port", "465");
+		String auth = SvParameter.getSysParam("mail.smtp.auth", "true");
+		String tls = SvParameter.getSysParam("mail.smtp.starttls.enable", "true");
+		String tls_required = SvParameter.getSysParam("mail.smtp.starttls.required", "true");
+		String protocols = SvParameter.getSysParam("mail.smtp.ssl.protocols", "TLSv1.2");
+		String sockeFactory = SvParameter.getSysParam("mail.smtp.socketFactory.class",
+				"javax.net.ssl.SSLSocketFactory");
+
+		// Assuming you are sending email through relay.jangosmtp.net
+
+		Properties props = new Properties();
+		props.put("mail.smtp.host", host);
+		props.put("mail.smtp.port", port);
+		props.put("mail.smtp.auth", auth);
+		props.put("mail.smtp.starttls.enable", tls);
+		props.put("mail.smtp.ssl.trust", host);
+		props.put("mail.smtp.starttls.required", tls_required);
+		props.put("mail.smtp.ssl.protocols", protocols);
+		props.put("mail.smtp.socketFactory.class", sockeFactory);
+
+		// Get the Session object.
+		Session session = Session.getInstance(props, new javax.mail.Authenticator() {
+			protected PasswordAuthentication getPasswordAuthentication() {
+				return new PasswordAuthentication(username, password);
 			}
-			// Sender's email ID needs to be mentioned
-			String from = svs.getPublicParam("mail.from").trim();
-			final String username = svs.getPublicParam("mail.username").trim();
-			final String password = svs.getPublicParam("mail.password").trim();
-			// Assuming you are sending email through relay.jangosmtp.net
-			String host = svs.getPublicParam("mail.host").trim();
-			Properties props = new Properties();
-			props.put("mail.smtp.auth", svs.getPublicParam("mail.smtp.auth").trim());
-			props.put("mail.smtp.starttls.enable", svs.getPublicParam("mail.smtp.starttls.enable").trim());
-			props.put("mail.smtp.host", host);
-			props.put("mail.smtp.port", svs.getPublicParam("mail.smtp.port").trim());
-			props.put("mail.smtp.ssl.trust", host);
+		});
 
-			// Get the Session object.
-			Session session = Session.getInstance(props, new javax.mail.Authenticator() {
-				protected PasswordAuthentication getPasswordAuthentication() {
-					return new PasswordAuthentication(username, password);
-				}
-			});
+		// Create a default MimeMessage object.
+		MimeMessage message = new MimeMessage(session);
 
-			// Create a default MimeMessage object.
-			MimeMessage message = new MimeMessage(session);
-
-			// Set From: header field of the header.
+		// Set From: header field of the header.
+		try {
 			message.setFrom(new InternetAddress(from));
 
 			// Set To: header field of the header.
 			message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(recipientAddress));
 
-			String mailFormat = svs.getPublicParam("mail.format") != null ? svs.getPublicParam("mail.format").trim()
-					: "text/html; charset=UTF-8";
-			message.setHeader("Content-Type", "text/html; charset=UTF-8");
+			message.setHeader("Content-Type", mailFormat);
 
 			// Set Subject: header field
 			message.setSubject(mailSubject, "UTF-8");
 
 			// Now set the actual message
 			message.setContent(mailBody, mailFormat);
-
-			// Send message
 			Transport.send(message);
 
-			System.out.println("Sent message successfully....");
-
 		} catch (Exception e) {
-			System.out.println("Sending mail failed");
-			e.printStackTrace();
+			throw (new SvException("mail.send.error", svCONST.systemUser, null, recipientAddress));
 		}
+
+		if (log4j.isDebugEnabled())
+			log4j.debug("Sent message successfully to " + recipientAddress);
+
 	}
 
 	@Path("/recoverPassword")
