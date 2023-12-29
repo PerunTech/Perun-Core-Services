@@ -22,6 +22,7 @@ import com.prtech.svarog.I18n;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvExecManager;
+import com.prtech.svarog.SvParameter;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvSecurity;
 import com.prtech.svarog.SvWriter;
@@ -90,8 +91,7 @@ public class BusinessLogicWS {
 		return jrh.getAll();
 	}
 
-
-	public JsonObject noRestrictionUser(MultivaluedMap<String, String> formVals, SvSecurity svs, 
+	public JsonObject noRestrictionUser(MultivaluedMap<String, String> formVals, SvSecurity svs,
 			HttpServletRequest fehost) {
 		JsonObject jbo = null;
 		ResponseHandler jrh = new ResponseHandler();
@@ -124,16 +124,18 @@ public class BusinessLogicWS {
 					}
 				}
 				if (password1 != "" && userName != "" && password1.equals(password2)) {
-					DbDataObject dboUser = svs.createUser(userName.toUpperCase(), password1.toUpperCase(), firstName.toUpperCase(),
-							lastName.toUpperCase(), email, idNo.toUpperCase(), taxId.toUpperCase(), "EXTERNAL",
-							"VALID");
-					if (dboUser != null ) try (SvWriter svw = new SvWriter (svs)) {
-						jrh.create(MessageType.SUCCESS, I18n.getText("user.created"), I18n.getText("user.created"), new JsonObject());
-						dboUser.setStatus("VALID");
-						svw.saveObject(dboUser);
-						
-					}
-						
+					DbDataObject dboUser = svs.createUser(userName.toUpperCase(), password1.toUpperCase(),
+							firstName.toUpperCase(), lastName.toUpperCase(), email, idNo.toUpperCase(),
+							taxId.toUpperCase(), "EXTERNAL", "VALID");
+					if (dboUser != null)
+						try (SvWriter svw = new SvWriter(svs)) {
+							jrh.create(MessageType.SUCCESS, I18n.getText("user.created"), I18n.getText("user.created"),
+									new JsonObject());
+							dboUser.setStatus("VALID");
+							svw.saveObject(dboUser);
+
+						}
+
 				}
 			}
 			jbo = jrh.getAll();
@@ -144,7 +146,6 @@ public class BusinessLogicWS {
 		}
 		return jbo;
 	}
-	
 
 	public JsonObject doRegister(Boolean farmer, String fic, String idNo, String email, String password,
 			HttpServletRequest fehost) {
@@ -234,7 +235,7 @@ public class BusinessLogicWS {
 	 *         wrong
 	 */
 	public JsonObject registerUser(Boolean farmer, String userName, String pinVat, String eMail, String password,
-			HttpServletRequest feHost) {
+			HttpServletRequest httpRequest) {
 		ResponseHandler jrh = new ResponseHandler();
 		String firstName = " ";
 		String lastName = " ";
@@ -294,20 +295,7 @@ public class BusinessLogicWS {
 					svs.createUser((String) dboUser.getVal("USER_NAME"), (String) password.toUpperCase(), firstName,
 							lastName, (String) dboUser.getVal("E_MAIL"), (String) dboUser.getVal("PIN"),
 							(String) dboUser.getVal("TAX_ID"), (String) dboUser.getVal("USER_TYPE"), "PENDING", true);
-					/*
-					 * if local than print url f.r to do better solution
-					 */
-					if (svs.getPublicParam("frontend.gui_host") != null
-							&& svs.getPublicParam("frontend.gui_host").trim().length() > 4)
-						if (svs.getPublicParam("frontend.gui_host")
-								.equals("http://192.168.100.155:9090/perun/index.html")) {
-							String guiHost = svs.getPublicParam("frontend.gui_host");
-							String localUrl = guiHost + "#/home/activate?uuid=" + dboUser.getVal("USER_UID");
-							jrh.create(MessageType.SUCCESS, I18n.getText("user.user1_created"), localUrl,
-									new JsonObject());
-						} else {
-							sendActivationEmail(dboUser, feHost);
-						}
+					sendActivationEmail(dboUser, httpRequest);
 				} else {
 					jrh.create(MessageType.ERROR, I18n.getText("user.notCreated"), I18n.getText("user.notCreated"),
 							new JsonObject());
@@ -353,28 +341,28 @@ public class BusinessLogicWS {
 		return jrh.getAll();
 	}
 
-	private boolean sendActivationEmail(DbDataObject dboUser, HttpServletRequest httpRequest) throws SvException {
-		String mailBody = I18n.getLongText("mail.body_activation");
-		String feHost = "";
-		SvSecurity svs = new SvSecurity();
-		WsSecurityActions wsc = new WsSecurityActions();
-		if (svs.getPublicParam("frontend.gui_host") != null
-				&& svs.getPublicParam("frontend.gui_host").trim().length() > 4)
-			feHost = svs.getPublicParam("frontend.gui_host");
-		else
+	private String getFrontEndHost(HttpServletRequest httpRequest) throws SvException {
+		String feHost = SvParameter.getSysParam("frontend.gui_host", CC.NOT_CONFIGURED);
+		if (feHost.equals(CC.NOT_CONFIGURED))
 			feHost = httpRequest.getScheme() + "://" + httpRequest.getServerName() + ":" + // ":"
 					httpRequest.getServerPort();
-		String uri = feHost + "#/home/activate?uuid=" + dboUser.getVal("USER_UID");
-		HashMap<String, String> extParams = new HashMap<String, String>();
-		extParams.put("{NAME}", dboUser.getVal("FIRST_NAME")
-				+ (dboUser.getVal("LAST_NAME") != null ? " " + dboUser.getVal("LAST_NAME") : ""));
-		extParams.put("{ACTIVATION_LINK}", uri);
+		return feHost;
+	}
 
-		wsc.sendMail((String) dboUser.getVal("E_MAIL"), I18n.getText("mail.subject_activation"), mailBody, extParams);
+	private boolean sendActivationEmail(DbDataObject dboUser, HttpServletRequest httpRequest) throws SvException {
+		String mailBody = I18n.getLongText("mail.body_activation");
+		String feHost = getFrontEndHost(httpRequest);
+		try (SvSecurity svs = new SvSecurity()) {
+			WsSecurityActions wsc = new WsSecurityActions();
 
-		if (svs != null) {
-			svs.release();
-			svs.close();
+			String uri = feHost + "#/home/activate?uuid=" + dboUser.getVal("USER_UID");
+			HashMap<String, String> extParams = new HashMap<String, String>();
+			extParams.put("{NAME}", dboUser.getVal("FIRST_NAME")
+					+ (dboUser.getVal("LAST_NAME") != null ? " " + dboUser.getVal("LAST_NAME") : ""));
+			extParams.put("{ACTIVATION_LINK}", uri);
+
+			wsc.sendMail((String) dboUser.getVal("E_MAIL"), I18n.getText("mail.subject_activation"), mailBody,
+					extParams);
 		}
 		return true;
 	}
