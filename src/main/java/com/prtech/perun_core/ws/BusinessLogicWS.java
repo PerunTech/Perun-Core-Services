@@ -59,9 +59,10 @@ public class BusinessLogicWS {
 				if (dboUser.getVal("PIN").equals(idNo)) {
 					userFound = true;
 				} else {
+					String businessObjectName = SvParameter.getSysParam("BUSINESS_OBJECT_NAME", "FARMER");
 					DbSearchCriterion critU = new DbSearchCriterion("FIC", DbCompareOperand.EQUAL, fic);
-					if (svs.checkIfExistsConditional("FARMER", critU, "ID_NO", idNo)
-							|| svs.checkIfExistsConditional("FARMER", critU, "TAX_NO", idNo))
+					if (svs.checkIfExistsConditional(businessObjectName, critU, "ID_NO", idNo)
+							|| svs.checkIfExistsConditional(businessObjectName, critU, "TAX_NO", idNo))
 						userFound = true;
 				}
 			}
@@ -198,7 +199,8 @@ public class BusinessLogicWS {
 	boolean verifyValidFarmer(String fic, DbSearchExpression getFarmer) throws SvException {
 		boolean userExists = false;
 		try (SvSecurity svs = new SvSecurity()) {
-			userExists = svs.checkIfExists("FARMER", getFarmer);
+			String businessObjectName = SvParameter.getSysParam("BUSINESS_OBJECT_NAME", "FARMER");
+			userExists = svs.checkIfExists(businessObjectName, getFarmer);
 			long lf = Long.parseLong(fic);
 			if (!userExists) {
 				svs.switchUser(svCONST.serviceUser);
@@ -207,7 +209,7 @@ public class BusinessLogicWS {
 					params.put("FIC", fic);
 					JsonObject configuration = (JsonObject) svx.execute("IMPORTER.FARM_DATA", params, null);
 				}
-				userExists = svs.checkIfExists("FARMER", getFarmer);
+				userExists = svs.checkIfExists(businessObjectName, getFarmer);
 			}
 
 		} catch (NumberFormatException ex) {
@@ -249,10 +251,13 @@ public class BusinessLogicWS {
 				// check if the user is registered in the Farm register
 				DbSearchExpression getPerson = getPersonSearch(pinVat);
 
+				// refactor this
+				String businessObjectName = SvParameter.getSysParam("BUSINESS_OBJECT_NAME", "FARMER");
+				// get the farmer table
 				// check if the user is registered in the Farm register
 				DbSearchExpression getFarmer = getFarmerDbSearch(userName, pinVat);
 				farmerExists = verifyValidFarmer(userName, getFarmer);
-				matchingUserNamePinVat = svs.checkIfExistsConditional("FARMER", getFarmer, "FIC",
+				matchingUserNamePinVat = svs.checkIfExistsConditional(businessObjectName, getFarmer, "FIC",
 						userName.toUpperCase());
 				if (farmer) {
 					if (farmerExists && matchingUserNamePinVat) {
@@ -280,7 +285,7 @@ public class BusinessLogicWS {
 					}
 
 					try {
-						svs.empowerUser(dboUser, "FARMER", getFarmer);
+						svs.empowerUser(dboUser, businessObjectName, getFarmer);
 					} catch (Exception e) {
 						if (!(e instanceof IndexOutOfBoundsException))
 							log4j.error("Error empowering user:" + getFarmer.toSimpleJson(), e);
@@ -438,7 +443,8 @@ public class BusinessLogicWS {
 							if (farmerJson.size() > 0) {
 								JsonObject farmer = null;
 								farmer = (JsonObject) farmerJson.get(0);
-								JsonObject jrhFieldListFarmer = getTableFiledList(token, "FARMER");
+								String businessObjectName = SvParameter.getSysParam("BUSINESS_OBJECT_NAME", "FARMER");
+								JsonObject jrhFieldListFarmer = getTableFiledList(token, businessObjectName);
 								JsonArray fieldListFarmer = (JsonArray) jrhFieldListFarmer.get("data");
 								combo.add("farmer", farmer);
 								combo.addProperty("redirect", "/FARMER");
@@ -480,7 +486,8 @@ public class BusinessLogicWS {
 				Gson gson = new Gson();
 				DbDataObject databaseTypeOrgUnit = svr.getObjectById(SvCore.getTypeIdByName("ORG_UNITS"),
 						svCONST.OBJECT_TYPE_TABLE, null);
-				DbDataObject databaseTypeFarmer = svr.getObjectById(SvCore.getTypeIdByName("FARMER"),
+				String businessObjectName = SvParameter.getSysParam("BUSINESS_OBJECT_NAME", "FARMER");
+				DbDataObject databaseTypeFarmer = svr.getObjectById(SvCore.getTypeIdByName(businessObjectName),
 						svCONST.OBJECT_TYPE_TABLE, null);
 				// Fill the field arrays with config from database
 				DbDataObject linkType = SvCore.getLinkType("POA", databaseTypeOrgUnit.getObjectId(),
@@ -501,7 +508,7 @@ public class BusinessLogicWS {
 				String[] tablesUsedArray = new String[tablesusedCount];
 				Boolean[] tableShowArray = new Boolean[tablesusedCount];
 				tablesUsedArray[0] = ("ORG_UNITS");
-				tablesUsedArray[1] = ("FARMER");
+				tablesUsedArray[1] = (businessObjectName);
 				tableShowArray[0] = true;
 				tableShowArray[1] = true;
 				String jsonStr = WsReactElements.prapareTableQueryData(ret, tablesUsedArray, tableShowArray,
@@ -1460,12 +1467,15 @@ public class BusinessLogicWS {
 							personData.get(0).getObjectId());
 					int tablesusedCount = 1;
 					DbDataArray ipardAplicantData = new DbDataArray();
-					DbDataArray farmData = svc.getPOAObjects(dbUser.getObjectId(), "FARMER");
+					String businessObjectName = SvParameter.getSysParam("BUSINESS_OBJECT_NAME", "FARMER");
+					DbDataArray farmData = svc.getPOAObjects(dbUser.getObjectId(), businessObjectName);
 					/* remove extra created obj/person f.r */
 
 					Iterator<DbDataObject> itp = personData.getItems().iterator();
 					while (itp.hasNext()) {
 						DbDataObject dbp = itp.next();
+						if (farmData == null)
+							throw new SvException("no_farm_found_for_POA_use", dbUser);
 						Iterator<DbDataObject> itf = farmData.getItems().iterator();
 						while (itf.hasNext()) {
 							DbDataObject dbf = itf.next();
@@ -1494,7 +1504,9 @@ public class BusinessLogicWS {
 							tablesusedCount, true, svr);
 					JsonArray tmpJson = gson.fromJson(jsonStr, JsonArray.class);
 					finalJsonArray.add(tmpJson.get(0));
-					tablesUsedArray[0] = ("FARMER");
+					// String businessObjectName = SvParameter.getSysParam("BUSINESS_OBJECT_NAME",
+					// "FARMER");
+					tablesUsedArray[0] = (businessObjectName);
 					tableShowArray[0] = true;
 					jsonStr = WsReactElements.prapareTableQueryData(farmData, tablesUsedArray, tableShowArray,
 							tablesusedCount, true, svr);
