@@ -7,11 +7,21 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Map.Entry;
 
+import javax.mail.Message;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
@@ -23,13 +33,18 @@ import org.locationtech.jts.geom.Polygon;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.prtech.perun_core.ws.CC;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.Sv;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
+import com.prtech.svarog.SvExecManager;
+import com.prtech.svarog.SvParameter;
 import com.prtech.svarog.SvReader;
+import com.prtech.svarog.SvSecurity;
 import com.prtech.svarog.SvUtil;
+import com.prtech.svarog.svCONST;
 import com.prtech.svarog.SvConf.SvDbType;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
@@ -71,6 +86,123 @@ public class PerunUtil extends SvUtil {
 		return handleException(e, new ResponseHandler(), message);
 	}
 
+	/**
+	 * method to generate frontEnd host-name so we can make web address/link to our
+	 * web service, if there is parameter "frontend.gui_host" in system param we use
+	 * that, if not we generate the value from the address that was called
+	 * 
+	 * @param dboUser DbDataObject user that we are processing
+	 * @param feHost  String front end host-name generated from calling the web
+	 *                service
+	 * 
+	 * @return String generated host-name variable
+	 * 
+	 * @throws SvException
+	 */
+	public static String getFrontEndHost(HttpServletRequest httpRequest) throws SvException {
+		String feHost = SvParameter.getSysParam("frontend.gui_host", CC.NOT_CONFIGURED);
+		if (feHost.equals(CC.NOT_CONFIGURED))
+			feHost = httpRequest.getScheme() + "://" + httpRequest.getServerName() + ":" + // ":"
+					httpRequest.getServerPort();
+		return feHost;
+	}
+
+	public static String getClientIp(HttpServletRequest request) {
+		String ipAddress = request.getHeader("X-FORWARDED-FOR");
+		if (ipAddress == null) {
+			ipAddress = request.getRemoteAddr();
+		}
+		return ipAddress;
+	}
+
+	public static void sendMail(String recipientAddress, String mailSubject, String mailBody,
+			HashMap<String, String> extParams) throws SvException {
+
+		for (Entry<String, String> ent : extParams.entrySet()) {
+			mailBody = mailBody.replace(ent.getKey(), ent.getValue());
+		}
+
+		// Sender's email ID needs to be mentioned
+		String from = SvParameter.getSysParam("mail.from", "NOT_CONFIGURED");
+		String username = SvParameter.getSysParam("mail.username", "NOT_CONFIGURED");
+		String password = SvParameter.getSysParam("mail.password", "NOT_CONFIGURED");
+		String mailFormat = SvParameter.getSysParam("mail.format", "text/html; charset=UTF-8");
+		String host = SvParameter.getSysParam("mail.smtp.host", "NOT_CONFIGURED");
+		String port = SvParameter.getSysParam("mail.smtp.port", "465");
+		String auth = SvParameter.getSysParam("mail.smtp.auth", "true");
+		String tls = SvParameter.getSysParam("mail.smtp.starttls.enable", "true");
+		String tls_required = SvParameter.getSysParam("mail.smtp.starttls.required", "true");
+		String protocols = SvParameter.getSysParam("mail.smtp.ssl.protocols", "TLSv1.2");
+		String sockeFactory = SvParameter.getSysParam("mail.smtp.socketFactory.class",
+				"javax.net.ssl.SSLSocketFactory");
+
+		// Assuming you are sending email through relay.jangosmtp.net
+
+		Properties props = new Properties();
+		props.put("mail.smtp.host", host);
+		props.put("mail.smtp.port", port);
+		props.put("mail.smtp.auth", auth);
+		props.put("mail.smtp.starttls.enable", tls);
+		props.put("mail.smtp.ssl.trust", host);
+		props.put("mail.smtp.starttls.required", tls_required);
+		props.put("mail.smtp.ssl.protocols", protocols);
+		props.put("mail.smtp.socketFactory.class", sockeFactory);
+
+		// Get the Session object.
+		Session session = Session.getInstance(props, new javax.mail.Authenticator() {
+			protected PasswordAuthentication getPasswordAuthentication() {
+				return new PasswordAuthentication(username, password);
+			}
+		});
+
+		// Create a default MimeMessage object.
+		MimeMessage message = new MimeMessage(session);
+
+		// Set From: header field of the header.
+		try {
+			message.setFrom(new InternetAddress(from));
+
+			// Set To: header field of the header.
+			message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(recipientAddress));
+
+			message.setHeader("Content-Type", mailFormat);
+
+			// Set Subject: header field
+			message.setSubject(mailSubject, "UTF-8");
+
+			// Now set the actual message
+			message.setContent(mailBody, mailFormat);
+			Transport.send(message);
+
+		} catch (Exception e) {
+			throw (new SvException("mail.send.error", svCONST.systemUser, null, recipientAddress));
+		}
+
+		if (log4j.isDebugEnabled())
+			log4j.debug("Sent message successfully to " + recipientAddress);
+
+	}
+
+//	/**
+//	 * procedure to validate e-mail address, simple validation a@b.c will return
+//	 * true
+//	 * 
+//	 * @param email
+//	 *            String e-mail address to be validated
+//	 * 
+//	 * @return Boolean true if e-mail is in valid format
+//	 */
+	public static Boolean isValidEmailAddress(String email) {
+		boolean result = true;
+		try {
+			InternetAddress emailAddr = new InternetAddress(email);
+			emailAddr.validate();
+		} catch (AddressException ex) {
+			result = false;
+		}
+		return result;
+	}
+
 	public static String getClientIpAddress(HttpServletRequest request) {
 		String xForwardedForHeader = request.getHeader("X-Forwarded-For");
 		if (xForwardedForHeader == null) {
@@ -99,9 +231,75 @@ public class PerunUtil extends SvUtil {
 		return geomField;
 
 	}
+
+	/**
+	 * Method to wrap a web service call to external executor
+	 * 
+	 * @param formVals        The web service post values
+	 * @param httpRequest     The https request
+	 * @param ParamName       The system parameter name which holds the executor
+	 *                        configuration
+	 * @param defaultExecutor The default executor to be called if there's no
+	 *                        configuration
+	 * @param successLabel    The label code to be returned if successful
+	 * @param errorText       The error name
+	 * @return
+	 */
+	public static Response callExternalExecutor(MultivaluedMap<String, String> formVals,
+			@Context HttpServletRequest httpRequest, String ParamName, String defaultExecutor, String successLabel,
+			String errorText) {
+
+		JsonObject jsonParams = PerunUtil.dataToJson(formVals);
+		return callExternalExecutor(jsonParams, httpRequest, ParamName, defaultExecutor, successLabel, errorText);
+	}
+
+	/**
+	 * Method to wrap a web service call to external executor
+	 * 
+	 * @param params          The Json object containing all external parameters
+	 * @param httpRequest     The https request
+	 * @param ParamName       The system parameter name which holds the executor
+	 *                        configuration
+	 * @param defaultExecutor The default executor to be called if there's no
+	 *                        configuration
+	 * @param successLabel    The label code to be returned if successful
+	 * @param errorText       The error name
+	 * @return
+	 */
+	public static Response callExternalExecutor(JsonObject jsonParams, @Context HttpServletRequest httpRequest,
+			String ParamName, String defaultExecutor, String successLabel, String errorText) {
+		ResponseHandler jrh = new ResponseHandler();
+		JsonObject jso = new JsonObject();
+		// check for system parameter PERUN_REGISTER_USER_EXECUTOR, default is
+		// PERUN_CORE_EXEC.REGISTER_USER so we always end
+		// up with that, if we want to change ways of user registration we change the
+		// parameter PERUN_REGISTER_USER_EXECUTOR in DB and create executor with that
+		// name, then we call that executor from the enviorment
+
+		String clientIp = PerunUtil.getClientIp(httpRequest);
+		try (SvSecurity svs = new SvSecurity(clientIp);) {
+			String registerEXE = SvParameter.getSysParam(ParamName, defaultExecutor);
+			String feHost = PerunUtil.getFrontEndHost(httpRequest);
+			try (SvExecManager svx = new SvExecManager(svs)) {
+				// call executor for creating user from the project/enviorment
+				Map<String, Object> params = new HashMap<String, Object>();
+				jsonParams.addProperty("feHost", feHost);
+				params.put("json_params", jsonParams);
+				JsonObject configuration = (JsonObject) svx.execute(registerEXE, params, null);
+				jrh.create(MessageType.SUCCESS, I18n.getText(successLabel), I18n.getText(successLabel), configuration);
+				jso = jrh.getAllv1();
+			}
+		} catch (SvException e) {
+			return PerunUtil.handleException(e, errorText);
+		}
+
+		return Response.status(200).entity(jso.toString()).build();
+	}
+
 	/**
 	 * Method to ensure the geometry type is consistent.
-	 * @param g The geometry
+	 * 
+	 * @param g      The geometry
 	 * @param typeId The type id
 	 * @return
 	 */
@@ -120,6 +318,7 @@ public class PerunUtil extends SvUtil {
 			return g.getGeometryN(0);
 		return null;
 	}
+
 	/**
 	 * Method to fetch the parent object and update the current data with a specific
 	 * field from the parent. Not the most optimal process but it works.
@@ -164,8 +363,10 @@ public class PerunUtil extends SvUtil {
 					formData = key;
 				}
 			}
-
-			json = gson.fromJson(formData, JsonObject.class);
+			if (formData != null && !formData.isEmpty())
+				json = gson.fromJson(formData, JsonObject.class);
+			else
+				json = new JsonObject();
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
