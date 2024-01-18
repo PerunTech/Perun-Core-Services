@@ -23,6 +23,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog_interfaces.ISvExecutor;
+import com.prtech.svarog_interfaces.ISvExecutorGroup;
 
 /**
  * This class implements a simple bundle that uses the bundle context to
@@ -60,7 +61,7 @@ public class Activator implements BundleActivator {
 	 * List of classes implementing ISvExecutor which we will later use for
 	 * registration in the bundle startup
 	 */
-	private ArrayList<ISvExecutor> executorServiceClasses = initExecutors();
+	private ArrayList<ISvExecutorGroup> executorServiceClasses = initExecutors();
 
 
 	/**
@@ -86,9 +87,9 @@ public class Activator implements BundleActivator {
 	 * 
 	 * @return Map with executors
 	 */
-	private ArrayList<ISvExecutor> initExecutors() {
-		ArrayList<ISvExecutor> list = new ArrayList<ISvExecutor>();
-		list.add(new LoginExecutor());
+	private ArrayList<ISvExecutorGroup> initExecutors() {
+		ArrayList<ISvExecutorGroup> list = new ArrayList<ISvExecutorGroup>();
+		list.add(new BusinessLogicExecutors());
 		return list;
 
 	}
@@ -118,10 +119,10 @@ public class Activator implements BundleActivator {
 			if (svc != null)
 				this.registration.add(svc);
 		}
-		for (ISvExecutor e : executorServiceClasses) {
+		for (ISvExecutorGroup e : executorServiceClasses) {
 			try {
 				log4j.info("Registering executor service class: " + e.getClass().getName());
-				svc = context.registerService(ISvExecutor.class.getName(), e, null);
+				svc = context.registerService(ISvExecutorGroup.class.getName(), e, null);
 			} catch (Exception ex) {
 				log4j.error("Can't register service class:" + e.getClass().getName(), ex);
 			}
