@@ -33,7 +33,7 @@ import org.locationtech.jts.geom.Polygon;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.prtech.perun_core.ws.CC;
+import com.prtech.perun.services.ws.CC;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.Sv;
 import com.prtech.svarog.SvConf;
