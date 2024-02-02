@@ -1,4 +1,4 @@
-package com.prtech.perun_core.ws;
+package com.prtech.perun.services.ws;
 
 public class CC {
 

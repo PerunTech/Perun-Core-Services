@@ -1,4 +1,4 @@
-package com.prtech.perun_core.ws;
+package com.prtech.perun.services.ws;
 
 import static org.junit.Assert.fail;
 
@@ -27,13 +27,14 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.prtech.perun.PerunUtil;
-import com.prtech.perun_core.ws.AdminConsole;
-import com.prtech.perun_core.ws.DbReader;
-import com.prtech.perun_core.ws.PublicWs;
-import com.prtech.perun_core.ws.WsConf;
-import com.prtech.perun_core.ws.WsReactElements;
-import com.prtech.perun_core.ws.WsReporting;
-import com.prtech.perun_core.ws.WsSecurityActions;
+import com.prtech.perun.services.ws.AdminConsole;
+import com.prtech.perun.services.ws.DbReader;
+import com.prtech.perun.services.ws.PublicWs;
+import com.prtech.perun.services.ws.Rc;
+import com.prtech.perun.services.ws.WsConf;
+import com.prtech.perun.services.ws.WsReactElements;
+import com.prtech.perun.services.ws.WsReporting;
+import com.prtech.perun.services.ws.WsSecurityActions;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvCore;
@@ -110,6 +111,15 @@ public class Perun_core_tests {
 //			e.printStackTrace();
 //		}
 //	}
+	@Test
+	public void register() throws SvException {
+	String payload = "{\"username\":\"kingkliment1\",\"idno\":\"1905999434017\",\"email\":\"k.kukoski@prtech.mk\",\"password\":\"201f00b5ca5d65a1c118e5e32431514c\",\"repeatPassword\":\"201f00b5ca5d65a1c118e5e32431514c\",\"farmer\":false,\"showFarmReg\":true,\"showUserReg\":false}";
+	Gson g = new Gson();
+	JsonObject j = g.fromJson(payload, JsonObject.class);
+	
+	
+	
+	}
 	@Test
 	public void getSQL() throws SvException {
 		String token = getUserSessionIdForTestPurpose();
@@ -532,15 +542,15 @@ public class Perun_core_tests {
 	// }
 
 	@Test
-	public void getUserGroups() {
-		WsSecurityActions wsa = new WsSecurityActions();
+	public void testGson() {
 		SvSecurity svc;
+		String test ="{\"CONTEXT_NAME\":\"db-menu\",\"LABEL_CODE\":\"perun.plugin.db-menu\",\"JAVASCRIPT_PATH\":\"/\",\"IMG_PATH\":\"/\",\"PERMISSION_CODE\":\"perun.plugin.db-menu\",\"MENU_CONF\":\"{\\\"buttonArray\\\":[{\\\"menu_name\\\":\\\"table-custom-person\\\",\\\"TABLE_NAME\\\":\\\"PERSON\\\",\\\"READONLY\\\":true},{\\\"menu_name\\\":\\\"table-form-farm\\\",\\\"TABLE_NAME\\\":\\\"FARM\\\",\\\"READONLY\\\":false,\\\"insert\\\":{\\\"objectConfiguration\\\":{\\\"readOnly\\\":true}}},{\\\"ID\\\":\\\"ADDRESS_%25FARM_OBJECT_ID%25\\\",\\\"label\\\":\\\"master_repo.address\\\",\\\"objectConfiguration\\\":{\\\"type\\\":\\\"address\\\"}},{\\\"ID\\\":\\\"FARM_ACTIVITIES_%25FARM_OBJECT_ID%25\\\",\\\"label\\\":\\\"activities_on_farm\\\",\\\"data\\\":[{\\\"menu_name\\\":\\\"table-form-single-child\\\",\\\"PARENT_NAME\\\":\\\"FARM\\\",\\\"TABLE_NAME\\\":\\\"FARM_ACTIVITIES_YN\\\",\\\"READONLY\\\":false},{\\\"menu_name\\\":\\\"table-form-single-child\\\",\\\"PARENT_NAME\\\":\\\"FARM\\\",\\\"TABLE_NAME\\\":\\\"OTHER_GAINFUL_ACTIVITIES\\\",\\\"READONLY\\\":false}]},{\\\"menu_name\\\":\\\"table-grid\\\",\\\"PARENT_NAME\\\":\\\"FARM\\\",\\\"TABLE_NAME\\\":\\\"FARM_MEMBERS\\\",\\\"READONLY\\\":false,\\\"insert\\\":{\\\"objectConfiguration\\\":{\\\"wrapper\\\":true}}},{\\\"menu_name\\\":\\\"table-grid\\\",\\\"PARENT_NAME\\\":\\\"FARM\\\",\\\"TABLE_NAME\\\":\\\"WORK_ON_FARM\\\",\\\"READONLY\\\":false},{\\\"ID\\\":\\\"ANIMALS_%25FARM_OBJECT_ID%25\\\",\\\"label\\\":\\\"animals.on.farm\\\",\\\"data\\\":[{\\\"menu_name\\\":\\\"table-grid-farm\\\",\\\"TABLE_NAME\\\":\\\"AHV_HOLDING\\\",\\\"READONLY\\\":false,\\\"insert\\\":{\\\"objectConfiguration\\\":{\\\"additionalBtns\\\":[{\\\"type\\\":\\\"GET\\\",\\\"ID\\\":\\\"IMPORT_ANIMALS_%25FARM_OBJECT_ID%25\\\",\\\"label\\\":\\\"import.animals\\\",\\\"onSave\\\":\\\"/mdfr/importAnimalsByFarmId/session-id/%25TOKEN%25/farm-id/%25FARM_OBJECT_ID%25\\\"}]}}},{\\\"menu_name\\\":\\\"table-grid-farm\\\",\\\"TABLE_NAME\\\":\\\"AHV_SINGLE_ANIMAL\\\",\\\"READONLY\\\":false,\\\"insert\\\":{\\\"objectConfiguration\\\":{\\\"data\\\":{\\\"type\\\":\\\"GET\\\",\\\"onSubmit\\\":\\\"/mdfr/getAnimalsByFarmId/%25TOKEN%25/%25FARM_OBJECT_ID%25/0\\\"}}}},{\\\"menu_name\\\":\\\"table-grid-farm\\\",\\\"TABLE_NAME\\\":\\\"ANIMALS_ON_THE_FARM\\\",\\\"READONLY\\\":false}]},{\\\"menu_name\\\":\\\"table-custom-cad-parcel\\\"},{\\\"menu_name\\\":\\\"table-grid-farm\\\",\\\"TABLE_NAME\\\":\\\"AGRI_PARCEL\\\",\\\"READONLY\\\":true,\\\"insert\\\":{\\\"objectConfiguration\\\":{\\\"additionalBtns\\\":[{\\\"type\\\":\\\"link\\\",\\\"ID\\\":\\\"%25TABLE_NAME%25_additional_%25FARM_OBJECT_ID%25\\\",\\\"label\\\":\\\"%25TABLE_NAME_LABEL_CODE%25\\\",\\\"route\\\":\\\"/main/farm-registry/map%3Fid=%25FARM_OBJECT_ID%25$%26type=%25TABLE_NAME_OBJECT_ID%25$%26action=sizp\\\"}]}}},{\\\"menu_name\\\":\\\"table-custom-landuseplan\\\"},{\\\"ID\\\":\\\"MACHINERY_EQUIPMENT_%25FARM_OBJECT_ID%25\\\",\\\"label\\\":\\\"farm_registry.machinery_and_equipment\\\",\\\"data\\\":[{\\\"menu_name\\\":\\\"table-grid\\\",\\\"PARENT_NAME\\\":\\\"FARM\\\",\\\"TABLE_NAME\\\":\\\"USE_MSH_EQ\\\",\\\"READONLY\\\":false},{\\\"menu_name\\\":\\\"table-grid\\\",\\\"PARENT_NAME\\\":\\\"FARM\\\",\\\"TABLE_NAME\\\":\\\"RENEWABLE_ENERGY_EQ\\\",\\\"READONLY\\\":false},{\\\"menu_name\\\":\\\"table-grid\\\",\\\"PARENT_NAME\\\":\\\"FARM\\\",\\\"TABLE_NAME\\\":\\\"MACHINERY_OWN\\\",\\\"READONLY\\\":false},{\\\"menu_name\\\":\\\"table-grid\\\",\\\"PARENT_NAME\\\":\\\"FARM\\\",\\\"TABLE_NAME\\\":\\\"EQUIPMENT_PROCESSING\\\",\\\"READONLY\\\":false}]},{\\\"ID\\\":\\\"BUILDINGS_FACILITIES_%25FARM_OBJECT_ID%25\\\",\\\"label\\\":\\\"farm_registry.buildings_and_facilities\\\",\\\"data\\\":[{\\\"menu_name\\\":\\\"table-grid\\\",\\\"PARENT_NAME\\\":\\\"FARM\\\",\\\"TABLE_NAME\\\":\\\"BUILDING_AGRI_PROD\\\",\\\"READONLY\\\":false},{\\\"menu_name\\\":\\\"table-grid\\\",\\\"PARENT_NAME\\\":\\\"FARM\\\",\\\"TABLE_NAME\\\":\\\"BUILDING_OFFP\\\",\\\"READONLY\\\":false},{\\\"menu_name\\\":\\\"table-grid\\\",\\\"PARENT_NAME\\\":\\\"FARM\\\",\\\"TABLE_NAME\\\":\\\"BUILDING_FACILITIY\\\",\\\"READONLY\\\":false}]},{\\\"menu_name\\\":\\\"table-grid-pers\\\",\\\"TABLE_NAME\\\":\\\"BANKACC\\\",\\\"READONLY\\\":false},{\\\"menu_name\\\":\\\"farm-attachments\\\"},{\\\"menu_name\\\":\\\"farm-prints\\\"}]}\",\"VERSION\":5,\"SORT_ORDER\":999,\"OBJECT_ID\":487161,\"OBJECT_TYPE\":106,\"PKID\":2980784,\"PARENT_ID\":0}";
+		String t2 = "{\"CONTEXT_NAME\":\"db-menu\",\"LABEL_CODE\":\"perun.plugin.db-menu\",\"JAVASCRIPT_PATH\":\"/\",\"IMG_PATH\":\"/\",\"PERMISSION_CODE\":\"perun.plugin.db-menu\",\"MENU_CONF\":\"{\\\\\"buttonArray\\\\\":[{\\\\\"menu_name\\\\\":\\\\\"table-custom-person\\\\\",\\\\\"TABLE_NAME\\\\\":\\\\\"PERSON\\\\\",\\\\\"READONLY\\\\\":true},{\\\\\"menu_name\\\\\":\\\\\"table-form-farm\\\\\",\\\\\"TABLE_NAME\\\\\":\\\\\"FARM\\\\\",\\\\\"READONLY\\\\\":false,\\\\\"insert\\\\\":{\\\\\"objectConfiguration\\\\\":{\\\\\"readOnly\\\\\":true}}},{\\\\\"ID\\\\\":\\\\\"ADDRESS_%FARM_OBJECT_ID%\\\\\",\\\\\"label\\\\\":\\\\\"master_repo.address\\\\\",\\\\\"objectConfiguration\\\\\":{\\\\\"type\\\\\":\\\\\"address\\\\\"}},{\\\\\"ID\\\\\":\\\\\"FARM_ACTIVITIES_%FARM_OBJECT_ID%\\\\\",\\\\\"label\\\\\":\\\\\"activities_on_farm\\\\\",\\\\\"data\\\\\":[{\\\\\"menu_name\\\\\":\\\\\"table-form-single-child\\\\\",\\\\\"PARENT_NAME\\\\\":\\\\\"FARM\\\\\",\\\\\"TABLE_NAME\\\\\":\\\\\"FARM_ACTIVITIES_YN\\\\\",\\\\\"READONLY\\\\\":false},{\\\\\"menu_name\\\\\":\\\\\"table-form-single-child\\\\\",\\\\\"PARENT_NAME\\\\\":\\\\\"FARM\\\\\",\\\\\"TABLE_NAME\\\\\":\\\\\"OTHER_GAINFUL_ACTIVITIES\\\\\",\\\\\"READONLY\\\\\":false}]},{\\\\\"menu_name\\\\\":\\\\\"table-grid\\\\\",\\\\\"PARENT_NAME\\\\\":\\\\\"FARM\\\\\",\\\\\"TABLE_NAME\\\\\":\\\\\"FARM_MEMBERS\\\\\",\\\\\"READONLY\\\\\":false,\\\\\"insert\\\\\":{\\\\\"objectConfiguration\\\\\":{\\\\\"wrapper\\\\\":true}}},{\\\\\"menu_name\\\\\":\\\\\"table-grid\\\\\",\\\\\"PARENT_NAME\\\\\":\\\\\"FARM\\\\\",\\\\\"TABLE_NAME\\\\\":\\\\\"WORK_ON_FARM\\\\\",\\\\\"READONLY\\\\\":false},{\\\\\"ID\\\\\":\\\\\"ANIMALS_%FARM_OBJECT_ID%\\\\\",\\\\\"label\\\\\":\\\\\"animals.on.farm\\\\\",\\\\\"data\\\\\":[{\\\\\"menu_name\\\\\":\\\\\"table-grid-farm\\\\\",\\\\\"TABLE_NAME\\\\\":\\\\\"AHV_HOLDING\\\\\",\\\\\"READONLY\\\\\":false,\\\\\"insert\\\\\":{\\\\\"objectConfiguration\\\\\":{\\\\\"additionalBtns\\\\\":[{\\\\\"type\\\\\":\\\\\"GET\\\\\",\\\\\"ID\\\\\":\\\\\"IMPORT_ANIMALS_%FARM_OBJECT_ID%\\\\\",\\\\\"label\\\\\":\\\\\"import.animals\\\\\",\\\\\"onSave\\\\\":\\\\\"/mdfr/importAnimalsByFarmId/session-id/%TOKEN%/farm-id/%FARM_OBJECT_ID%\\\\\"}]}}},{\\\\\"menu_name\\\\\":\\\\\"table-grid-farm\\\\\",\\\\\"TABLE_NAME\\\\\":\\\\\"AHV_SINGLE_ANIMAL\\\\\",\\\\\"READONLY\\\\\":false,\\\\\"insert\\\\\":{\\\\\"objectConfiguration\\\\\":{\\\\\"data\\\\\":{\\\\\"type\\\\\":\\\\\"GET\\\\\",\\\\\"onSubmit\\\\\":\\\\\"/mdfr/getAnimalsByFarmId/%TOKEN%/%FARM_OBJECT_ID%/0\\\\\"}}}},{\\\\\"menu_name\\\\\":\\\\\"table-grid-farm\\\\\",\\\\\"TABLE_NAME\\\\\":\\\\\"ANIMALS_ON_THE_FARM\\\\\",\\\\\"READONLY\\\\\":false}]},{\\\\\"menu_name\\\\\":\\\\\"table-custom-cad-parcel\\\\\"},{\\\\\"menu_name\\\\\":\\\\\"table-grid-farm\\\\\",\\\\\"TABLE_NAME\\\\\":\\\\\"AGRI_PARCEL\\\\\",\\\\\"READONLY\\\\\":true,\\\\\"insert\\\\\":{\\\\\"objectConfiguration\\\\\":{\\\\\"additionalBtns\\\\\":[{\\\\\"type\\\\\":\\\\\"link\\\\\",\\\\\"ID\\\\\":\\\\\"%TABLE_NAME%_additional_%FARM_OBJECT_ID%\\\\\",\\\\\"label\\\\\":\\\\\"%TABLE_NAME_LABEL_CODE%\\\\\",\\\\\"route\\\\\":\\\\\"/main/farm-registry/map?id";
 		try {
-			svc = new SvSecurity();
-			String sessionId = svc.logon("fic", SvUtil.getMD5("notvalid"));
-			JsonObject test = wsa.getCofnigModules(sessionId);
-			System.out.print(test);
-		} catch (SvException e) {
+			Gson g = new Gson();
+			JsonObject h = g.fromJson(test, JsonObject.class);
+			System.out.print(h);
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
