@@ -183,7 +183,8 @@ public class WsSecurityActions {
 	@Path("/getPersonalUserInfo/{session}/{actionType}")
 	@GET
 	@Produces("text/html;charset=utf-8")
-	public Response getPersonalUserInfo(@PathParam("session") String session, @Context HttpServletRequest httpRequest) {
+	public Response getPersonalUserInfo(@PathParam("session") String session, @Context HttpServletRequest httpRequest,
+			@PathParam("actionType") String actionType) {
 		ResponseHandler jrh = new ResponseHandler();
 		// JsonArray userInfo = new JsonArray();
 		try (SvReader svr = new SvReader(session)) {
@@ -191,7 +192,8 @@ public class WsSecurityActions {
 			/* get user info */
 			dboUser = svr.getInstanceUser();
 			if (dboUser == null) {
-				jrh.create(MessageType.ERROR, "Грешка", "Корисникот не е пронајден", new JsonObject());
+				jrh.create(MessageType.ERROR, I18n.getText("error.perun.tittle"),
+						I18n.getText("error.perun.user_not_found"), new JsonObject());
 			} else {
 				jrh.create(MessageType.SUCCESS, I18n.getText("configuration.loaded"),
 						"SvarogConfiguration.getConfigComponent ", dboUser.toJson());

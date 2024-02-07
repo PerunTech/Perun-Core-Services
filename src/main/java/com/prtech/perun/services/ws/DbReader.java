@@ -64,12 +64,11 @@ public class DbReader {
 	/**
 	 * Simple help method for fetching DB object by single filter
 	 * 
-	 * @param objectType
-	 * @param columnName
-	 * @param columnValue
-	 * @param svr
+	 * @param objectType The id of the type/table
+	 * @param columnName The column name to search by
+	 * @param columnValue The value to be searched for
+	 * @param svr Standard SvCore instance
 	 * @return
-	 * @throws SvException
 	 */
 	public DbDataObject searchDbObjectBySingleFilter(Long objectType, String columnName, Object columnValue,
 			SvReader svr) {
@@ -129,7 +128,7 @@ public class DbReader {
 	 * @param linkObjId1 entity/village object id
 	 * @param linkObjId2 disaster claim object id
 	 * @param linkName   name of the link between the two objects
-	 * @param SvReader
+	 * @param svr SvReader instance
 	 * @return DbDataObject
 	 */
 	public static DbDataObject findLink(Long linkObjId1, Long linkObjId2, String linkName, SvReader svr)
@@ -160,8 +159,9 @@ public class DbReader {
 	 * @param linkObjId1 entity/village object id
 	 * @param linkObjId2 disaster claim object id
 	 * @param linkTypeId object id of the link type
-	 * @param SvReader
-	 * @return DbDataObject
+	 * @param svr The SvCore to be used for connectivity 
+	 * @return DbDataObject The link object
+	 * @throws SvException Any underlying exception
 	 */
 	public static DbDataObject findLink(Long linkObjId1, Long linkObjId2, Long linkTypeId, SvReader svr)
 			throws SvException {
@@ -549,8 +549,8 @@ public class DbReader {
 	 * Method that checks if some user is related to proper permission key thorugh
 	 * its session
 	 * 
-	 * @param action
-	 * @param svr
+	 * @param actionPermissionKey The ACL key
+	 * @param svr The SvReader instance 
 	 * @throws SvException
 	 */
 	public void checkIfCurrentUserHasActionPermission(String actionPermissionKey, SvReader svr) throws SvException {

@@ -371,9 +371,9 @@ public class WsReactElements {
 	/**
 	 * procedure to find the form object with given ID or label code of the form
 	 * 
-	 * @param objectName String that could be number (ID) of the table or the name
-	 *                   of the table
-	 * @param svr        connected SvReader
+	 * @param formName String that could be number (ID) of the table or the name of
+	 *                 the table
+	 * @param svr      connected SvReader
 	 * 
 	 * @return DbDataObject of type FROM_TYPE or null if object was not found
 	 */
@@ -1044,8 +1044,8 @@ public class WsReactElements {
 	 * field if there is codelist set in CODE_LIST_ID fielf we pull it and set it
 	 * too
 	 * 
-	 * @param table_name name of the table that needs to be translated
-	 * @param svr        connected SvReader
+	 * @param tableName name of the table that needs to be translated
+	 * @param svr       connected SvReader
 	 * 
 	 * @return JsonArray with all SVAROG fields
 	 */
@@ -1064,7 +1064,7 @@ public class WsReactElements {
 	 * field if there is codelist set in CODE_LIST_ID fielf we pull it and set it
 	 * too
 	 * 
-	 * @param table_name   String name of the table that needs to be translated
+	 * @param tableName    String name of the table that needs to be translated
 	 * @param overrideShow Boolean override the GUI_METADATA and show all fields
 	 *                     (used for object history)
 	 * 
@@ -1375,9 +1375,9 @@ public class WsReactElements {
 	 * of every grid, this will also get all codes for the dropdowns and get all
 	 * relevant data if there is GUI_METADATA for te field
 	 * 
-	 * @param table_name String what is the table name that this filed is part of
-	 * @param oField     DbDataObject from SVAROG_FIELDS that can
-	 * @param svr        connected SvReader
+	 * @param tableName String what is the table name that this filed is part of
+	 * @param oField    DbDataObject from SVAROG_FIELDS that can
+	 * @param svr       connected SvReader
 	 * 
 	 * @return JsonObject with data from oData Object
 	 */
@@ -1450,7 +1450,7 @@ public class WsReactElements {
 	 * procedure to generate part of the Json string for the data that is part of
 	 * SVAROG core, overloaded version used when we make join query
 	 * 
-	 * @param vData            ArrayList<DbDataObject> this is where all data from
+	 * @param vData            ArrayList of DbDataObject this is where all data from
 	 *                         the query is stored, it works best for sorted list
 	 * @param tablesUsedArray  Array of String array of tables used in the query,
 	 *                         that MUST be in same order as used in building the
@@ -1633,18 +1633,21 @@ public class WsReactElements {
 	 * procedure to generate part of the Json string for the data that is part of
 	 * SVAROG core, overloaded version used when we make join query
 	 * 
-	 * @param vData           DbDataArray this is where all data from the query is
-	 *                        stored
-	 * @param tablesUsedArray Array of String array of tables used in the query,
-	 *                        that MUST be in same order as used in building the
-	 *                        query
-	 * @param tableShowArray  Array of Boolean , to save on some time and
-	 *                        string/Json size, we can hide full tables that don't
-	 *                        have anything for display
-	 * @param i               int , when we make svarog join every table is renamed
-	 *                        to TBL[i] , this will tell us how many tables are we
-	 *                        joining so we don't go out of index
-	 * @param svr             connected SvReader
+	 * @param vData                     DbDataArray this is where all data from the
+	 *                                  query is stored
+	 * @param tablesUsedArray           Array of String array of tables used in the
+	 *                                  query, that MUST be in same order as used in
+	 *                                  building the query
+	 * @param tableShowArray            Array of Boolean , to save on some time and
+	 *                                  string/Json size, we can hide full tables
+	 *                                  that don't have anything for display
+	 * @param tablesusedCount           when we make svarog join every table is
+	 *                                  renamed to TBL[i] , this will tell us how
+	 *                                  many tables are we joining so we don't go
+	 *                                  out of index
+	 * @param doTranslate               flag if we should tranlate labels or not
+	 * @param mapFieldDenormalizedField the field to be used for denormalisation
+	 * @param svr                       connected SvReader
 	 * 
 	 * @return JSON String with data from VData array
 	 * @throws SvException
@@ -1697,9 +1700,13 @@ public class WsReactElements {
 	 * @param tableShowArray  Array of Boolean , to save on some time and
 	 *                        string/Json size, we can hide full tables that don't
 	 *                        have anything for display
-	 * @param i               int , when we make svarog join every table is renamed
+	 * @param tablesusedCount int , when we make svarog join every table is renamed
 	 *                        to TBL[i] , this will tell us how many tables are we
 	 *                        joining so we don't go out of index
+	 * @param doTranslate     Boolean if set to TRUE it will translate all
+	 *                        label_codes, so it should be TRUE most of the time
+	 *                        except in administrative console where we have to set
+	 *                        the codes
 	 * @param svr             connected SvReader
 	 * 
 	 * @return JSON String with data from VData array
@@ -2512,10 +2519,9 @@ public class WsReactElements {
 	 * procedure to return all documents for application that are of type yes/no
 	 * dopdown specified , and have parent of support_type
 	 * 
-	 * @param papplication_id Long Id of the application
-	 * @param psupport_type   Long Id of the support (merka)
-	 * @param pform_category  String name of the form category
-	 * @param svr             SvReader connected to database
+	 * @param pApplicationID Long Id of the application
+	 * @param pSupportType   Long Id of the support (merka)
+	 * @param svr            SvReader connected to database
 	 * 
 	 * @return DbDataArray
 	 */
@@ -3175,7 +3181,7 @@ public class WsReactElements {
 	 * 
 	 * @param svr          SvReader connected to database
 	 * @param tableName    name of the table or table ID
-	 * @param formVals     MultivaluedMap<String, String> as get from GUI form
+	 * @param formVals     MultivaluedMap of String, String as get from GUI form
 	 * @param recordNumber how many records we want to return, if set to 0, return
 	 *                     all
 	 * @return DbDataArray
@@ -3262,9 +3268,9 @@ public class WsReactElements {
 	 * it will also add all necessary SVAROG fields, it will also look for display
 	 * names from SVAROG_LABELS
 	 * 
-	 * @param sessionId  Session ID (SID) of the web communication between browser
-	 *                   and web server
-	 * @param table_name table that we try to display so we need the field names
+	 * @param sessionId Session ID (SID) of the web communication between browser
+	 *                  and web server
+	 * @param tableName table that we try to display so we need the field names
 	 * 
 	 * @return Json with list of fields
 	 */
@@ -3348,10 +3354,10 @@ public class WsReactElements {
 	 * it will also add all necessary SVAROG fields, it will also look for display
 	 * names from SVAROG_LABELS
 	 * 
-	 * @param sessionId  Session ID (SID) of the web communication between browser
-	 *                   and web server
-	 * @param table_name table that we try to display so we need the field names
-	 * 
+	 * @param sessionId Session ID (SID) of the web communication between browser
+	 *                  and web server
+	 * @param tableName table that we try to display so we need the field names
+	 * @param withData  flag to signify if data should be returned
 	 * @return Json with list of fields
 	 */
 	@Path("/getTableFieldListFull/{session_id}/{table_name}/{withData}")
@@ -3426,10 +3432,10 @@ public class WsReactElements {
 	/**
 	 * Web service to return any table with svarog repo fields
 	 * 
-	 * @param sessionId  Session ID (SID) of the web communication between browser
-	 *                   and web server
-	 * @param table_name String table from which we want to get data
-	 * @param no_rec     Integer how many records we want to pull from the table
+	 * @param sessionId    Session ID (SID) of the web communication between browser
+	 *                     and web server
+	 * @param tableName    String table from which we want to get data
+	 * @param recordNumber Integer how many records we want to pull from the table
 	 * 
 	 * @return Json with all objects found
 	 */
@@ -3445,12 +3451,13 @@ public class WsReactElements {
 	/**
 	 * Web service to return any table with svarog repo fields
 	 * 
-	 * @param sessionId   Session ID (SID) of the web communication between browser
-	 *                    and web server
-	 * @param table_name  String table from which we want to get data
-	 * @param no_rec      Integer how many records we want to pull from the table
-	 * @param doTranslate Boolean should we translate the label codes ( use FALSE
-	 *                    for admin console so we can actually see the SVAROG_CODES)
+	 * @param sessionId    Session ID (SID) of the web communication between browser
+	 *                     and web server
+	 * @param tableName    String table from which we want to get data
+	 * @param recordNumber Integer how many records we want to pull from the table
+	 * @param doTranslate  Boolean should we translate the label codes ( use FALSE
+	 *                     for admin console so we can actually see the
+	 *                     SVAROG_CODES)
 	 * 
 	 * @return Json with all objects found
 	 */
@@ -3486,11 +3493,11 @@ public class WsReactElements {
 		return Response.status(200).entity(retString).build();
 	}
 
-	@Path("/getTableWithFilter/{session_id}/{table_name}/{fieldNAme}/{fieldValue}/{no_rec}")
+	@Path("/getTableWithFilter/{session_id}/{table_name}/{fieldName}/{fieldValue}/{no_rec}")
 	@GET
 	@Produces("application/json")
 	public Response getTableWithFilter(@PathParam("session_id") String sessionId,
-			@PathParam("table_name") String tableName, @PathParam("fieldNAme") String fieldName,
+			@PathParam("table_name") String tableName, @PathParam("fieldName") String fieldName,
 			@PathParam("fieldValue") String fieldValue, @PathParam("no_rec") Integer recordNumber,
 			@Context HttpServletRequest httpRequest) {
 		return getTableWithFilter(sessionId, tableName, fieldName, fieldValue, null, null, null, recordNumber, null,
@@ -3510,11 +3517,11 @@ public class WsReactElements {
 	 * @param httpRequest
 	 * @return
 	 */
-	@Path("/getTableWithFilter/{session_id}/{table_name}/{fieldNAme}/{fieldValue}/{no_rec}/{sortOrder}")
+	@Path("/getTableWithFilter/{session_id}/{table_name}/{fieldName}/{fieldValue}/{no_rec}/{sortOrder}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getTableWithFilter(@PathParam("session_id") String sessionId,
-			@PathParam("table_name") String tableName, @PathParam("fieldNAme") String fieldName,
+			@PathParam("table_name") String tableName, @PathParam("fieldName") String fieldName,
 			@PathParam("fieldValue") String fieldValue, @PathParam("no_rec") Integer recordNumber,
 			@PathParam("sortOrder") String sortOrder, @Context HttpServletRequest httpRequest) {
 		return getTableWithFilter(sessionId, tableName, fieldName, fieldValue, null, null, null, recordNumber,
@@ -3528,24 +3535,24 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId          Session ID (SID) of the web communication between
 	 *                           browser and web server
-	 * @param table_name         String table from which we want to get data
-	 * @param fieldNAme          String name of the field that we try to filter
-	 * @param fieldValue         String value that we are trying to find, will be
-	 *                           cast to Integer for numeric values
+	 * @param tableName          String table from which we want to get data
 	 * @param fieldName1         String name of the field that we try to filter
 	 * @param fieldValue1        String value that we are trying to find, will be
 	 *                           cast to Integer for numeric values
+	 * @param fieldName2         String name of the field that we try to filter
+	 * @param fieldValue2        String value that we are trying to find, will be
+	 *                           cast to Integer for numeric values
 	 * @param criterumConjuction String AND/OR
-	 * @param no_rec             Integer how many records we want to pull from the
+	 * @param recordNumber             Integer how many records we want to pull from the
 	 *                           table
 	 * 
 	 * @return Json with all objects found
 	 */
-	@Path("/getTableWithFilter/{session_id}/{table_name}/{fieldNAme}/{fieldValue}/{fieldName1}/{fieldValue1}/{criterumConjuction}/{no_rec}/{sortOrder}")
+	@Path("/getTableWithFilter/{session_id}/{table_name}/{fieldName}/{fieldValue}/{fieldName1}/{fieldValue1}/{criterumConjuction}/{no_rec}/{sortOrder}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getTableWithFilter(@PathParam("session_id") String sessionId,
-			@PathParam("table_name") String tableName, @PathParam("fieldNAme") String fieldName1,
+			@PathParam("table_name") String tableName, @PathParam("fieldName") String fieldName1,
 			@PathParam("fieldValue") String fieldValue1, @PathParam("fieldName1") String fieldName2,
 			@PathParam("fieldValue1") String fieldValue2, @PathParam("criterumConjuction") String criterumConjuction,
 			@PathParam("no_rec") Integer recordNumber, @PathParam("sortOrder") String sortOrder,
@@ -3634,11 +3641,11 @@ public class WsReactElements {
 	 * Overloaded method
 	 * {@link #getTableWithFilter(String, String, String, String, String, String, String, Integer, String, HttpServletRequest)}
 	 */
-	@Path("/getTableWithFilter/{session_id}/{table_name}/{fieldNAme}/{fieldValue}/{fieldName1}/{fieldValue1}/{criterumConjuction}/{no_rec}")
+	@Path("/getTableWithFilter/{session_id}/{table_name}/{fieldName}/{fieldValue}/{fieldName1}/{fieldValue1}/{criterumConjuction}/{no_rec}")
 	@GET
 	@Produces("application/json")
 	public Response getTableWithFilter(@PathParam("session_id") String sessionId,
-			@PathParam("table_name") String tableName, @PathParam("fieldNAme") String fieldName1,
+			@PathParam("table_name") String tableName, @PathParam("fieldName") String fieldName1,
 			@PathParam("fieldValue") String fieldValue1, @PathParam("fieldName1") String fieldName2,
 			@PathParam("fieldValue1") String fieldValue2, @PathParam("criterumConjuction") String criterumConjuction,
 			@PathParam("no_rec") Integer recordNumber, @Context HttpServletRequest httpRequest) {
@@ -3653,7 +3660,7 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId           Session ID (SID) of the web communication between
 	 *                            browser and web server
-	 * @param table_name          String table from which we want to get data
+	 * @param tableName           String table from which we want to get data
 	 * @param fieldNames          String - names of fields that should be used in
 	 *                            the search criteria. The names are comma separated
 	 * @param criterumConjuctions String - logic operands that should be used in the
@@ -3662,7 +3669,7 @@ public class WsReactElements {
 	 * @param fieldValues         String - names of values that should be used in
 	 *                            the search criteria. The values are comma
 	 *                            separated
-	 * @param no_rec              Integer how many records we want to pull from the
+	 * @param recordNumber              Integer how many records we want to pull from the
 	 *                            table
 	 * 
 	 * @return Json with all objects found
@@ -3685,7 +3692,7 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId           Session ID (SID) of the web communication between
 	 *                            browser and web server
-	 * @param table_name          String table from which we want to get data
+	 * @param tableName           String table from which we want to get data
 	 * @param fieldNames          String - names of fields that should be used in
 	 *                            the search criteria. The names are comma separated
 	 * @param criterumConjuctions String - logic operands that should be used in the
@@ -3694,7 +3701,7 @@ public class WsReactElements {
 	 * @param fieldValues         String - names of values that should be used in
 	 *                            the search criteria. The values are comma
 	 *                            separated
-	 * @param no_rec              Integer how many records we want to pull from the
+	 * @param recordNumber              Integer how many records we want to pull from the
 	 *                            table
 	 * @param sortOrder           String for ascending or descending, accepts ASC OR
 	 *                            DESC
@@ -3720,7 +3727,7 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId           Session ID (SID) of the web communication between
 	 *                            browser and web server
-	 * @param table_name          String table from which we want to get data
+	 * @param tableName           String table from which we want to get data
 	 * @param fieldNames          String - names of fields that should be used in
 	 *                            the search criteria. The names are comma separated
 	 * @param criterumConjuctions String - logic operands that should be used in the
@@ -3729,7 +3736,7 @@ public class WsReactElements {
 	 * @param fieldValues         String - names of values that should be used in
 	 *                            the search criteria. The values are comma
 	 *                            separated
-	 * @param no_rec              Integer how many records we want to pull from the
+	 * @param recordNumber              Integer how many records we want to pull from the
 	 *                            table
 	 * @param sortField           String field to sort the array by
 	 * @param sortOrder           String for ascending or descending, accepts ASC OR
@@ -3907,14 +3914,10 @@ public class WsReactElements {
 	 * Web service to return any table using with search for fields that are passed
 	 * by form
 	 * 
-	 * @param session_id Session ID (SID) of the web communication between browser
-	 *                   and web server
-	 * @param formVals   String table from which we want to get data
-	 * @param no_rec     Integer how many records we want to pull from the table
-	 * 
-	 * 
-	 * @param no_rec     Integer how many records we want to pull from the table
-	 * 
+	 * @param sessionId   Session ID (SID) of the web communication between browser
+	 *                     and web server
+	 * @param formVals     String table from which we want to get data
+	 * @param recordNumber Integer how many records we want to pull from the table *
 	 * 
 	 * @return Json with all objects found
 	 */
@@ -3953,21 +3956,21 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId     Session ID (SID) of the web communication between
 	 *                      browser and web server
-	 * @param table_name    String table from which we want to get data
-	 * @param fieldNAme     String name of the field that we try to filter
+	 * @param tableName     String table from which we want to get data
+	 * @param fieldName     String name of the field that we try to filter
 	 * @param fieldValue    String value that we are trying to find, will be cast to
 	 *                      Integer for numeric values
-	 * @param no_rec        Integer how many records we want to pull from the table
+	 * @param recordNumber        Integer how many records we want to pull from the table
 	 * @param caseSensitive Integer (1 or 0) the comparison is case sensitive when
 	 *                      value is 1
 	 * 
 	 * @return Json with all objects found
 	 */
-	@Path("/getTableWithLike/{session_id}/{table_name}/{fieldNAme}/{fieldValue}/{no_rec}/{caseSensitive}")
+	@Path("/getTableWithLike/{session_id}/{table_name}/{fieldName}/{fieldValue}/{no_rec}/{caseSensitive}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getTableWithLike(@PathParam("session_id") String sessionId,
-			@PathParam("table_name") String tableName, @PathParam("fieldNAme") String fieldName,
+			@PathParam("table_name") String tableName, @PathParam("fieldName") String fieldName,
 			@PathParam("fieldValue") String fieldValue, @PathParam("no_rec") Integer recordNumber,
 			@PathParam("caseSensitive") Integer caseSensitive, @Context HttpServletRequest httpRequest) {
 		SvReader svr = null;
@@ -4010,21 +4013,21 @@ public class WsReactElements {
 	 * Web service to return any table using one filter "like" for one field only ,
 	 * it will also return svarog repo fields
 	 * 
-	 * @param sessionId  Session ID (SID) of the web communication between browser
-	 *                   and web server
-	 * @param table_name String table from which we want to get data
-	 * @param fieldNAme  String name of the field that we try to filter
-	 * @param fieldValue String value that we are trying to find, will be cast to
-	 *                   Integer for numeric values
-	 * @param no_rec     Integer how many records we want to pull from the table
+	 * @param sessionId    Session ID (SID) of the web communication between browser
+	 *                     and web server
+	 * @param tableName    String table from which we want to get data
+	 * @param fieldName    String name of the field that we try to filter
+	 * @param fieldValue   String value that we are trying to find, will be cast to
+	 *                     Integer for numeric values
+	 * @param recordNumber Integer how many records we want to pull from the table
 	 * 
 	 * @return Json with all objects found
 	 */
-	@Path("/getTableWithLike/{session_id}/{table_name}/{fieldNAme}/{fieldValue}/{no_rec}")
+	@Path("/getTableWithLike/{session_id}/{table_name}/{fieldName}/{fieldValue}/{no_rec}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getTableWithLike(@PathParam("session_id") String sessionId,
-			@PathParam("table_name") String tableName, @PathParam("fieldNAme") String fieldName,
+			@PathParam("table_name") String tableName, @PathParam("fieldName") String fieldName,
 			@PathParam("fieldValue") String fieldValue, @PathParam("no_rec") Integer recordNumber,
 			@Context HttpServletRequest httpRequest) {
 
@@ -4043,11 +4046,11 @@ public class WsReactElements {
 	 * @param httpRequest  - the request
 	 * @return
 	 */
-	@Path("/getTableWithILike/{session_id}/{table_name}/{fieldNAme}/{fieldValue}/{no_rec}")
+	@Path("/getTableWithILike/{session_id}/{table_name}/{fieldName}/{fieldValue}/{no_rec}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getTableWithILike(@PathParam("session_id") String sessionId,
-			@PathParam("table_name") String tableName, @PathParam("fieldNAme") String fieldName,
+			@PathParam("table_name") String tableName, @PathParam("fieldName") String fieldName,
 			@PathParam("fieldValue") String fieldValue, @PathParam("no_rec") Integer recordNumber,
 			@Context HttpServletRequest httpRequest) {
 		return getTableWithILike(sessionId, tableName, fieldName, fieldValue, recordNumber, Rc.DESC, httpRequest);
@@ -4057,21 +4060,21 @@ public class WsReactElements {
 	 * Web service to return any table using one filter "ilike" for one field only ,
 	 * it will also return svarog repo fields DEDICATE for: case insensitive search
 	 * 
-	 * @param sessionId  Session ID (SID) of the web communication between browser
-	 *                   and web server
-	 * @param table_name String table from which we want to get data
-	 * @param fieldNAme  String name of the field that we try to filter
-	 * @param fieldValue String value that we are trying to find, will be cast to
-	 *                   Integer for numeric values
-	 * @param no_rec     Integer how many records we want to pull from the table
-	 * 
+	 * @param sessionId    Session ID (SID) of the web communication between browser
+	 *                     and web server
+	 * @param tableName    String table from which we want to get data
+	 * @param fieldName    String name of the field that we try to filter
+	 * @param fieldValue   String value that we are trying to find, will be cast to
+	 *                     Integer for numeric values
+	 * @param recordNumber Integer how many records we want to pull from the table
+	 * @param sortOrder    sortOrder ASC/DESC
 	 * @return Json with all objects found
 	 */
-	@Path("/getTableWithILike/{session_id}/{table_name}/{fieldNAme}/{fieldValue}/{no_rec}/{sortOrder}")
+	@Path("/getTableWithILike/{session_id}/{table_name}/{fieldName}/{fieldValue}/{no_rec}/{sortOrder}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getTableWithILike(@PathParam("session_id") String sessionId,
-			@PathParam("table_name") String tableName, @PathParam("fieldNAme") String fieldName,
+			@PathParam("table_name") String tableName, @PathParam("fieldName") String fieldName,
 			@PathParam("fieldValue") String fieldValue, @PathParam("no_rec") Integer recordNumber,
 			@PathParam("sortOrder") String sortOrder, @Context HttpServletRequest httpRequest) {
 		SvReader svr = null;
@@ -4133,14 +4136,14 @@ public class WsReactElements {
 	 * Web service version of SvReader.getObjectsByParentId that can return objects
 	 * of objectType that are children to object with ID parentId
 	 * 
-	 * @param sessionId  Session ID (SID) of the web communication between browser
-	 *                   and web server
-	 * @param parentId   ID of the Object for which we like to get all children
-	 *                   objects
-	 * @param objectName String Id or the name of the table for the child objects
-	 * @param rowLimit   How many items we want per page
-	 * @param sortField  Name of the field of type "objectType" that we want to sort
-	 *                   by (asc only)
+	 * @param sessionId   Session ID (SID) of the web communication between browser
+	 *                    and web server
+	 * @param parentId    ID of the Object for which we like to get all children
+	 *                    objects
+	 * @param objectName  String Id or the name of the table for the child objects
+	 * @param rowLimit    How many items we want per page
+	 * @param sortByField Name of the field of type "objectType" that we want to
+	 *                    sort by (asc only)
 	 * 
 	 * @return Json Array of objects of type objectType, children of object with ID
 	 *         parentId
@@ -4317,7 +4320,7 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId  Session ID (SID) of the web communication between browser
 	 *                   and web server
-	 * @param parentId   ID of the Object for which we like to get all versions
+	 * @param objectId   ID of the Object for which we like to get all versions
 	 * @param objectName String Id or the name of the table for the child objects
 	 * @param rowLimit   How many items we want per page
 	 * 
@@ -4371,9 +4374,9 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId  Session ID (SID) of the web communication between browser
 	 *                   and web server
-	 * @param objectId1  ID of the Object for which we like to get all linked
+	 * @param objectId   ID of the Object for which we like to get all linked
 	 *                   objects
-	 * @param table_name String Name of the table that returning objects are
+	 * @param tableName  String Name of the table that returning objects are
 	 * @param linkName   String name of the link
 	 * @param linkStatus String status of the link
 	 * @param rowLimit   How many items we want for return
@@ -4543,10 +4546,10 @@ public class WsReactElements {
 	 * Web service for adding new record in a table , return is JSON
 	 * react-jsonschema-form compatible string
 	 * 
-	 * @param sessionId  Session ID (SID) of the web communication between browser
-	 *                   and web server
-	 * @param table_name String table name for which we want to insert new element
-	 *                   (record)
+	 * @param sessionId Session ID (SID) of the web communication between browser
+	 *                  and web server
+	 * @param tableName String table name for which we want to insert new element
+	 *                  (record)
 	 * 
 	 * @return Json string with all fields ( field names pulled from database) and
 	 *         drop-down values translated
@@ -4737,10 +4740,10 @@ public class WsReactElements {
 	 * string with the same field name to be paired to the object returned by
 	 * getTableJSONSchema WS
 	 * 
-	 * @param sessionId  Session ID (SID) of the web communication between browser
-	 *                   and web server
-	 * @param table_name String table name for which we want to insert new element
-	 *                   (record)
+	 * @param sessionId Session ID (SID) of the web communication between browser
+	 *                  and web server
+	 * @param tableName String table name for which we want to insert new element
+	 *                  (record)
 	 * 
 	 * @return Json string with UI json for all fields in the table
 	 */
@@ -4834,10 +4837,8 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId Session ID (SID) of the web communication between browser
 	 *                  and web server
-	 * @param form_name String/Long form code SVAROG_FORM_TYPE.LABEL_CODE or object
-	 *                  id SVAROG_FORM_TYPE.OBJECT_ID that describes the document
-	 *                  best
-	 * @param parent_id parent_id of the form from SVAROG_FORM table
+	 * @param tableName The name of the table
+	 * @param parentId  parent_id of the form from SVAROG_FORM table
 	 * 
 	 * @return Json string with all fields on form
 	 * 
@@ -4846,7 +4847,7 @@ public class WsReactElements {
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getFormDataByParentId(@PathParam("sessionId") String sessionId,
-			@PathParam("parent_id") Long parent_id, @PathParam("table_name") String tableName,
+			@PathParam("parent_id") Long parentId, @PathParam("table_name") String tableName,
 			@Context HttpServletRequest httpRequest) {
 		JsonObject jsonData = new JsonObject();
 		DbDataObject reqObject = null;
@@ -4857,7 +4858,7 @@ public class WsReactElements {
 			svp = new SvParameter(svr);
 			svr.setIncludeGeometries(true);
 			Long tableID = findTableType(tableName);
-			DbDataArray objectChild = svr.getObjectsByParentId(parent_id, SvCore.getTypeIdByName(tableName), null);
+			DbDataArray objectChild = svr.getObjectsByParentId(parentId, SvCore.getTypeIdByName(tableName), null);
 			if (!objectChild.isEmpty()) {
 				reqObject = objectChild.get(0);
 				DbDataArray typetoGet = new DbDataArray();
@@ -4924,11 +4925,11 @@ public class WsReactElements {
 	 * new PKID
 	 * 
 	 * 
-	 * @param sessionId  Session ID (SID) of the web communication between browser
-	 *                   and web server
-	 * @param object_id  Long object ID of the record that we want to read
-	 * @param table_name String table name or table ID for which we want to to get
-	 *                   the record from
+	 * @param sessionId Session ID (SID) of the web communication between browser
+	 *                  and web server
+	 * @param objectid  Long object ID of the record that we want to read
+	 * @param tableName String table name or table ID for which we want to to get
+	 *                  the record from
 	 * 
 	 * @return Json string with UI json for all fields in the table
 	 */
@@ -5046,7 +5047,7 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId Session ID (SID) of the web communication between browser
 	 *                  and web server
-	 * @param form_name String/Long form code SVAROG_FORM_TYPE.LABEL_CODE or object
+	 * @param formName  String/Long form code SVAROG_FORM_TYPE.LABEL_CODE or object
 	 *                  id SVAROG_FORM_TYPE.OBJECT_ID that describes the document
 	 *                  best
 	 * 
@@ -5170,7 +5171,7 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId Session ID (SID) of the web communication between browser
 	 *                  and web server
-	 * @param form_name String/Long form code SVAROG_FORM_TYPE.LABEL_CODE or object
+	 * @param formName  String/Long form code SVAROG_FORM_TYPE.LABEL_CODE or object
 	 *                  id SVAROG_FORM_TYPE.OBJECT_ID that describes the document
 	 *                  best
 	 * 
@@ -5285,10 +5286,10 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId Session ID (SID) of the web communication between browser
 	 *                  and web server
-	 * @param form_name String/Long form code SVAROG_FORM_TYPE.LABEL_CODE or object
+	 * @param formName  String/Long form code SVAROG_FORM_TYPE.LABEL_CODE or object
 	 *                  id SVAROG_FORM_TYPE.OBJECT_ID that describes the document
 	 *                  best
-	 * @param object_id object_id of the form from SVAROG_FORM table
+	 * @param objectId  object_id of the form from SVAROG_FORM table
 	 * 
 	 * @return Json string with all fields on form
 	 * 
@@ -5345,10 +5346,10 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId  Session ID (SID) of the web communication between browser
 	 *                   and web server
-	 * @param table_name String type name of the object that we are saving
-	 * @param parent_id  Long the new object usually has parent , set to 0 if there
+	 * @param tableName  String type name of the object that we are saving
+	 * @param parentId   Long the new object usually has parent , set to 0 if there
 	 *                   is no parent
-	 * @param JsonString String if formVals fails, we can use this Json string for
+	 * @param jsonString String if formVals fails, we can use this Json string for
 	 *                   object
 	 * @param formVals   MultivaluedMap pairs of key:value that we need to save (for
 	 *                   now not in use)
@@ -5372,11 +5373,9 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId  Session ID (SID) of the web communication between browser
 	 *                   and web server
-	 * @param table_name String type name of the object that we are saving
-	 * @param parent_id  Long the new object usually has parent , set to 0 if there
+	 * @param tableName  String type name of the object that we are saving
+	 * @param parentId   Long the new object usually has parent , set to 0 if there
 	 *                   is no parent
-	 * @param JsonString String if formVals fails, we can use this Json string for
-	 *                   object
 	 * @param formVals   MultivaluedMap pairs of key:value that we need to save (for
 	 *                   now not in use)
 	 * 
@@ -5398,21 +5397,21 @@ public class WsReactElements {
 	 * for that object to another existing object, link type will be automatic
 	 * determined from table names of the 2 objects
 	 * 
-	 * @param sessionId          Session ID (SID) of the web communication between
-	 *                           browser and web server
-	 * @param table_name         String type name of the object that we are saving
-	 * @param parent_id          Long the new object usually has parent , set to 0
-	 *                           if there is no parent
-	 * @param JsonString         String if retrieving key and name fails, we can use
-	 *                           this Json string for them
-	 * @param object_id_to_link  Long object Id of the second object that we want to
-	 *                           link the new created object
-	 * @param table_name_to_link String name of the table that we want to link out
-	 *                           new created object
-	 * @param link_name          String name of the link we want to use
-	 * @param link_note          String note
-	 * @param formVals           MultivaluedMap pairs of key:value that we need to
-	 *                           save (for now not in use)
+	 * @param sessionId       Session ID (SID) of the web communication between
+	 *                        browser and web server
+	 * @param tableName       String type name of the object that we are saving
+	 * @param parentId        Long the new object usually has parent , set to 0 if
+	 *                        there is no parent
+	 * @param jsonString      String if retrieving key and name fails, we can use
+	 *                        this Json string for them
+	 * @param objectIdToLink  Long object Id of the second object that we want to
+	 *                        link the new created object
+	 * @param tableNameToLink String name of the table that we want to link out new
+	 *                        created object
+	 * @param linkName        String name of the link we want to use
+	 * @param linkNote        String note
+	 * @param formVals        MultivaluedMap pairs of key:value that we need to save
+	 *                        (for now not in use)
 	 * 
 	 * @return Json, simple text that object is saved
 	 */
@@ -5944,19 +5943,19 @@ public class WsReactElements {
 	/**
 	 * Web service to create new Document / form and save all the values
 	 * 
-	 * @param sessionId       Session ID (SID) of the web communication between
-	 *                        browser and web server
-	 * @param parent_id       Long the new object usually has parent , must have
-	 *                        parent ID, never 0
-	 * @param form_type       Long Id type of the document/form
-	 * @param form_validation String set to 1 if there should be extra validations
-	 *                        on the form before it can become valid
-	 * @param value           Long probably validation of the form
-	 * @param JsonString      String if formVals fails, we can use this Json string
-	 *                        for object, for now this will hold all the values for
-	 *                        the fields pairs: field name=value
-	 * @param formVals        MultivaluedMap pairs of key:value that we need to save
-	 *                        (for now not in use)
+	 * @param sessionId      Session ID (SID) of the web communication between
+	 *                       browser and web server
+	 * @param parentId       Long the new object usually has parent , must have
+	 *                       parent ID, never 0
+	 * @param formType       Long Id type of the document/form
+	 * @param formValidation String set to 1 if there should be extra validations on
+	 *                       the form before it can become valid
+	 * @param value          Long probably validation of the form
+	 * @param jsonString     String if formVals fails, we can use this Json string
+	 *                       for object, for now this will hold all the values for
+	 *                       the fields pairs: field name=value
+	 * @param formVals       MultivaluedMap pairs of key:value that we need to save
+	 *                       (for now not in use)
 	 * 
 	 * @return Json, simple text that object is saved
 	 */
@@ -6119,8 +6118,8 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId Session ID (SID) of the web communication between browser
 	 *                  and web server
-	 * @param parent_id Long application ID that all forms are children of
-	 * @param form_id   Long id of the form/document that we want to view/edit
+	 * @param parentId  Long application ID that all forms are children of
+	 * @param formId    Long id of the form/document that we want to view/edit
 	 * 
 	 * @return Json Array of data with transposed fields for every form/document
 	 */
@@ -6183,7 +6182,7 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId Session ID (SID) of the web communication between browser
 	 *                  and web server
-	 * @param form_id   Long id of the form/document that we want to view/edit
+	 * @param formId    Long id of the form/document that we want to view/edit
 	 * @param scenario  Integer what fields we want to be visible/editable: 0 only
 	 *                  view the Values, no inline edit, 1 - Normal document edit
 	 *                  change of values, 2 - Administrative control values are
@@ -6264,12 +6263,12 @@ public class WsReactElements {
 	 * Web service to return all documents that are of type Yes/No drop-down for
 	 * given support type (merka) and Form category
 	 * 
-	 * @param sessionId      Session ID (SID) of the web communication between
-	 *                       browser and web server
-	 * @param application_id Long application for which there are documents of type
-	 *                       yes/no
-	 * @param support_type   Long support type for which yes/no documents are
-	 *                       assigned
+	 * @param sessionId     Session ID (SID) of the web communication between
+	 *                      browser and web server
+	 * @param applicationId Long application for which there are documents of type
+	 *                      yes/no
+	 * @param supportType   Long support type for which yes/no documents are
+	 *                      assigned
 	 * 
 	 * @return Json
 	 */
@@ -6952,10 +6951,10 @@ public class WsReactElements {
 	 *                    user_name, created by user_name, or all those that have
 	 *                    user_name message in it: MY_CREATED, ASSIGNED_TO_ME,
 	 *                    WITH_MY_MESSAGE
-	 * @param user_name   String search conversations for the user, only admin can
+	 * @param userName    String search conversations for the user, only admin can
 	 *                    search other people conversation, users can read only
 	 *                    their own
-	 * @param is_read     String show all or only unread conversations true: ALL,
+	 * @param isUneadS    String show all or only unread conversations true: ALL,
 	 *                    false: UNREAD
 	 * @param httpRequest
 	 * @return
@@ -7066,7 +7065,7 @@ public class WsReactElements {
 	 * 
 	 * @param sessionId Session ID (SID) of the web communication between browser
 	 *                  and web server
-	 * @param parent_id Long the new object usually has parent , set to 0 if there
+	 * @param parentId  Long the new object usually has parent , set to 0 if there
 	 *                  is no parent
 	 * @param formVals  MultivaluedMap pairs of key:value that we need to save (for
 	 *                  now not in use)
@@ -7134,13 +7133,13 @@ public class WsReactElements {
 	/**
 	 * method to get field-list for a table that we like to see history for
 	 * 
-	 * @param token         String hash code that will allow or deny access to the
-	 *                      system
-	 * @param tableNameOrID String name of the Table, or object_id of the table,
-	 *                      will work with both
-	 * @param withData      Boolean if set to TRUE will return the data changes of
-	 *                      the object, if FALSE will only get when the changes are
-	 *                      made an by whom
+	 * @param token     String hash code that will allow or deny access to the
+	 *                  system
+	 * @param tableName String name of the Table, or object_id of the table, will
+	 *                  work with both
+	 * @param tableName Boolean if set to TRUE will return the data changes of the
+	 *                  object, if FALSE will only get when the changes are made an
+	 *                  by whom
 	 * @return JsonObject standard ResponseHandler message, data is JsonArray
 	 */
 	@Path("/objectHistoryFieldList/{token}/{tableName}/{withDataString}")
@@ -7210,7 +7209,7 @@ public class WsReactElements {
 	 * objectType (tableName), we can also return the values of the object (details)
 	 * 
 	 * @param token     String hash if we have successful connection to the system
-	 * @param tablename String name of the table in the database, we can also use
+	 * @param tableName String name of the table in the database, we can also use
 	 *                  object_id of the table (number), if we set nonexistent table
 	 *                  we get short version with SVAROG fields only
 	 * @param objectId  Long objectId that we want the history for
@@ -8232,21 +8231,21 @@ public class WsReactElements {
 	 * Web service to return any table using one filter "not like" for one field
 	 * only , it will also return svarog repo fields
 	 * 
-	 * @param sessionId  Session ID (SID) of the web communication between browser
-	 *                   and web server
-	 * @param table_name String table from which we want to get data
-	 * @param fieldNAme  String name of the field that we try to filter
-	 * @param fieldValue String value that we are trying to find, will be cast to
-	 *                   Integer for numeric values
-	 * @param no_rec     Integer how many records we want to pull from the table
+	 * @param sessionId    Session ID (SID) of the web communication between browser
+	 *                     and web server
+	 * @param tableName    String table from which we want to get data
+	 * @param fieldName    String name of the field that we try to filter
+	 * @param fieldValue   String value that we are trying to find, will be cast to
+	 *                     Integer for numeric values
+	 * @param recordNumber Integer how many records we want to pull from the table
 	 * 
 	 * @return Json with all objects found
 	 */
-	@Path("/getAllDataExeptionFilter/{session_id}/{table_name}/{fieldNAme}/{fieldValue}/{no_rec}")
+	@Path("/getAllDataExeptionFilter/{session_id}/{table_name}/{fieldName}/{fieldValue}/{no_rec}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getAllDataExeptionFilter(@PathParam("session_id") String sessionId,
-			@PathParam("table_name") String tableName, @PathParam("fieldNAme") String fieldName,
+			@PathParam("table_name") String tableName, @PathParam("fieldName") String fieldName,
 			@PathParam("fieldValue") String fieldValue, @PathParam("no_rec") Integer recordNumber,
 			@Context HttpServletRequest httpRequest) {
 		SvReader svr = null;
@@ -8291,13 +8290,12 @@ public class WsReactElements {
 	 *                              to
 	 * @param noteName              note name (note name and object id are composite
 	 *                              key)
-	 * @param skipDuplicateNoteText parameter that skips(or not) check if the
+	 * @param skipDuplicateTextSave parameter that skips(or not) check if the
 	 *                              entered note text is same as the last entered
 	 *                              (if exists)
 	 * @param postData              post data that contains note text
 	 * @param httpRequest
 	 * @return
-	 * @throws SvException
 	 */
 	@Path("/setNoteDescriptionPerDbObject/{sessionId}/{objectId}/{noteName}/{skipDuplicateTextSave}")
 	@POST
@@ -8358,10 +8356,9 @@ public class WsReactElements {
 	 * @param sessionId   session Id
 	 * @param objectId    object Id of DbDataObject of type CONTROL
 	 * @param noteName    name of note
-	 * @param postData    post data
 	 * @param httpRequest
-	 * @return
-	 * @throws SvException
+	 * @return A response object
+	 * 
 	 */
 	@Path("/getNoteFormDataPerDbObject/{sessionId}/{objectId}/{noteName}")
 	@GET
@@ -8658,8 +8655,7 @@ public class WsReactElements {
 	 * with option to be multiple levels nested
 	 * 
 	 * @param sessionId       String token for connecing to Database
-	 * @param tableName       String TABLE in which the object (field) is locate
-	 * @param fieldName       String name of the field
+	 * @param codelistName    String name of the field
 	 * @param parentCodeValue String value (CODE) to filter by
 	 * @return
 	 */

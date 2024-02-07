@@ -91,9 +91,7 @@ public class PerunUtil extends SvUtil {
 	 * web service, if there is parameter "frontend.gui_host" in system param we use
 	 * that, if not we generate the value from the address that was called
 	 * 
-	 * @param dboUser DbDataObject user that we are processing
-	 * @param feHost  String front end host-name generated from calling the web
-	 *                service
+	 * @param httpRequest HttpServletRequest that we are processing
 	 * 
 	 * @return String generated host-name variable
 	 * 
@@ -105,14 +103,6 @@ public class PerunUtil extends SvUtil {
 			feHost = httpRequest.getScheme() + "://" + httpRequest.getServerName() + ":" + // ":"
 					httpRequest.getServerPort();
 		return feHost;
-	}
-
-	public static String getClientIp(HttpServletRequest request) {
-		String ipAddress = request.getHeader("X-FORWARDED-FOR");
-		if (ipAddress == null) {
-			ipAddress = request.getRemoteAddr();
-		}
-		return ipAddress;
 	}
 
 	public static void sendMail(String recipientAddress, String mailSubject, String mailBody,
@@ -256,7 +246,7 @@ public class PerunUtil extends SvUtil {
 	/**
 	 * Method to wrap a web service call to external executor
 	 * 
-	 * @param params          The Json object containing all external parameters
+	 * @param jsonParams          The Json object containing all external parameters
 	 * @param httpRequest     The https request
 	 * @param ParamName       The system parameter name which holds the executor
 	 *                        configuration
@@ -276,7 +266,7 @@ public class PerunUtil extends SvUtil {
 		// parameter PERUN_REGISTER_USER_EXECUTOR in DB and create executor with that
 		// name, then we call that executor from the enviorment
 
-		String clientIp = PerunUtil.getClientIp(httpRequest);
+		String clientIp = PerunUtil.getClientIpAddress(httpRequest);
 		try (SvSecurity svs = new SvSecurity(clientIp);) {
 			String registerEXE = SvParameter.getSysParam(ParamName, defaultExecutor);
 			String feHost = PerunUtil.getFrontEndHost(httpRequest);
