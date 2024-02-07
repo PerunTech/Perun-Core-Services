@@ -170,14 +170,14 @@ public class ElementBuilder {
 	 * 
 	 * @param token
 	 *            - token is param used for initiating a svarog db session
-	 * @param tabelName
+	 * @param tableName
 	 *            - name of the DB TABLE for which we are trying to fetch db
 	 *            data
 	 * @param filterName
 	 *            column of the table which we want to search in
 	 * @param filterValue
 	 *            value of the searched column in order to search for it
-	 * @param sortByField
+	 * @param sortField
 	 *            column name of the table which you want to use in order to
 	 *            sort the fetched code list item by it
 	 * @param httpRequest
@@ -256,14 +256,14 @@ public class ElementBuilder {
 	 * @param sessionId
 	 *            Session ID (SID) of the web communication between browser and
 	 *            web server
-	 * @param table_name
+	 * @param tableName
 	 *            String table from which we want to get data
-	 * @param fieldNAme
+	 * @param fieldName
 	 *            String name of the field that we try to filter
 	 * @param fieldValue
 	 *            String value that we are trying to find, will be cast to
 	 *            Integer for numeric values
-	 * @param no_rec
+	 * @param recordNumber
 	 *            Integer how many records we want to pull from the table
 	 * 
 	 * @return Json with all objects found

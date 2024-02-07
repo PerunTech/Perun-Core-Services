@@ -25,6 +25,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.prtech.perun.PerunUtil;
 import com.prtech.svarog.CodeList;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.SvConf;
@@ -65,7 +66,7 @@ public class PublicWs {
 	/**
 	 * Public notifications/announcements on login screen
 	 * 
-	 * @param token_ip    - ip address to prevent ddos
+	 * @param token       - Session token
 	 * @param httpRequest
 	 * @return f.r
 	 */
@@ -76,7 +77,8 @@ public class PublicWs {
 			@Context HttpServletRequest httpRequest) {
 		ResponseHandler jrh = new ResponseHandler();
 		JsonArray jArray = new JsonArray();
-		try (SvReader svr = new SvReader(token);) {
+		String ip = PerunUtil.getClientIpAddress(httpRequest);
+		try (SvReader svr = new SvReader(ip);) {
 			// ((SvCore) svs).switchUser(svCONST.serviceUser);
 			try (SvNotification svnf = new SvNotification(svr);) {
 				DbDataArray publicNotifications = svr.getObjectsByTypeId(svCONST.OBJECT_TYPE_NOTIFICATION, null, 0, 0);
