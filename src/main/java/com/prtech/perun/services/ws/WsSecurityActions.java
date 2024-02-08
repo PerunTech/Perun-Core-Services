@@ -259,7 +259,7 @@ public class WsSecurityActions {
 					I18n.getText("error.loding.configuration") + " SvarogConfiguration.getConfigLogin", e.getMessage(),
 					jsonObj);
 		}
-		return Response.status(200).entity(jsonObj.toString()).build();
+		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
 
 }
