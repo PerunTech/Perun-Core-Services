@@ -270,6 +270,7 @@ public class PerunUtil extends SvUtil {
 		try (SvSecurity svs = new SvSecurity(clientIp);) {
 			String registerEXE = SvParameter.getSysParam(ParamName, defaultExecutor);
 			String feHost = PerunUtil.getFrontEndHost(httpRequest);
+			((SvCore) svs).switchUser(svCONST.serviceUser);
 			try (SvExecManager svx = new SvExecManager(svs)) {
 				// call executor for creating user from the project/enviorment
 				Map<String, Object> params = new HashMap<String, Object>();
