@@ -278,7 +278,7 @@ public class PerunUtil extends SvUtil {
 				params.put("json_params", jsonParams);
 				JsonObject configuration = (JsonObject) svx.execute(registerEXE, params, null);
 				jrh.create(MessageType.SUCCESS, I18n.getText(successLabel), I18n.getText(successLabel), configuration);
-				jso = jrh.getAllv1();
+				jso = jrh.getAll();
 			}
 		} catch (SvException e) {
 			return PerunUtil.handleException(e, errorText);
