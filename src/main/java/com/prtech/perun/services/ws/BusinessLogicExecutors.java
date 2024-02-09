@@ -103,7 +103,7 @@ public class BusinessLogicExecutors implements ISvExecutorGroup {
 		names.add(EMAIL_CHANGE);
 		names.add(ACTIVATE_USER);
 		names.add(LOGOFF_USER);
-		return null;
+		return names;
 	}
 
 	@Override
