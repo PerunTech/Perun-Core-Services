@@ -163,7 +163,7 @@ public class BusinessLogicExecutors implements ISvExecutorGroup {
 		case LOGOFF_USER:
 			try (SvSecurity svsec = new SvSecurity((SvCore) svCore)) {
 				if (jparams.get("token") != null)
-					svsec.logoff(jparams.get("uuid").getAsString());
+					svsec.logoff(jparams.get("token").getAsString());
 				returnValue = new JsonObject();
 			}
 			break;
