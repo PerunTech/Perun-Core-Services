@@ -1337,6 +1337,31 @@ public class AdminConsole {
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
 	
-	
+	@Path("/get-configuration/sid/{sid}/component-name/{componentName}")
+	@GET
+	@Produces("text/html;charset=utf-8")
+	public Response getConfiguration(@PathParam("sid") String sid, @PathParam("componentName") String componentName,
+			@PathParam("objectId") Long objectId, @PathParam("objectType") String objectType,
+			@Context HttpServletRequest httpRequest) {
+		ResponseHandler jrh = new ResponseHandler();
+		JsonArray jarr = null;
+		try (SvReader svr = new SvReader(sid);) {
+			MenuBuild asd = new MenuBuild(componentName, svr);
+			jarr = asd.getMenu();
+		} catch (SvException e) {
+			if (e.getLabelCode().equals("error.invalid_session")) {
+				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
+						I18n.getText("error.invalid_session"), new JsonObject());
+				return Response.status(200).entity(jrh.getAll().toString()).build();
+			}
+			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
+					new JsonObject());
+			return Response.status(200).entity(jrh.getAll().toString()).build();
+		}
+
+		jrh.create(MessageType.SUCCESS, I18n.getText("success.get_configuration"),
+				I18n.getText("success.get_configuration"), jarr);
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
 	
 }
