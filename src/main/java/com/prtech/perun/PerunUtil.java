@@ -74,7 +74,7 @@ public class PerunUtil extends SvUtil {
 						I18n.getLongText(Sv.Exceptions.NOT_AUTHORISED), new JsonObject());
 				responseCode = 403;
 			} else
-				jrh.create(MessageType.ERROR, sve.getLabelCode(), sve.getLabelCode(), sve.getLabelCode());
+				jrh.create(MessageType.ERROR, I18n.getText(sve.getLabelCode()), I18n.getText(sve.getLabelCode()), I18n.getText(sve.getLabelCode()));
 		} else {
 			log4j.error(e.getMessage(), e);
 			jrh.create(MessageType.ERROR, I18n.getText(message), I18n.getText(message), new JsonObject());
