@@ -76,8 +76,9 @@ public class WsConf {
 			if (e.getLabelCode().equals("error.invalid_session")) {
 				if (log4j.isDebugEnabled())
 					log4j.error(e.getFormattedMessage());
-				jrh.create(MessageType.ERROR, "error.invalid_session", I18n.getText("error.invalid_session"),
+				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"), I18n.getText("error.invalid_session"),
 						new JsonObject());
+				return Response.status(401).entity(jrh.getAll().toString()).build();
 			} else {
 				log4j.error(e.getFormattedMessage(), e);
 				jrh.create(MessageType.ERROR, I18n.getText("load.plugins"), e.getFormattedMessage(), new JsonObject());
@@ -499,6 +500,7 @@ public class WsConf {
 						jrh.create(MessageType.ERROR, I18n.getText(ex.getLabelCode()), I18n.getText(ex.getLabelCode()),
 								new JsonObject());
 						log4j.error(ex.getFormattedMessage());
+						return Response.status(401).entity(jrh.getAll().toString()).build();
 					} else {
 						log4j.error(ex.getLabelCode(), ex);
 						if (ex.getLabelCode().startsWith("sys")) {
