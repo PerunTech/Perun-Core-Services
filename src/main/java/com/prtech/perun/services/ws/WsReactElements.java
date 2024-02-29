@@ -3544,7 +3544,7 @@ public class WsReactElements {
 	 * @param fieldValue2        String value that we are trying to find, will be
 	 *                           cast to Integer for numeric values
 	 * @param criterumConjuction String AND/OR
-	 * @param recordNumber             Integer how many records we want to pull from the
+	 * @param recordNumber       Integer how many records we want to pull from the
 	 *                           table
 	 * 
 	 * @return Json with all objects found
@@ -3670,7 +3670,7 @@ public class WsReactElements {
 	 * @param fieldValues         String - names of values that should be used in
 	 *                            the search criteria. The values are comma
 	 *                            separated
-	 * @param recordNumber              Integer how many records we want to pull from the
+	 * @param recordNumber        Integer how many records we want to pull from the
 	 *                            table
 	 * 
 	 * @return Json with all objects found
@@ -3702,7 +3702,7 @@ public class WsReactElements {
 	 * @param fieldValues         String - names of values that should be used in
 	 *                            the search criteria. The values are comma
 	 *                            separated
-	 * @param recordNumber              Integer how many records we want to pull from the
+	 * @param recordNumber        Integer how many records we want to pull from the
 	 *                            table
 	 * @param sortOrder           String for ascending or descending, accepts ASC OR
 	 *                            DESC
@@ -3737,7 +3737,7 @@ public class WsReactElements {
 	 * @param fieldValues         String - names of values that should be used in
 	 *                            the search criteria. The values are comma
 	 *                            separated
-	 * @param recordNumber              Integer how many records we want to pull from the
+	 * @param recordNumber        Integer how many records we want to pull from the
 	 *                            table
 	 * @param sortField           String field to sort the array by
 	 * @param sortOrder           String for ascending or descending, accepts ASC OR
@@ -3915,7 +3915,7 @@ public class WsReactElements {
 	 * Web service to return any table using with search for fields that are passed
 	 * by form
 	 * 
-	 * @param sessionId   Session ID (SID) of the web communication between browser
+	 * @param sessionId    Session ID (SID) of the web communication between browser
 	 *                     and web server
 	 * @param formVals     String table from which we want to get data
 	 * @param recordNumber Integer how many records we want to pull from the table *
@@ -3961,7 +3961,7 @@ public class WsReactElements {
 	 * @param fieldName     String name of the field that we try to filter
 	 * @param fieldValue    String value that we are trying to find, will be cast to
 	 *                      Integer for numeric values
-	 * @param recordNumber        Integer how many records we want to pull from the table
+	 * @param recordNumber  Integer how many records we want to pull from the table
 	 * @param caseSensitive Integer (1 or 0) the comparison is case sensitive when
 	 *                      value is 1
 	 * 
@@ -4203,41 +4203,39 @@ public class WsReactElements {
 	@Path("/getObjectsByParentIdMulti/{sessionId}/{parentId}/{objectNames}/{rowLimit}/{sortByField}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getObjectsByParentIdMulti(@PathParam("sessionId") String sessionId, @PathParam("parentId") Long parentId,
-			@PathParam("objectNames") String objectNames, @PathParam("refDateString") String refDateString,
-			@PathParam("rowLimit") Integer rowLimit, @PathParam("sortByField") String sortByField,
-			@Context HttpServletRequest httpRequest) {
-		String retString = "";
+	public Response getObjectsByParentIdMulti(@PathParam("sessionId") String sessionId,
+			@PathParam("parentId") Long parentId, @PathParam("objectNames") String objectNames,
+			@PathParam("refDateString") String refDateString, @PathParam("rowLimit") Integer rowLimit,
+			@PathParam("sortByField") String sortByField, @Context HttpServletRequest httpRequest) {
 		String[] tablesUsedArray = new String[1];
 		Boolean[] tableShowArray = new Boolean[1];
 		int tablesusedCount = 1;
 
 		Long pobjectType = 0L;
-		
+
 		JsonArray jfinal = new JsonArray();
-		try (SvReader svr = new SvReader(sessionId)){
-			String[] objects = URLDecoder.decode( objectNames, "UTF-8" ).split(",");
-			for(String objectName:objects)
-			// try to find the type with ID
-			pobjectType = findTableType(objectName);
-			tablesUsedArray[0] = getTableNameById(pobjectType, svr);
-			tableShowArray[0] = true;
-			DbDataArray vData = new DbDataArray();
-			ArrayList<DbDataObject> items = svr
-					.getObjectsByParentId(parentId, pobjectType, null, rowLimit, 0, sortByField)
-					.getSortedItems(sortByField, true);
-			for (int i = items.size(); --i >= 0;) {
-				vData.addDataItem(items.get(i));
+		try (SvReader svr = new SvReader(sessionId)) {
+			String[] objects = URLDecoder.decode(objectNames, "UTF-8").split(",");
+			for (String objectName : objects) {
+				// try to find the type with ID
+				pobjectType = findTableType(objectName);
+				tablesUsedArray[0] = getTableNameById(pobjectType, svr);
+				tableShowArray[0] = true;
+				DbDataArray vData = new DbDataArray();
+				ArrayList<DbDataObject> items = svr
+						.getObjectsByParentId(parentId, pobjectType, null, rowLimit, 0, sortByField)
+						.getSortedItems(sortByField, true);
+				vData.setItems(items);
+				JsonArray ja = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr,
+						false, null);
+				jfinal.addAll(ja);
 			}
-			JsonArray ja = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr,
-					false, null);
-			jfinal.addAll(ja);
 		} catch (Exception e) {
 			return PerunUtil.handleException(e, "Error getting objects by parent");
 		}
 		return Response.status(200).entity(jfinal.toString()).build();
 	}
-	
+
 	/**
 	 * Web service version of SvReader.getObjectByObjectId that can return complete
 	 * data for the objectId
@@ -5426,13 +5424,13 @@ public class WsReactElements {
 	/**
 	 * Web service to save an object that was entered in a form
 	 * 
-	 * @param sessionId  Session ID (SID) of the web communication between browser
-	 *                   and web server
-	 * @param tableName  String type name of the object that we are saving
-	 * @param parentId   Long the new object usually has parent , set to 0 if there
-	 *                   is no parent
-	 * @param formVals   MultivaluedMap pairs of key:value that we need to save (for
-	 *                   now not in use)
+	 * @param sessionId Session ID (SID) of the web communication between browser
+	 *                  and web server
+	 * @param tableName String type name of the object that we are saving
+	 * @param parentId  Long the new object usually has parent , set to 0 if there
+	 *                  is no parent
+	 * @param formVals  MultivaluedMap pairs of key:value that we need to save (for
+	 *                  now not in use)
 	 * 
 	 * @return Json, simple text that object is saved
 	 */
