@@ -3,6 +3,7 @@ package com.prtech.perun.services.ws;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -4183,6 +4184,60 @@ public class WsReactElements {
 		return Response.status(200).entity(retString).build();
 	}
 
+	/**
+	 * Web service version of SvReader.getObjectsByParentId that can return objects
+	 * of objectType that are children to object with ID parentId
+	 * 
+	 * @param sessionId   Session ID (SID) of the web communication between browser
+	 *                    and web server
+	 * @param parentId    ID of the Object for which we like to get all children
+	 *                    objects
+	 * @param objectName  String Id or the name of the table for the child objects
+	 * @param rowLimit    How many items we want per page
+	 * @param sortByField Name of the field of type "objectType" that we want to
+	 *                    sort by (asc only)
+	 * 
+	 * @return Json Array of objects of type objectType, children of object with ID
+	 *         parentId
+	 */
+	@Path("/getObjectsByParentIdMulti/{sessionId}/{parentId}/{objectNames}/{rowLimit}/{sortByField}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getObjectsByParentIdMulti(@PathParam("sessionId") String sessionId, @PathParam("parentId") Long parentId,
+			@PathParam("objectNames") String objectNames, @PathParam("refDateString") String refDateString,
+			@PathParam("rowLimit") Integer rowLimit, @PathParam("sortByField") String sortByField,
+			@Context HttpServletRequest httpRequest) {
+		String retString = "";
+		String[] tablesUsedArray = new String[1];
+		Boolean[] tableShowArray = new Boolean[1];
+		int tablesusedCount = 1;
+
+		Long pobjectType = 0L;
+		
+		JsonArray jfinal = new JsonArray();
+		try (SvReader svr = new SvReader(sessionId)){
+			String[] objects = URLDecoder.decode( objectNames, "UTF-8" ).split(",");
+			for(String objectName:objects)
+			// try to find the type with ID
+			pobjectType = findTableType(objectName);
+			tablesUsedArray[0] = getTableNameById(pobjectType, svr);
+			tableShowArray[0] = true;
+			DbDataArray vData = new DbDataArray();
+			ArrayList<DbDataObject> items = svr
+					.getObjectsByParentId(parentId, pobjectType, null, rowLimit, 0, sortByField)
+					.getSortedItems(sortByField, true);
+			for (int i = items.size(); --i >= 0;) {
+				vData.addDataItem(items.get(i));
+			}
+			JsonArray ja = prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, true, svr,
+					false, null);
+			jfinal.addAll(ja);
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error getting objects by parent");
+		}
+		return Response.status(200).entity(jfinal.toString()).build();
+	}
+	
 	/**
 	 * Web service version of SvReader.getObjectByObjectId that can return complete
 	 * data for the objectId
