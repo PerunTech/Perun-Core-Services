@@ -38,6 +38,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.prtech.perun.PerunUtil;
 import com.prtech.svarog.I18n;
+import com.prtech.svarog.Sv;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
@@ -46,6 +47,8 @@ import com.prtech.svarog.SvParameter;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvSecurity;
 import com.prtech.svarog.SvUtil;
+import com.prtech.svarog.SvWriter;
+import com.prtech.svarog.SvarogInstall;
 import com.prtech.svarog.svCONST;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
@@ -225,6 +228,24 @@ public class WsSecurityActions {
 			return Response.status(500).entity(e.getMessage()).build();
 		}
 		return Response.status(200).entity(jsLabels.toString()).build();
+	}
+	
+	@Path("/i18n/{locale}/{label_group}/{token}")
+	@GET
+	@Produces("application/json")
+	public Response getI18NLabels(@PathParam("label_group") String labelsGroup, @PathParam("locale") String locale, String token) {
+		try (SvReader svr = new SvReader(token);
+				SvWriter svw = new SvWriter(svr)) {
+			DbDataObject dboUser = null;
+			dboUser = svr.getInstanceUser();
+			if (dboUser != null) {
+				dboUser.setVal("LOCALE", locale);
+				svw.saveObject(dboUser, true);
+			}
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "error.perun.failedToGetPersonalInfo");
+		}
+		return getI18NLabels(labelsGroup, locale);
 	}
 
 	@Path("/configuration/getConfiguration/{token}/{componentName}")
