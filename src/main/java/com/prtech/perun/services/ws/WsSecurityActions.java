@@ -233,15 +233,9 @@ public class WsSecurityActions {
 	@Path("/i18n/{locale}/{label_group}/{token}")
 	@GET
 	@Produces("application/json")
-	public Response getI18NLabels(@PathParam("label_group") String labelsGroup, @PathParam("locale") String locale, String token) {
-		try (SvReader svr = new SvReader(token);
-				SvWriter svw = new SvWriter(svr)) {
-			DbDataObject dboUser = null;
-			dboUser = svr.getInstanceUser();
-			if (dboUser != null) {
-				dboUser.setVal("LOCALE", locale);
-				svw.saveObject(dboUser, true);
-			}
+	public Response getI18NLabels(@PathParam("label_group") String labelsGroup, @PathParam("locale") String locale, @PathParam("token")String token) {
+		try (SvReader svr = new SvReader(token)) {
+			svr.setUserLocale(svr.getInstanceUser().getVal("USER_NAME").toString(), locale);
 		} catch (Exception e) {
 			return PerunUtil.handleException(e, "error.perun.failedToGetPersonalInfo");
 		}
