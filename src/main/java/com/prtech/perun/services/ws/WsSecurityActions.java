@@ -240,7 +240,7 @@ public class WsSecurityActions {
 			dboUser = svr.getInstanceUser();
 			if (dboUser != null) {
 				dboUser.setVal("LOCALE", locale);
-				svw.saveObject(dboUser);
+				svw.saveObject(dboUser, true);
 			}
 		} catch (Exception e) {
 			return PerunUtil.handleException(e, "error.perun.failedToGetPersonalInfo");
