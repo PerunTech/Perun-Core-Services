@@ -236,6 +236,7 @@ public class WsSecurityActions {
 	public Response getI18NLabels(@PathParam("label_group") String labelsGroup, @PathParam("locale") String locale, @PathParam("token")String token) {
 		try (SvReader svr = new SvReader(token)) {
 			svr.setUserLocale(svr.getInstanceUser().getVal("USER_NAME").toString(), locale);
+			svr.dbCommit();
 		} catch (Exception e) {
 			return PerunUtil.handleException(e, "error.perun.failedToGetPersonalInfo");
 		}
