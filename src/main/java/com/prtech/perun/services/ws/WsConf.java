@@ -76,8 +76,8 @@ public class WsConf {
 			if (e.getLabelCode().equals("error.invalid_session")) {
 				if (log4j.isDebugEnabled())
 					log4j.error(e.getFormattedMessage());
-				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"), I18n.getText("error.invalid_session"),
-						new JsonObject());
+				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
+						I18n.getText("error.invalid_session"), new JsonObject());
 				return Response.status(401).entity(jrh.getAll().toString()).build();
 			} else {
 				log4j.error(e.getFormattedMessage(), e);
@@ -281,13 +281,13 @@ public class WsConf {
 			svr = new SvReader(token);
 			spm = new SvPerunManager(token);
 			DbDataObject userDbo = SvCore.getUserBySession(token);
+
 			if (svr.isAdmin()) {
-				if (userDbo.getVal("USER_NAME").equals("ADMIN")) {
-					accessCard = true;
-				} else {
-					accessCard = false;
-				}
+				accessCard = true;
+			} else {
+				accessCard = false;
 			}
+
 			if (accessCard) {
 				JsonObject jObj = new JsonObject();
 				for (Entry<String, SvPerunInstance> plugins : spm.getPerunPlugins()) {
@@ -297,7 +297,7 @@ public class WsConf {
 					jObj.addProperty("title", I18n.getText(dbocard.getLabelCode()));
 					jObj.addProperty("text", I18n.getLongText(dbocard.getLabelCode()));
 					jObj.addProperty("card_hidden", cardIsHidden(dbocard.getDboPlugin()));
-					if (!userDbo.getVal("USER_NAME").equals("ADMIN")) {
+					if (!svr.isAdmin()) {
 
 						jObj.addProperty("cardDirectAccess", manageCardAccess(dbocard.getDboPlugin(), svr));
 					} else {
