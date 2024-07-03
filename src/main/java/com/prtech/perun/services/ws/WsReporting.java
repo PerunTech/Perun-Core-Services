@@ -76,7 +76,7 @@ public class WsReporting {
 			DbDataArray res = svr.getObjects(q, null, null);
 			results.setItems(res.getItems());
 		} catch (Exception e) {
-			PerunUtil.handleException(e, "Error generating report");
+			return PerunUtil.handleException(e, "Error generating report");
 		}
 		StreamingOutput pbfStream = new StreamingOutput() {
 			public void write(OutputStream stream) throws IOException {
@@ -95,7 +95,7 @@ public class WsReporting {
 		try (SvReader svr = new SvReader(sessionId)) {
 			el = PerunUtil.getListObjectsFromDb(svr, "%ANALYTICS%", SvConf.getDefaultSchema(), Rc.MATERIALIZED_VIEW);
 		} catch (SvException e) {
-			PerunUtil.handleException(e, "Error generating list of tables");
+			return PerunUtil.handleException(e, "Error generating list of tables");
 		}
 
 		return Response.ok(el.toString()).build();
@@ -111,15 +111,17 @@ public class WsReporting {
 		try (SvReader svr = new SvReader(sessionId)) {
 			el = PerunUtil.getTableFieldsFromDb(svr, tableName, SvConf.getDefaultSchema());
 		} catch (SvException e) {
-			PerunUtil.handleException(e, "Error generating list of fields for table:" + tableName);
+			return PerunUtil.handleException(e, "Error generating list of fields for table:" + tableName);
 		}
 
 		return Response.ok(el.toString()).build();
 		// return null;
 	}
 
-	void buildFieldList(JsonArray paramArray, HashMap<String, String> tablePrefixMap, ArrayList<DbFieldType> types,
+	void buildFieldList(JsonArray baseParams, HashMap<String, String> tablePrefixMap, ArrayList<DbFieldType> types,
 			HashMap<String, String> fieldNames) {
+		JsonArray paramArray = baseParams.get(0).getAsJsonArray();
+		JsonObject aggregates = baseParams.get(1).getAsJsonObject();
 
 		for (Entry<String, String> e : tablePrefixMap.entrySet()) {
 			String tableName = e.getKey();
@@ -137,9 +139,11 @@ public class WsReporting {
 
 	}
 
-	DbQueryExpression generateQuery(JsonArray params, HashMap<String, String> tablePrefixMap) throws SvException {
+	DbQueryExpression generateQuery(JsonArray baseParams, HashMap<String, String> tablePrefixMap) throws SvException {
 		DbQueryExpression dqe = new DbQueryExpression();
-		ArrayList<DbDataObject> tableDbt = extractTableNames(params);
+		JsonArray tableParams = baseParams.get(0).getAsJsonArray();
+		JsonObject aggregates = baseParams.get(1).getAsJsonObject();
+		ArrayList<DbDataObject> tableDbt = extractTableNames(tableParams);
 
 		for (int i = 0; i < tableDbt.size(); i++) {
 			DbDataObject dbt = tableDbt.get(i);
@@ -147,7 +151,7 @@ public class WsReporting {
 			if (tableDbt.size() > (i + 1))
 				dbtNext = tableDbt.get(i + 1);
 
-			DbSearch dbs = extractTableCriteria(params, (String) dbt.getVal(Sv.TABLE_NAME));
+			DbSearch dbs = extractTableCriteria(tableParams, (String) dbt.getVal(Sv.TABLE_NAME));
 			DbQueryObject dqo = new DbQueryObject(dbt, dbs, null, DbJoinType.INNER);
 			dqo.setSqlTablePrefix("EXTBL" + i);
 			if (tablePrefixMap != null)
