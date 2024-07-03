@@ -75,7 +75,7 @@ public class WsReporting {
 			buildFieldList(paramArray, tablePrefixMap, types, fieldNames);
 			DbDataArray res = svr.getObjects(q, null, null);
 			results.setItems(res.getItems());
-		} catch (SvException e) {
+		} catch (Exception e) {
 			PerunUtil.handleException(e, "Error generating report");
 		}
 		StreamingOutput pbfStream = new StreamingOutput() {
