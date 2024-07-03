@@ -74,7 +74,8 @@ public class PerunUtil extends SvUtil {
 						I18n.getLongText(Sv.Exceptions.NOT_AUTHORISED), new JsonObject());
 				responseCode = 403;
 			} else
-				jrh.create(MessageType.ERROR, I18n.getText(sve.getLabelCode()), I18n.getText(sve.getLabelCode()), I18n.getText(sve.getLabelCode()));
+				jrh.create(MessageType.ERROR, I18n.getText(sve.getLabelCode()), I18n.getText(sve.getLabelCode()),
+						I18n.getText(sve.getLabelCode()));
 		} else {
 			log4j.error(e.getMessage(), e);
 			jrh.create(MessageType.ERROR, I18n.getText(message), I18n.getText(message), new JsonObject());
@@ -246,7 +247,7 @@ public class PerunUtil extends SvUtil {
 	/**
 	 * Method to wrap a web service call to external executor
 	 * 
-	 * @param jsonParams          The Json object containing all external parameters
+	 * @param jsonParams      The Json object containing all external parameters
 	 * @param httpRequest     The https request
 	 * @param ParamName       The system parameter name which holds the executor
 	 *                        configuration
@@ -442,7 +443,10 @@ public class PerunUtil extends SvUtil {
 	public static JsonArray getListObjectsFromDb(SvCore svc, String tableFilterName, String schemaName,
 			String objectType) throws SvException {
 
-		String script = svc.getDbHandler().getSQLScript("db_object_list.sql");
+		String matViewScript = SvParameter.getSysParam("REPORTING_MATVIEW_LIST", CC.NOT_CONFIGURED);
+		if (matViewScript.equals(CC.NOT_CONFIGURED))
+			matViewScript = svc.getDbHandler().getSQLScript("db_object_list.sql");
+
 		HashMap<String, String> params = new HashMap<String, String>();
 		params.put("OBJECT_FILTER", tableFilterName);
 		params.put("SCHEMA_NAME", schemaName);
@@ -450,7 +454,7 @@ public class PerunUtil extends SvUtil {
 		ResultSet[] rs = new ResultSet[1];
 		PreparedStatement[] ps = new PreparedStatement[1];
 		Connection conn = svc.dbGetConn();
-		PerunUtil.executeDbScript(script, params, conn, true, rs, ps);
+		PerunUtil.executeDbScript(matViewScript, params, conn, true, rs, ps);
 
 		JsonArray arr = new JsonArray();
 		try {
