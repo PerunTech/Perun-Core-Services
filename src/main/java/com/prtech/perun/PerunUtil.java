@@ -40,6 +40,7 @@ import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvExecManager;
+import com.prtech.svarog.SvNote;
 import com.prtech.svarog.SvParameter;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvSecurity;
@@ -533,6 +534,26 @@ public class PerunUtil extends SvUtil {
 		}
 
 		return arr;
+	}
+
+	static public String getNote(String noteName, HttpServletRequest httpRequest) throws SvException {
+		ResponseHandler jrh = new ResponseHandler();
+		JsonObject jso = new JsonObject();
+		// check for system parameter PERUN_REGISTER_USER_EXECUTOR, default is
+		// PERUN_CORE_EXEC.REGISTER_USER so we always end
+		// up with that, if we want to change ways of user registration we change the
+		// parameter PERUN_REGISTER_USER_EXECUTOR in DB and create executor with that
+		// name, then we call that executor from the enviorment
+
+		String clientIp = PerunUtil.getClientIpAddress(httpRequest);
+		try (SvSecurity svs = new SvSecurity(clientIp);) {
+			((SvCore) svs).switchUser(svCONST.serviceUser);
+			try (SvNote svx = new SvNote(svs)) {
+				String note = svx.getNote(0L, noteName);
+				return note;
+			}
+		}
+
 	}
 
 }

@@ -546,8 +546,8 @@ public class PublicWs {
 				if (results.containsKey(mesure)) {
 					jObj = results.get(mesure);
 
-					if (jObj.has("peyment")) {
-						paymentsByMatchKey = jObj.get("peyment").getAsJsonArray();
+					if (jObj.has("payment")) {
+						paymentsByMatchKey = jObj.get("payment").getAsJsonArray();
 					}
 
 					if (jObj.has("clearing_debt")) {
@@ -591,6 +591,10 @@ public class PublicWs {
 					jObj.addProperty("status",
 							cl.getCodeList(svCONST.CODES_STATUS, true).get(dbo.getVal("TBL0_STATUS").toString()));
 					jObj.add("payment", paymentsByMatchKey);
+					if (paymentClaim != null && paymentClaim.getVal("PAYMENT_VALUE") != null)
+						jObj.addProperty("payment_value", paymentClaim.getVal("PAYMENT_VALUE").toString());
+					if (dbo.getVal("TBL0_DT_INSERT") != null)
+						jObj.addProperty("date", dbo.getVal("TBL0_DT_INSERT").toString());
 					jObj.add("clearing_debt", clearingDebtByMatchKey);
 				}
 

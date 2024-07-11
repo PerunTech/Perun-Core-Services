@@ -141,7 +141,7 @@ public class Perun_core_tests {
 	public void getQueryReport() throws SvException {
 		String token = getUserSessionIdForTestPurpose();
 		try (SvReader svr = new SvReader(token)) {
-			String strIn = "[{\"field_name\":\"FARMER.FIC\",\"field_type\":\"\",\"operator\":\"equal\",\"value\":\"00000258550\"},{\"field_name\":\"FARMER.ID_NO\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"FARMER.TAX_NO\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"FARMER.FULL_NAME\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"AGRI_PARCEL.AREA\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"AGRI_PARCEL.LAND_COVER_CODE\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"AGRI_PARCEL.HOME_NAME\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"AGRI_PARCEL.KO_ID\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"AGRI_PARCEL.OLD_ID\",\"field_type\":\"\",\"operator\":\"equal\"}]";
+			String strIn = "[[{\"field_name\":\"FARMER.ID_NO\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"FARMER.FIC\",\"field_type\":\"\",\"operator\":\"equal\",\"value\":\"20240016863\"},{\"field_name\":\"FARMER.FULL_NAME\",\"field_type\":\"\",\"operator\":\"equal\"},{\"field_name\":\"FARMER.DT_BIRTH\",\"field_type\":\"\",\"operator\":\"equal\"}],{\"aggregates\":[]}]";
 			// String strIn =
 			// "[{\"field_name\":\"ANIMAL.HOLDING_ID\",\"operator\":\"equal\",\"value\":\"104602131\"},"
 			// + "{\"field_name\":\"ANIMAL.HOLDING_LOCATION\",\"operator\":\"equal\"}]";
