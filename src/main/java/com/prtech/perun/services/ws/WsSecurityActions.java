@@ -1,5 +1,10 @@
 package com.prtech.perun.services.ws;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -29,20 +34,26 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
+
+import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
+import org.opensaml.xml.security.SecurityException;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.lastpass.saml.SAMLException;
 import com.prtech.perun.PerunUtil;
+import com.prtech.saml.Client;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.Sv;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvExecManager;
+import com.prtech.svarog.SvNote;
 import com.prtech.svarog.SvParameter;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvSecurity;
@@ -58,6 +69,7 @@ import com.prtech.svarog_common.ResponseHandler.MessageType;
 @Path("/SvSecurity")
 public class WsSecurityActions {
 	static final Logger log4j = SvConf.getLogger(WsSecurityActions.class);
+	private Client samlClient = null;
 
 //	 * POST version <br/>
 //	 * procedure to create new user to log in to the system if he already is
@@ -129,6 +141,68 @@ public class WsSecurityActions {
 		// just forward to external executor named "PERUN_CORE_EXEC.REGISTER_USER"
 		return PerunUtil.callExternalExecutor(formVals, httpRequest, "PERUN_PASSWORD_RECOVERY",
 				"PERUN_CORE_EXEC.PASSWORD_RECOVERY", "recovery.email.sent", "Password recovery error");
+
+	}
+
+	@Path("/getSAMLAuthRequest/")
+	@GET
+	@Produces("text/html;charset=utf-8")
+	public Response getSAMLAuthRequest(MultivaluedMap<String, String> formVals,
+			@Context HttpServletRequest httpRequest) {
+
+		try {
+			if (samlClient == null)
+				synchronized (WsSecurityActions.class) {
+					if (samlClient == null) {
+						ResponseHandler jrh = new ResponseHandler();
+						JsonObject jso = new JsonObject();
+						// check for system parameter PERUN_REGISTER_USER_EXECUTOR, default is
+						// PERUN_CORE_EXEC.REGISTER_USER so we always end
+						// up with that, if we want to change ways of user registration we change the
+						// parameter PERUN_REGISTER_USER_EXECUTOR in DB and create executor with that
+						// name, then we call that executor from the enviorment
+						String cert;
+						String privateKey;
+						String samlmetadata;
+						String entityId;
+						String AuthResponseURL;
+						String clientIp = PerunUtil.getClientIpAddress(httpRequest);
+						try (SvSecurity svs = new SvSecurity(clientIp);) {
+							((SvCore) svs).switchUser(svCONST.serviceUser);
+							try (SvNote svx = new SvNote(svs)) {
+								entityId = SvParameter.getSysParam(CC.SAML_ENTITY_ID, CC.NOT_CONFIGURED);
+								AuthResponseURL = SvParameter.getSysParam(CC.SAML_RESPONSE_URL, CC.NOT_CONFIGURED);
+								samlmetadata = svx.getNote(0L, CC.SAML_METADATA);
+								privateKey = svx.getNote(0L, CC.SAML_PRIVATEKEY);
+								cert = svx.getNote(0L, CC.SAML_CERTIFICATE);
+							}
+						}
+
+						Client tmpClient = new Client(IOUtils.toInputStream(samlmetadata));
+						tmpClient.setSPPrivateKey(IOUtils.toInputStream(privateKey));
+						// InputStream targetStream = IOUtils.toInputStream(initialString);
+						tmpClient.setCertificate(IOUtils.toInputStream(cert));
+
+						tmpClient.setSPConfigEntityId("https://dnfr.perun.tech");
+						tmpClient.setSPConfigAuthResponseURL("https://dnfr.perun.tech/perun/SvSecurity/saml/sso");
+
+						samlClient = tmpClient;
+					}
+				}
+			if (samlClient != null) {
+				String samlRequest = samlClient.getSAMLRequest();
+				URLEncoder.encode(samlRequest, "UTF-8");
+
+				// just forward to external executor named "PERUN_CORE_EXEC.REGISTER_USER"
+				return Response.ok(URLEncoder.encode(samlRequest, "UTF-8")).build();
+			}
+		} catch (Exception e) {
+			if (log4j.isDebugEnabled()) {
+				log4j.debug("Failed generating SAML AuthN Request", e);
+
+			}
+		}
+		return Response.ok("SAML Not Configured").build();
 
 	}
 
@@ -229,11 +303,12 @@ public class WsSecurityActions {
 		}
 		return Response.status(200).entity(jsLabels.toString()).build();
 	}
-	
+
 	@Path("/i18n/{locale}/{label_group}/{token}")
 	@GET
 	@Produces("application/json")
-	public Response getI18NLabels(@PathParam("label_group") String labelsGroup, @PathParam("locale") String locale, @PathParam("token")String token) {
+	public Response getI18NLabels(@PathParam("label_group") String labelsGroup, @PathParam("locale") String locale,
+			@PathParam("token") String token) {
 		try (SvReader svr = new SvReader(token)) {
 			svr.setUserLocale(svr.getInstanceUser().getVal("USER_NAME").toString(), locale);
 			svr.dbCommit();
@@ -247,8 +322,9 @@ public class WsSecurityActions {
 	@GET
 	@Produces("text/html;charset=utf-8")
 	public Response getConfiguration(@PathParam("token") String token, @PathParam("componentName") String componentName,
-			@Context HttpServletRequest httpRequest) {
+			@Context HttpServletRequest httpRequest) throws SvException {
 
+		String ssoConfig = SvParameter.getSysParam(CC.SSO_URL, CC.EMPTY_JSON);
 		ResponseHandler jrh = new ResponseHandler();
 		String retval = "{\"login\":{\"enabled\":true,\"submit\":\"/SvSecurity/login/{username}/{password}\",\"afterSubmit\":\"/MAIN\",\"methodtype\":\"GET\"},"
 				+ "\"login1\":{\"enabled\":true,\"submit\":\"/SvSecurity/login\",\"afterSubmit\":\"/MAIN\",\"methodtype\":\"POST\"},"
@@ -263,6 +339,7 @@ public class WsSecurityActions {
 				+ "\"changePassword1\":{\"enabled\":true,\"submit\":\"/SvSecurity/changePassword/{recover_token}/{username}/{idNo}/{new_pass}\",\"afterSubmit\":\"/LOGIN\",\"methodtype\":\"GET\"},"
 				+ "\"changePassword\":{\"enabled\":true,\"submit\":\"/SvSecurity/changePassword\",\"afterSubmit\":\"/LOGIN\",\"methodtype\":\"POST\"},"
 				+ "\"change_email1\":{\"enabled\":true,\"submit\":\"/SvSecurity/changeEmail\",\"afterSubmit\":\"/LOGIN\",\"methodtype\":\"POST\"},"
+				+ "\"sso_config\":" + ssoConfig.toString() + ","
 				+ "\"change_email\":{\"enabled\":true,\"submit\":\"/SvSecurity/changeEmail/{username}/{idNo}/{e_mail}\",\"afterSubmit\":\"/LOGIN\",\"methodtype\":\"GET\"}}";
 		JsonObject jsonObj = new JsonObject();
 		Gson gson = new Gson();
@@ -276,6 +353,11 @@ public class WsSecurityActions {
 					jsonObj);
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+
+	public static void main(String[] args) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException,
+			CertificateException, SecurityException, SAMLException {
+
 	}
 
 }
