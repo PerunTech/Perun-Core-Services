@@ -198,10 +198,7 @@ public class WsSecurityActions {
 				}
 			if (samlClient != null) {
 				String samlRequest = samlClient.getSAMLRequest();
-				URLEncoder.encode(samlRequest, "UTF-8");
-
-				// just forward to external executor named "PERUN_CORE_EXEC.REGISTER_USER"
-				return Response.ok(URLEncoder.encode(samlRequest, "UTF-8")).build();
+				return Response.ok(samlRequest).build();
 			}
 		} catch (Exception e) {
 			if (log4j.isDebugEnabled()) {

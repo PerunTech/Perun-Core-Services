@@ -339,18 +339,20 @@ public class SAMLClient {
 				throw new ValidationException("Assertion audience does not include issuer");
 		}
 	}
-	private static X509Certificate getCert(String filename) throws NoSuchAlgorithmException, IOException, InvalidKeySpecException, CertificateException
-	{
-	     // Read in the key into a String
-        
-        CertificateFactory fac = CertificateFactory.getInstance("X509");
-        FileInputStream is = new FileInputStream(filename);
-        X509Certificate cert = (X509Certificate) fac.generateCertificate(is);
-        return cert;
+
+	private static X509Certificate getCert(String filename)
+			throws NoSuchAlgorithmException, IOException, InvalidKeySpecException, CertificateException {
+		// Read in the key into a String
+
+		CertificateFactory fac = CertificateFactory.getInstance("X509");
+		FileInputStream is = new FileInputStream(filename);
+		X509Certificate cert = (X509Certificate) fac.generateCertificate(is);
+		return cert;
 	}
-	
+
 	@SuppressWarnings("unchecked")
-	private String createAuthnRequest(String requestId) throws SAMLException, NoSuchAlgorithmException, InvalidKeySpecException, CertificateException, IOException, SecurityException {
+	private String createAuthnRequest(String requestId) throws SAMLException, NoSuchAlgorithmException,
+			InvalidKeySpecException, CertificateException, IOException, SecurityException {
 		XMLObjectBuilderFactory builderFactory = Configuration.getBuilderFactory();
 
 		SAMLObjectBuilder<AuthnRequest> builder = (SAMLObjectBuilder<AuthnRequest>) builderFactory
@@ -372,17 +374,13 @@ public class SAMLClient {
 		cred.setEntityId(spConfig.getEntityId());
 		cred.setPrivateKey(spConfig.getPrivateKey());
 		cred.setEntityCertificate(entityCertificate);
-		
-		
-		
 
 		SignatureBuilder signFactory = new SignatureBuilder();
 		Signature signature = signFactory.buildObject(Signature.DEFAULT_ELEMENT_NAME);
 		signature.setCanonicalizationAlgorithm(SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
 		signature.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256);
 		signature.setSigningCredential(cred);
-		SecurityHelper.prepareSignatureParams(signature, cred,
-                Configuration.getGlobalSecurityConfiguration(), null);
+		SecurityHelper.prepareSignatureParams(signature, cred, Configuration.getGlobalSecurityConfiguration(), null);
 		// set signature
 		request.setSignature(signature);
 
@@ -431,20 +429,18 @@ public class SAMLClient {
 	 * endpoint on the IdP. The SPConfig will be used to fill in the ACS and issuer,
 	 * and the IdP will be used to set the destination.
 	 *
-	 * @return a deflated, base64-encoded AuthnRequest
-	 * @throws IOException 
-	 * @throws CertificateException 
-	 * @throws InvalidKeySpecException 
-	 * @throws NoSuchAlgorithmException 
-	 * @throws SecurityException 
+	 * @return a NON-deflated, base64-encoded AuthnRequest
+	 * @throws IOException
+	 * @throws CertificateException
+	 * @throws InvalidKeySpecException
+	 * @throws NoSuchAlgorithmException
+	 * @throws SecurityException
 	 */
-	public String generateAuthnRequest(String requestId) throws SAMLException, NoSuchAlgorithmException, InvalidKeySpecException, CertificateException, IOException, SecurityException {
+	public String generateAuthnRequest(String requestId) throws SAMLException, NoSuchAlgorithmException,
+			InvalidKeySpecException, CertificateException, IOException, SecurityException {
 		String request = createAuthnRequest(requestId);
-		System.out.println(request);
-		System.out.println("----");
 		try {
-			byte[] compressed = deflate(request.getBytes("UTF-8"));
-			return DatatypeConverter.printBase64Binary(compressed);
+			return DatatypeConverter.printBase64Binary(request.getBytes("UTF-8"));
 		} catch (UnsupportedEncodingException e) {
 			throw new SAMLException("Apparently your platform lacks UTF-8.  That's too bad.", e);
 		} catch (IOException e) {
