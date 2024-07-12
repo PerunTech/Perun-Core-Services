@@ -173,8 +173,15 @@ public class WsSecurityActions {
 								entityId = SvParameter.getSysParam(CC.SAML_ENTITY_ID, CC.NOT_CONFIGURED);
 								AuthResponseURL = SvParameter.getSysParam(CC.SAML_RESPONSE_URL, CC.NOT_CONFIGURED);
 								samlmetadata = svx.getNote(0L, CC.SAML_METADATA);
+								if (samlmetadata.equals(Sv.EMPTY_STRING))
+									svx.setNote(0L, CC.SAML_METADATA, CC.NOT_CONFIGURED);
 								privateKey = svx.getNote(0L, CC.SAML_PRIVATEKEY);
+								if (privateKey.equals(Sv.EMPTY_STRING))
+									svx.setNote(0L, CC.SAML_PRIVATEKEY, CC.NOT_CONFIGURED);
 								cert = svx.getNote(0L, CC.SAML_CERTIFICATE);
+								if (cert.equals(Sv.EMPTY_STRING))
+									svx.setNote(0L, CC.SAML_CERTIFICATE, CC.NOT_CONFIGURED);
+
 							}
 						}
 
