@@ -190,8 +190,8 @@ public class WsSecurityActions {
 						// InputStream targetStream = IOUtils.toInputStream(initialString);
 						tmpClient.setCertificate(IOUtils.toInputStream(cert));
 
-						tmpClient.setSPConfigEntityId("https://dnfr.perun.tech");
-						tmpClient.setSPConfigAuthResponseURL("https://dnfr.perun.tech/perun/SvSecurity/saml/sso");
+						tmpClient.setSPConfigEntityId(entityId);
+						tmpClient.setSPConfigAuthResponseURL(AuthResponseURL);
 
 						samlClient = tmpClient;
 					}
