@@ -1,6 +1,7 @@
 package com.prtech.perun.services.ws;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -21,7 +22,7 @@ import javax.mail.Transport;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
-
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -33,7 +34,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.Logger;
@@ -207,6 +210,34 @@ public class WsSecurityActions {
 			}
 		}
 		return Response.ok("SAML Not Configured").build();
+
+	}
+
+	@Path("/sso")
+	@POST
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Produces("application/json")
+	public Response ssoRedirect(MultivaluedMap<String, String> formVals, @Context HttpServletRequest httpRequest)
+			throws SvException {
+		return getRedirect("XXX");
+	}
+
+	@Path("/sso")
+	@GET
+	@Produces("application/json")
+	public Response ssoRedirectGet(@Context HttpServletRequest httpRequest) {
+		String session = httpRequest.getParameter("session");
+		return getRedirect(session);
+
+	}
+
+	Response getRedirect(String session) {
+		try {
+			String url = SvParameter.getSysParam(CC.SSO_REDIRECT_URL, CC.NOT_CONFIGURED);
+			return Response.temporaryRedirect(URI.create(url.replace(CC.SESSION_PLACEHOLDER, session))).build();
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "SSO Authentication Error");
+		}
 
 	}
 
