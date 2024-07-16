@@ -10,5 +10,7 @@ public class CC {
 	public static final String SAML_METADATA = "SAML_METADATA";
 	public static final String SAML_PRIVATEKEY = "SAML_PRIVATEKEY";
 	public static final String SAML_CERTIFICATE = "SAML_CERTIFICATE";
+	public static final String SSO_REDIRECT_URL = "SSO_REDIRECT_URL";
+	public static final String SESSION_PLACEHOLDER = "{SESSION_PLACEHOLDER}";
 
 }
