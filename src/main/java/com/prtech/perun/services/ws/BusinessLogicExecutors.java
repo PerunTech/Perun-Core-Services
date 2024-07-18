@@ -507,6 +507,7 @@ public class BusinessLogicExecutors implements ISvExecutorGroup {
 	 * method to register user, we accept the token as parameter, remove it from the
 	 * list of tokens that have access
 	 * 
+	 * @param isBusiness 
 	 * @param userName String user-name to login with, farmer identification code
 	 *                 (FIC) or name for agency workers
 	 * @param pinVat   String used for validation, usually birth number for farmers
@@ -537,8 +538,7 @@ public class BusinessLogicExecutors implements ISvExecutorGroup {
 		{
 			DbDataObject dboUser = null;
 			try (SvSecurity svs = new SvSecurity(svc);) {
-				// check if the user is registered in the business register
-				DbSearchExpression getPerson = getPersonSearch(pinVat);
+
 				// refactor this
 				String businessObjectName = SvParameter.getSysParam("BUSINESS_OBJECT_NAME", DEFAULT_NAME);
 				// get the farmer table
@@ -566,6 +566,8 @@ public class BusinessLogicExecutors implements ISvExecutorGroup {
 				if (dboUser != null) {
 					jrh.create(MessageType.SUCCESS, I18n.getText("user.user1_created"),
 							I18n.getText("user.created.activation"), new JsonObject());
+					// check if the user is registered in the business register
+					DbSearchExpression getPerson = getPersonSearch(pinVat);
 					try {
 						svs.empowerUser(dboUser, "PERSON", getPerson);
 					} catch (Exception e) {

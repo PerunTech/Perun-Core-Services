@@ -12,5 +12,8 @@ public class CC {
 	public static final String SAML_CERTIFICATE = "SAML_CERTIFICATE";
 	public static final String SSO_REDIRECT_URL = "SSO_REDIRECT_URL";
 	public static final String SESSION_PLACEHOLDER = "{SESSION_PLACEHOLDER}";
+	public static final String SSO_POST_KEY = "SSO_POST_KEY";
+	public static final String SSO_REGISTER_USER = "SSO_REGISTER_USER";
+	public static final String USERDATA_PLACEHOLDER = "{USERDATA_PLACEHOLDER}";
 
 }

@@ -18,6 +18,9 @@
 package com.lastpass.saml;
 
 import java.util.Map;
+
+import org.opensaml.saml2.core.Response;
+
 import java.util.List;
 
 /**
@@ -29,6 +32,7 @@ public class AttributeSet
 {
     private String nameId;
     private Map<String, List<String>> attributes;
+	private Response response;
 
     public AttributeSet(String nameId,
                         Map<String, List<String>> attributes)
@@ -36,13 +40,26 @@ public class AttributeSet
         this.nameId = nameId;
         this.attributes = attributes;
     }
+    public AttributeSet(String nameId,
+            Map<String, List<String>> attributes, Response response)
+    {
+    	this.nameId = nameId;
+    	this.attributes = attributes;
+    	this.response = response;
+    }
 
     public String getNameId()
     {
         return nameId;
     }
 
-    public Map<String, List<String>> getAttributes()
+    public Response getResponse() {
+		return response;
+	}
+	public void setResponse(Response response) {
+		this.response = response;
+	}
+	public Map<String, List<String>> getAttributes()
     {
         return this.attributes;
     }

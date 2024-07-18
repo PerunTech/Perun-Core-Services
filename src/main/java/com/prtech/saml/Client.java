@@ -30,6 +30,14 @@ import com.lastpass.saml.SAMLUtils;
 import com.lastpass.saml.SPConfig;
 
 public class Client {
+	public SAMLClient getSamlClient() {
+		return samlClient;
+	}
+
+	public void setSamlClient(SAMLClient samlClient) {
+		this.samlClient = samlClient;
+	}
+
 	SAMLClient samlClient;
 
 	private static PrivateKey getPK(InputStream reader)
