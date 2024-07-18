@@ -107,9 +107,26 @@ public class SAMLClient {
 	private SignatureValidator sigValidator;
 	private BasicParserPool parsers;
 	private X509Certificate entityCertificate;
+	private boolean requireSignedAssertion = true;
+
+	public boolean isRequireSignedAssertion() {
+		return requireSignedAssertion;
+	}
+
+	public void setRequireSignedAssertion(boolean requireSignedAssertion) {
+		this.requireSignedAssertion = requireSignedAssertion;
+	}
 
 	/* do date comparisons +/- this many seconds */
-	private static final int slack = (int) TimeUnit.MINUTES.toSeconds(5);
+	private static int slack = (int) TimeUnit.MINUTES.toSeconds(5L);
+
+	public static int getSlack() {
+		return slack;
+	}
+
+	public static void setSlack(int slack) {
+		SAMLClient.slack = slack;
+	}
 
 	/**
 	 * Create a new SAMLClient, using the IdPConfig for endpoints and validation.
@@ -241,11 +258,12 @@ public class SAMLClient {
 		for (Assertion assertion : assertions) {
 
 			// Assertion must be signed correctly
-			if (!assertion.isSigned())
+			if (requireSignedAssertion && !assertion.isSigned())
 				throw new ValidationException("Assertion must be signed");
 
 			sig = assertion.getSignature();
-			sigValidator.validate(sig);
+			if (sig != null)
+				sigValidator.validate(sig);
 
 			// Assertion must contain an authnstatement
 			// with an unexpired session
@@ -429,7 +447,7 @@ public class SAMLClient {
 	 * endpoint on the IdP. The SPConfig will be used to fill in the ACS and issuer,
 	 * and the IdP will be used to set the destination.
 	 *
-	 * @return a NON-deflated, base64-encoded AuthnRequest
+	 * @return a deflated, base64-encoded AuthnRequest
 	 * @throws IOException
 	 * @throws CertificateException
 	 * @throws InvalidKeySpecException
@@ -440,6 +458,7 @@ public class SAMLClient {
 			InvalidKeySpecException, CertificateException, IOException, SecurityException {
 		String request = createAuthnRequest(requestId);
 		try {
+			// byte[] compressed = deflate(request.getBytes("UTF-8"));
 			return DatatypeConverter.printBase64Binary(request.getBytes("UTF-8"));
 		} catch (UnsupportedEncodingException e) {
 			throw new SAMLException("Apparently your platform lacks UTF-8.  That's too bad.", e);
@@ -508,6 +527,6 @@ public class SAMLClient {
 				attributes.put(name, values);
 			}
 		}
-		return new AttributeSet(nameId, attributes);
+		return new AttributeSet(nameId, attributes, response);
 	}
 }

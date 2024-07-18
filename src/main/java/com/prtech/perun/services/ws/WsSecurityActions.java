@@ -47,6 +47,8 @@ import org.opensaml.xml.security.SecurityException;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.lastpass.saml.AttributeSet;
+import com.lastpass.saml.SAMLClient;
 import com.lastpass.saml.SAMLException;
 import com.prtech.perun.PerunUtil;
 import com.prtech.saml.Client;
@@ -217,9 +219,35 @@ public class WsSecurityActions {
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Produces("application/json")
-	public Response ssoRedirect(MultivaluedMap<String, String> formVals, @Context HttpServletRequest httpRequest)
-			throws SvException {
-		return getRedirect("XXX");
+	public Response ssoRedirect(MultivaluedMap<String, String> formVals, @Context HttpServletRequest httpRequest) {
+		String clientIp = PerunUtil.getClientIpAddress(httpRequest);
+		try (SvSecurity svs = new SvSecurity(clientIp);) {
+
+			String keyName = SvParameter.getSysParam(CC.SSO_POST_KEY, CC.NOT_CONFIGURED);
+			List<String> authResponse = formVals.get(keyName);
+
+			samlClient.getSamlClient().setRequireSignedAssertion(false);
+			AttributeSet at;
+
+			((SvCore) svs).switchUser(svCONST.serviceUser);
+			at = samlClient.getSamlClient().validateResponse(authResponse.get(0));
+			String userName = at.getNameId();
+			try (SvWriter svw = new SvWriter(svs)) {
+				DbDataObject user = svs.getUser(userName);
+				svs.saveSessionToken(user, svw, at.getResponse().getInResponseTo());
+				return getRedirect(at.getResponse().getInResponseTo());
+			} catch (SvException e) {
+				if (e.getLabelCode().equals(Sv.Exceptions.NO_USER_FOUND))
+					return getRegisterUser(at);
+
+			}
+
+		} catch (SAMLException | SvException e) {
+			// TODO Auto-generated catch block
+			return PerunUtil.handleException(e, "SSO Authentication Error");
+		}
+		return Response.ok().build();
+
 	}
 
 	@Path("/sso")
@@ -228,6 +256,47 @@ public class WsSecurityActions {
 	public Response ssoRedirectGet(@Context HttpServletRequest httpRequest) {
 		String session = httpRequest.getParameter("session");
 		return getRedirect(session);
+
+	}
+
+	Response getRegisterUser(AttributeSet at) {
+		try {
+			String url = SvParameter.getSysParam(CC.SSO_REGISTER_USER, CC.NOT_CONFIGURED);
+			JsonObject juser = new JsonObject();
+			juser.addProperty(Sv.USER_NAME.toString(), at.getNameId());
+			for (Entry<String, List<String>> e : at.getAttributes().entrySet()) {
+				List<String> l = e.getValue();
+				String val = l.size() > 0 ? l.get(0) : Sv.EMPTY_STRING;
+				switch (e.getKey()) {
+				case "FirstName":
+					juser.addProperty("FIRST_NAME", val);
+					break;
+				case "LastName":
+					juser.addProperty("LAST_NAME", val);
+					break;
+				case "EmailAddress":
+					juser.addProperty("E_MAIL", val);
+					break;
+				case "IDNO":
+					juser.addProperty("PIN", val.equals(Sv.EMPTY_STRING) ? at.getNameId() : val);
+					break;
+				}
+			}
+			return Response.temporaryRedirect(URI.create(url.replace(CC.USERDATA_PLACEHOLDER, juser.toString())))
+					.build();
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "SSO Authentication Error");
+		}
+
+	}
+
+	Response getRedirectError(String session) {
+		try {
+			String url = SvParameter.getSysParam(CC.SSO_REDIRECT_URL, CC.NOT_CONFIGURED);
+			return Response.temporaryRedirect(URI.create(url.replace(CC.SESSION_PLACEHOLDER, session))).build();
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "SSO Authentication Error");
+		}
 
 	}
 
