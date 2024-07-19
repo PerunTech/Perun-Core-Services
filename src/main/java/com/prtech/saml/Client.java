@@ -28,6 +28,7 @@ import com.lastpass.saml.SAMLException;
 import com.lastpass.saml.SAMLInit;
 import com.lastpass.saml.SAMLUtils;
 import com.lastpass.saml.SPConfig;
+import com.prtech.svarog.SvUtil;
 
 public class Client {
 	public SAMLClient getSamlClient() {
@@ -83,7 +84,7 @@ public class Client {
 		String samlRequest = "";
 
 		try {
-			String requestId = SAMLUtils.generateRequestId();
+			String requestId = SvUtil.getUUID(); //SAMLUtils.generateRequestId();
 			samlRequest = samlClient.generateAuthnRequest(requestId);
 
 		} catch (SAMLException | UnsupportedEncodingException e) {
