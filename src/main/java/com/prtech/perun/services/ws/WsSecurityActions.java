@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -44,6 +45,8 @@ import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.opensaml.xml.security.SecurityException;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -75,6 +78,14 @@ import com.prtech.svarog_common.ResponseHandler.MessageType;
 public class WsSecurityActions {
 	static final Logger log4j = SvConf.getLogger(WsSecurityActions.class);
 	private Client samlClient = null;
+	static private Cache<String, AttributeSet> ssoRequestCache;
+
+	static {
+		CacheBuilder builder = CacheBuilder.newBuilder();
+		builder = builder.maximumSize(5000);
+		builder = builder.expireAfterAccess(10, TimeUnit.MINUTES);
+		ssoRequestCache = (Cache<String, AttributeSet>) builder.<Long, DbDataObject>build();
+	}
 
 //	 * POST version <br/>
 //	 * procedure to create new user to log in to the system if he already is
@@ -225,21 +236,46 @@ public class WsSecurityActions {
 
 			String keyName = SvParameter.getSysParam(CC.SSO_POST_KEY, CC.NOT_CONFIGURED);
 			List<String> authResponse = formVals.get(keyName);
+			String form = authResponse.get(0);
+			JsonObject jsonUserData = null;
+			if (form.startsWith("{")) {
+				Gson g = new Gson();
+				try {
+					jsonUserData = g.fromJson(form, JsonObject.class);
+				} catch (Exception e) {
+				}
+			}
+			AttributeSet at = null;
 
-			samlClient.getSamlClient().setRequireSignedAssertion(false);
-			AttributeSet at;
+			if (jsonUserData != null) {
+				String id = jsonUserData.get("ID").getAsString();
+				at = ssoRequestCache.getIfPresent(id);
+			} else {
+				samlClient.getSamlClient().setRequireSignedAssertion(false);
+				at = samlClient.getSamlClient().validateResponse(authResponse.get(0));
+				ssoRequestCache.put(at.getResponse().getInResponseTo(), at);
+			}
+			if (at != null) {
+				((SvCore) svs).switchUser(svCONST.serviceUser);
+				String userName = at.getNameId();
+				try (SvWriter svw = new SvWriter(svs)) {
+					DbDataObject user = null;
+					if (jsonUserData != null) {
+						// {"user_type":"external","pin":"0110000000037","user_name":"0110000000037","first_name":"rirste","last_name":"pejov","tax_id":"123321123","e_mail":"2131@gmail.com"}:
+						user = svs.createUser(jsonUserData.get("user_name").getAsString(), "",
+								jsonUserData.get("user_name").getAsString(),
+								jsonUserData.get("last_name").getAsString(), jsonUserData.get("e_mail").getAsString(),
+								jsonUserData.get("pin").getAsString(), "", "EXTERNAL", "VALID", true);
 
-			((SvCore) svs).switchUser(svCONST.serviceUser);
-			at = samlClient.getSamlClient().validateResponse(authResponse.get(0));
-			String userName = at.getNameId();
-			try (SvWriter svw = new SvWriter(svs)) {
-				DbDataObject user = svs.getUser(userName);
-				svs.saveSessionToken(user, svw, at.getResponse().getInResponseTo());
-				return getRedirect(at.getResponse().getInResponseTo());
-			} catch (SvException e) {
-				if (e.getLabelCode().equals(Sv.Exceptions.NO_USER_FOUND))
-					return getRegisterUser(at);
+					}
+					user = svs.getUser(userName);
+					svs.saveSessionToken(user, svw, at.getResponse().getInResponseTo());
+					return getRedirect(at.getResponse().getInResponseTo());
+				} catch (SvException e) {
+					if (e.getLabelCode().equals(Sv.Exceptions.NO_USER_FOUND))
+						return getRegisterUser(at);
 
+				}
 			}
 
 		} catch (SAMLException | SvException e) {
@@ -261,9 +297,11 @@ public class WsSecurityActions {
 
 	Response getRegisterUser(AttributeSet at) {
 		try {
+			ssoRequestCache.put(at.getResponse().getInResponseTo(), at);
 			String url = SvParameter.getSysParam(CC.SSO_REGISTER_USER, CC.NOT_CONFIGURED);
 			JsonObject juser = new JsonObject();
 			juser.addProperty(Sv.USER_NAME.toString(), at.getNameId());
+			juser.addProperty("ID", at.getResponse().getInResponseTo());
 			for (Entry<String, List<String>> e : at.getAttributes().entrySet()) {
 				List<String> l = e.getValue();
 				String val = l.size() > 0 ? l.get(0) : Sv.EMPTY_STRING;
