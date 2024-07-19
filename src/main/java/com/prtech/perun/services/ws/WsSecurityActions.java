@@ -261,11 +261,12 @@ public class WsSecurityActions {
 				try (SvWriter svw = new SvWriter(svs)) {
 					DbDataObject user = null;
 					if (jsonUserData != null) {
+						//{"USER_TYPE":"External","PIN":"0110000000037","USER_NAME":"0110000000037","FIRST_NAME":"Rirste","LAST_NAME":"Pejov","TAX_ID":"0110000000037","E_MAIL":"ristep@gmail.com","ID":"_44ba549190029767aa5ccc066f2f7ecad0f5b14fa7e74111559fedd4de27e010"}
 						// {"user_type":"external","pin":"0110000000037","user_name":"0110000000037","first_name":"rirste","last_name":"pejov","tax_id":"123321123","e_mail":"2131@gmail.com"}:
-						user = svs.createUser(jsonUserData.get("user_name").getAsString(), "",
-								jsonUserData.get("user_name").getAsString(),
-								jsonUserData.get("last_name").getAsString(), jsonUserData.get("e_mail").getAsString(),
-								jsonUserData.get("pin").getAsString(), "", "EXTERNAL", "VALID", true);
+						user = svs.createUser(jsonUserData.get("USER_NAME").getAsString(), "",
+								jsonUserData.get("FIRST_NAME").getAsString(),
+								jsonUserData.get("LAST_NAME").getAsString(), jsonUserData.get("E_MAIL").getAsString(),
+								jsonUserData.get("PIN").getAsString(), jsonUserData.get("TAX_ID").getAsString(), "EXTERNAL", "VALID", true);
 
 					}
 					user = svs.getUser(userName);
@@ -278,7 +279,7 @@ public class WsSecurityActions {
 				}
 			}
 
-		} catch (SAMLException | SvException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			return PerunUtil.handleException(e, "SSO Authentication Error");
 		}
