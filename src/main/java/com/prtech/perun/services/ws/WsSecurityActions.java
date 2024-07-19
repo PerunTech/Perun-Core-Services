@@ -271,7 +271,10 @@ public class WsSecurityActions {
 					}
 					user = svs.getUser(userName);
 					svs.saveSessionToken(user, svw, at.getResponse().getInResponseTo());
-					return getRedirect(at.getResponse().getInResponseTo());
+					
+					String url = SvParameter.getSysParam(CC.SSO_REDIRECT_URL, CC.NOT_CONFIGURED);
+					return Response.seeOther(URI.create(url.replace(CC.SESSION_PLACEHOLDER, at.getResponse().getInResponseTo()))).build();
+
 				} catch (SvException e) {
 					if (e.getLabelCode().equals(Sv.Exceptions.NO_USER_FOUND))
 						return getRegisterUser(at);
