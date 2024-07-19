@@ -282,7 +282,10 @@ public class WsSecurityActions {
 					break;
 				}
 			}
-			return Response.seeOther(URI.create(url.replace(CC.USERDATA_PLACEHOLDER, juser.toString())))
+
+			return Response
+					.seeOther(URI
+							.create(url.replace(CC.USERDATA_PLACEHOLDER, URLEncoder.encode(juser.toString(), "UTF-8"))))
 					.build();
 		} catch (Exception e) {
 			return PerunUtil.handleException(e, "SSO Authentication Error");
