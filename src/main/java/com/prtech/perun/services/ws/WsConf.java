@@ -288,7 +288,7 @@ public class WsConf {
 				accessCard = false;
 			}
 
-			if (accessCard) {
+//			if (accessCard) {
 				JsonObject jObj = new JsonObject();
 				for (Entry<String, SvPerunInstance> plugins : spm.getPerunPlugins()) {
 					SvPerunInstance dbocard = plugins.getValue();
@@ -316,10 +316,10 @@ public class WsConf {
 					jObj.addProperty("js", dbocard.getJsPath());
 					jArray.add(jObj);
 				}
-			} else {
-				log4j.error(
-						"the user is in administrators group, but it is not an admin therefor he doesn't have an access to card menu");
-			}
+		//	} else {
+		//		log4j.error(
+		//				"the user is in administrators group, but it is not an admin therefor he doesn't have an access to card menu");
+		//	}
 		} catch (SvException e) {
 			log4j.error(e.getMessage());
 			throw (e);
