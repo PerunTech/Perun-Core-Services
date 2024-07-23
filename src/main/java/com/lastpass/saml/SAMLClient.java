@@ -19,6 +19,7 @@ package com.lastpass.saml;
 
 import org.opensaml.Configuration;
 import org.opensaml.saml2.core.Response;
+import org.opensaml.saml2.core.SessionIndex;
 import org.opensaml.saml2.core.Subject;
 import org.opensaml.saml2.core.Conditions;
 import org.opensaml.saml2.core.AuthnStatement;
@@ -26,6 +27,8 @@ import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.EncryptedAssertion;
 import org.opensaml.saml2.core.Issuer;
+import org.opensaml.saml2.core.LogoutRequest;
+import org.opensaml.saml2.core.NameID;
 import org.opensaml.saml2.core.Audience;
 import org.opensaml.saml2.core.AudienceRestriction;
 import org.opensaml.saml2.core.StatusCode;
@@ -369,6 +372,72 @@ public class SAMLClient {
 	}
 
 	@SuppressWarnings("unchecked")
+	private String createLogoutRequest(String requestId, String nameId, String sessionIndex) throws SAMLException,
+			NoSuchAlgorithmException, InvalidKeySpecException, CertificateException, IOException, SecurityException {
+		XMLObjectBuilderFactory builderFactory = Configuration.getBuilderFactory();
+
+		SAMLObjectBuilder<LogoutRequest> builder = (SAMLObjectBuilder<LogoutRequest>) builderFactory
+				.getBuilder(LogoutRequest.DEFAULT_ELEMENT_NAME);
+
+		SAMLObjectBuilder<Issuer> issuerBuilder = (SAMLObjectBuilder<Issuer>) builderFactory
+				.getBuilder(Issuer.DEFAULT_ELEMENT_NAME);
+
+		SAMLObjectBuilder<NameID> nameIdBuilder = (SAMLObjectBuilder<NameID>) builderFactory
+				.getBuilder(NameID.DEFAULT_ELEMENT_NAME);
+
+		SAMLObjectBuilder<SessionIndex> sesIndexBuilder = (SAMLObjectBuilder<SessionIndex>) builderFactory
+				.getBuilder(SessionIndex.DEFAULT_ELEMENT_NAME);
+
+		LogoutRequest request = builder.buildObject();
+		request.setDestination(idpConfig.getLoginUrl().toString());
+		request.setIssueInstant(new DateTime());
+		request.setID(requestId);
+
+		NameID n = nameIdBuilder.buildObject();
+		n.setValue(nameId);
+		request.setNameID(n);
+		SessionIndex s = sesIndexBuilder.buildObject();
+		s.setSessionIndex(nameId);
+		request.getSessionIndexes().add(s);
+
+		Issuer issuer = issuerBuilder.buildObject();
+		issuer.setValue(spConfig.getEntityId());
+		request.setIssuer(issuer);
+		BasicX509Credential cred = new BasicX509Credential();
+		cred.setEntityId(spConfig.getEntityId());
+		cred.setPrivateKey(spConfig.getPrivateKey());
+		cred.setEntityCertificate(entityCertificate);
+
+		SignatureBuilder signFactory = new SignatureBuilder();
+		Signature signature = signFactory.buildObject(Signature.DEFAULT_ELEMENT_NAME);
+		signature.setCanonicalizationAlgorithm(SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
+		signature.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256);
+		signature.setSigningCredential(cred);
+		SecurityHelper.prepareSignatureParams(signature, cred, Configuration.getGlobalSecurityConfiguration(), null);
+		// set signature
+		request.setSignature(signature);
+
+		try {
+			// samlobject to xml dom object
+			Element elem = Configuration.getMarshallerFactory().getMarshaller(request).marshall(request);
+			try {
+				Signer.signObject(signature);
+			} catch (SignatureException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			// and to a string...
+			Document document = elem.getOwnerDocument();
+			DOMImplementationLS domImplLS = (DOMImplementationLS) document.getImplementation();
+			LSSerializer serializer = domImplLS.createLSSerializer();
+			serializer.getDomConfig().setParameter("xml-declaration", false);
+			return serializer.writeToString(elem);
+		} catch (MarshallingException e) {
+			throw new SAMLException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
 	private String createAuthnRequest(String requestId) throws SAMLException, NoSuchAlgorithmException,
 			InvalidKeySpecException, CertificateException, IOException, SecurityException {
 		XMLObjectBuilderFactory builderFactory = Configuration.getBuilderFactory();
@@ -457,6 +526,31 @@ public class SAMLClient {
 	public String generateAuthnRequest(String requestId) throws SAMLException, NoSuchAlgorithmException,
 			InvalidKeySpecException, CertificateException, IOException, SecurityException {
 		String request = createAuthnRequest(requestId);
+		try {
+			// byte[] compressed = deflate(request.getBytes("UTF-8"));
+			return DatatypeConverter.printBase64Binary(request.getBytes("UTF-8"));
+		} catch (UnsupportedEncodingException e) {
+			throw new SAMLException("Apparently your platform lacks UTF-8.  That's too bad.", e);
+		} catch (IOException e) {
+			throw new SAMLException("Unable to compress the AuthnRequest", e);
+		}
+	}
+
+	/**
+	 * Create a new LogoutRequest suitable for sending to an HTTPRedirect binding
+	 * endpoint on the IdP. The SPConfig will be used to fill in the ACS and issuer,
+	 * and the IdP will be used to set the destination.
+	 *
+	 * @return a deflated, base64-encoded AuthnRequest
+	 * @throws IOException
+	 * @throws CertificateException
+	 * @throws InvalidKeySpecException
+	 * @throws NoSuchAlgorithmException
+	 * @throws SecurityException
+	 */
+	public String generateLogoutRequest(String requestId, String userName, String sessionId) throws SAMLException,
+			NoSuchAlgorithmException, InvalidKeySpecException, CertificateException, IOException, SecurityException {
+		String request = createLogoutRequest(requestId, userName, sessionId);
 		try {
 			// byte[] compressed = deflate(request.getBytes("UTF-8"));
 			return DatatypeConverter.printBase64Binary(request.getBytes("UTF-8"));

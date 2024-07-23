@@ -84,8 +84,23 @@ public class Client {
 		String samlRequest = "";
 
 		try {
-			String requestId = SvUtil.getUUID(); //SAMLUtils.generateRequestId();
+			String requestId = SvUtil.getUUID(); // SAMLUtils.generateRequestId();
 			samlRequest = samlClient.generateAuthnRequest(requestId);
+
+		} catch (SAMLException | UnsupportedEncodingException e) {
+			// response invalid, return to login page...
+		}
+
+		return samlRequest;
+	}
+
+	public String getLogoutRequest(String userName, String sessionId) throws NoSuchAlgorithmException,
+			InvalidKeySpecException, CertificateException, IOException, SecurityException {
+		String samlRequest = "";
+
+		try {
+			String requestId = SvUtil.getUUID(); // SAMLUtils.generateRequestId();
+			samlRequest = samlClient.generateLogoutRequest(requestId, userName, sessionId);
 
 		} catch (SAMLException | UnsupportedEncodingException e) {
 			// response invalid, return to login page...
