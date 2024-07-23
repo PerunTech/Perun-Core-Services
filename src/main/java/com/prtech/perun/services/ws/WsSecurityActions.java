@@ -309,12 +309,15 @@ public class WsSecurityActions {
 						try {
 							svs.saveSessionToken(user, svw, userSession);
 						} catch (SvException e) {
-							userSession = "Expired Session";
+							userSession = Sv.INVALID_SESSION;
 						}
 
 					}
 					String url = SvParameter.getSysParam(CC.SSO_REDIRECT_URL, CC.NOT_CONFIGURED);
-					return Response.seeOther(URI.create(url.replace(CC.SESSION_PLACEHOLDER, userSession))).build();
+					return Response
+							.seeOther(URI.create(
+									url.replace(CC.SESSION_PLACEHOLDER, URLEncoder.encode(userSession, "UTF-8"))))
+							.build();
 
 				} catch (SvException e) {
 					if (e.getLabelCode().equals(Sv.Exceptions.NO_USER_FOUND))
