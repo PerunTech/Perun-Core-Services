@@ -309,7 +309,8 @@ public class WsSecurityActions {
 						try {
 							svs.saveSessionToken(user, svw, userSession);
 						} catch (SvException e) {
-							userSession = Sv.INVALID_SESSION;
+							if(!e.getLabelCode().equalsIgnoreCase("system.error.unq_constraint_violated"))
+								throw(e);
 						}
 
 					}
