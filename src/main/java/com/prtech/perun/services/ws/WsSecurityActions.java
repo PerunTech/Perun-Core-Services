@@ -298,22 +298,7 @@ public class WsSecurityActions {
 					user = svs.getUser(userName);
 					AuthnStatement as = at.getResponse().getAssertions().get(0).getAuthnStatements().get(0);
 					String userSession = as.getSessionIndex();
-					boolean sessionExists = false;
-					try (SvReader svr = new SvReader(userSession)) {
-						sessionExists = true;
-					} catch (SvException e) {
-						if (log4j.isDebugEnabled())
-							log4j.debug("SAML Session checking error:", e);
-					}
-					if (!sessionExists) {
-						try {
-							svs.saveSessionToken(user, svw, userSession);
-						} catch (SvException e) {
-							if(!e.getLabelCode().equalsIgnoreCase("system.error.unq_constraint_violated"))
-								throw(e);
-						}
-
-					}
+					svs.saveSessionToken(user, svw, userSession, "SSO");
 					String url = SvParameter.getSysParam(CC.SSO_REDIRECT_URL, CC.NOT_CONFIGURED);
 					return Response
 							.seeOther(URI.create(
