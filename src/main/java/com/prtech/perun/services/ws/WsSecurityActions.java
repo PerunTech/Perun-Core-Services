@@ -43,7 +43,9 @@ import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
+import org.opensaml.saml2.core.AuthnStatement;
 import org.opensaml.xml.security.SecurityException;
+import org.zeromq.ZAuth.Auth;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -77,7 +79,7 @@ import com.prtech.svarog_common.ResponseHandler.MessageType;
 @Path("/SvSecurity")
 public class WsSecurityActions {
 	static final Logger log4j = SvConf.getLogger(WsSecurityActions.class);
-	private Client samlClient = null;
+	private static Client samlClient = null;
 	static private Cache<String, AttributeSet> ssoRequestCache;
 
 	static {
@@ -85,6 +87,55 @@ public class WsSecurityActions {
 		builder = builder.maximumSize(5000);
 		builder = builder.expireAfterAccess(10, TimeUnit.MINUTES);
 		ssoRequestCache = (Cache<String, AttributeSet>) builder.<Long, DbDataObject>build();
+	}
+
+	private static Client getSamlClient() throws SvException, SAMLException, NoSuchAlgorithmException,
+			InvalidKeySpecException, IOException, CertificateException {
+		if (samlClient == null)
+			synchronized (WsSecurityActions.class) {
+				if (samlClient == null) {
+					ResponseHandler jrh = new ResponseHandler();
+					JsonObject jso = new JsonObject();
+					// check for system parameter PERUN_REGISTER_USER_EXECUTOR, default is
+					// PERUN_CORE_EXEC.REGISTER_USER so we always end
+					// up with that, if we want to change ways of user registration we change the
+					// parameter PERUN_REGISTER_USER_EXECUTOR in DB and create executor with that
+					// name, then we call that executor from the enviorment
+					String cert;
+					String privateKey;
+					String samlmetadata;
+					String entityId;
+					String AuthResponseURL;
+					try (SvSecurity svs = new SvSecurity();) {
+						((SvCore) svs).switchUser(svCONST.serviceUser);
+						try (SvNote svx = new SvNote(svs)) {
+							entityId = SvParameter.getSysParam(CC.SAML_ENTITY_ID, CC.NOT_CONFIGURED);
+							AuthResponseURL = SvParameter.getSysParam(CC.SAML_RESPONSE_URL, CC.NOT_CONFIGURED);
+							samlmetadata = svx.getNote(0L, CC.SAML_METADATA);
+							if (samlmetadata.equals(Sv.EMPTY_STRING))
+								svx.setNote(0L, CC.SAML_METADATA, CC.NOT_CONFIGURED);
+							privateKey = svx.getNote(0L, CC.SAML_PRIVATEKEY);
+							if (privateKey.equals(Sv.EMPTY_STRING))
+								svx.setNote(0L, CC.SAML_PRIVATEKEY, CC.NOT_CONFIGURED);
+							cert = svx.getNote(0L, CC.SAML_CERTIFICATE);
+							if (cert.equals(Sv.EMPTY_STRING))
+								svx.setNote(0L, CC.SAML_CERTIFICATE, CC.NOT_CONFIGURED);
+
+						}
+					}
+
+					Client tmpClient = new Client(IOUtils.toInputStream(samlmetadata));
+					tmpClient.setSPPrivateKey(IOUtils.toInputStream(privateKey));
+					// InputStream targetStream = IOUtils.toInputStream(initialString);
+					tmpClient.setCertificate(IOUtils.toInputStream(cert));
+
+					tmpClient.setSPConfigEntityId(entityId);
+					tmpClient.setSPConfigAuthResponseURL(AuthResponseURL);
+
+					samlClient = tmpClient;
+				}
+			}
+		return samlClient;
 	}
 
 //	 * POST version <br/>
@@ -166,54 +217,28 @@ public class WsSecurityActions {
 	public Response getSAMLAuthRequest(MultivaluedMap<String, String> formVals,
 			@Context HttpServletRequest httpRequest) {
 
-		try {
-			if (samlClient == null)
-				synchronized (WsSecurityActions.class) {
-					if (samlClient == null) {
-						ResponseHandler jrh = new ResponseHandler();
-						JsonObject jso = new JsonObject();
-						// check for system parameter PERUN_REGISTER_USER_EXECUTOR, default is
-						// PERUN_CORE_EXEC.REGISTER_USER so we always end
-						// up with that, if we want to change ways of user registration we change the
-						// parameter PERUN_REGISTER_USER_EXECUTOR in DB and create executor with that
-						// name, then we call that executor from the enviorment
-						String cert;
-						String privateKey;
-						String samlmetadata;
-						String entityId;
-						String AuthResponseURL;
-						String clientIp = PerunUtil.getClientIpAddress(httpRequest);
-						try (SvSecurity svs = new SvSecurity(clientIp);) {
-							((SvCore) svs).switchUser(svCONST.serviceUser);
-							try (SvNote svx = new SvNote(svs)) {
-								entityId = SvParameter.getSysParam(CC.SAML_ENTITY_ID, CC.NOT_CONFIGURED);
-								AuthResponseURL = SvParameter.getSysParam(CC.SAML_RESPONSE_URL, CC.NOT_CONFIGURED);
-								samlmetadata = svx.getNote(0L, CC.SAML_METADATA);
-								if (samlmetadata.equals(Sv.EMPTY_STRING))
-									svx.setNote(0L, CC.SAML_METADATA, CC.NOT_CONFIGURED);
-								privateKey = svx.getNote(0L, CC.SAML_PRIVATEKEY);
-								if (privateKey.equals(Sv.EMPTY_STRING))
-									svx.setNote(0L, CC.SAML_PRIVATEKEY, CC.NOT_CONFIGURED);
-								cert = svx.getNote(0L, CC.SAML_CERTIFICATE);
-								if (cert.equals(Sv.EMPTY_STRING))
-									svx.setNote(0L, CC.SAML_CERTIFICATE, CC.NOT_CONFIGURED);
+		try (SvSecurity svs = new SvSecurity(PerunUtil.getClientIpAddress(httpRequest));) {
+			if (getSamlClient() != null) {
+				String samlRequest = getSamlClient().getSAMLRequest();
+				return Response.ok(samlRequest).build();
+			}
+		} catch (Exception e) {
+			if (log4j.isDebugEnabled()) {
+				log4j.debug("Failed generating SAML AuthN Request", e);
 
-							}
-						}
+			}
+		}
+		return Response.ok("SAML Not Configured").build();
+	}
 
-						Client tmpClient = new Client(IOUtils.toInputStream(samlmetadata));
-						tmpClient.setSPPrivateKey(IOUtils.toInputStream(privateKey));
-						// InputStream targetStream = IOUtils.toInputStream(initialString);
-						tmpClient.setCertificate(IOUtils.toInputStream(cert));
-
-						tmpClient.setSPConfigEntityId(entityId);
-						tmpClient.setSPConfigAuthResponseURL(AuthResponseURL);
-
-						samlClient = tmpClient;
-					}
-				}
-			if (samlClient != null) {
-				String samlRequest = samlClient.getSAMLRequest();
+	@Path("/getSAMLLogoutRequest/{session}")
+	@GET
+	@Produces("text/html;charset=utf-8")
+	public Response getLogoutRequest(@PathParam("session") String session, @Context HttpServletRequest httpRequest) {
+		try (SvSecurity svs = new SvSecurity(PerunUtil.getClientIpAddress(httpRequest));) {
+			DbDataObject user = svs.getUserBySession(session);
+			if (getSamlClient() != null) {
+				String samlRequest = getSamlClient().getLogoutRequest(user.getAsString(Sv.USER_NAME), session);
 				return Response.ok(samlRequest).build();
 			}
 		} catch (Exception e) {
@@ -261,19 +286,22 @@ public class WsSecurityActions {
 				try (SvWriter svw = new SvWriter(svs)) {
 					DbDataObject user = null;
 					if (jsonUserData != null) {
-						//{"USER_TYPE":"External","PIN":"0110000000037","USER_NAME":"0110000000037","FIRST_NAME":"Rirste","LAST_NAME":"Pejov","TAX_ID":"0110000000037","E_MAIL":"ristep@gmail.com","ID":"_44ba549190029767aa5ccc066f2f7ecad0f5b14fa7e74111559fedd4de27e010"}
+						// {"USER_TYPE":"External","PIN":"0110000000037","USER_NAME":"0110000000037","FIRST_NAME":"Rirste","LAST_NAME":"Pejov","TAX_ID":"0110000000037","E_MAIL":"ristep@gmail.com","ID":"_44ba549190029767aa5ccc066f2f7ecad0f5b14fa7e74111559fedd4de27e010"}
 						// {"user_type":"external","pin":"0110000000037","user_name":"0110000000037","first_name":"rirste","last_name":"pejov","tax_id":"123321123","e_mail":"2131@gmail.com"}:
 						user = svs.createUser(jsonUserData.get("USER_NAME").getAsString(), "",
 								jsonUserData.get("FIRST_NAME").getAsString(),
 								jsonUserData.get("LAST_NAME").getAsString(), jsonUserData.get("E_MAIL").getAsString(),
-								jsonUserData.get("PIN").getAsString(), jsonUserData.get("TAX_ID").getAsString(), "EXTERNAL", "VALID", true);
+								jsonUserData.get("PIN").getAsString(), jsonUserData.get("TAX_ID").getAsString(),
+								"EXTERNAL", "VALID", true);
 
 					}
 					user = svs.getUser(userName);
-					svs.saveSessionToken(user, svw, at.getResponse().getInResponseTo());
-					
+					AuthnStatement as = at.getResponse().getAssertions().get(0).getAuthnStatements().get(0);
+					String userSession = as.getSessionIndex();
+					svs.saveSessionToken(user, svw, userSession);
+
 					String url = SvParameter.getSysParam(CC.SSO_REDIRECT_URL, CC.NOT_CONFIGURED);
-					return Response.seeOther(URI.create(url.replace(CC.SESSION_PLACEHOLDER, at.getResponse().getInResponseTo()))).build();
+					return Response.seeOther(URI.create(url.replace(CC.SESSION_PLACEHOLDER, userSession))).build();
 
 				} catch (SvException e) {
 					if (e.getLabelCode().equals(Sv.Exceptions.NO_USER_FOUND))
