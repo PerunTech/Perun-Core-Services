@@ -447,12 +447,16 @@ public class WsSecurityActions {
 			DbDataObject dboUser = null;
 			/* get user info */
 			dboUser = svr.getInstanceUser();
+
 			if (dboUser == null) {
 				jrh.create(MessageType.ERROR, I18n.getText("error.perun.tittle"),
 						I18n.getText("error.perun.user_not_found"), new JsonObject());
 			} else {
+				JsonObject u = dboUser.toJson();
+				JsonObject ug = svr.getDefaultUserGroup().toSimpleJson();
+				u.add("default_user_group", ug);
 				jrh.create(MessageType.SUCCESS, I18n.getText("configuration.loaded"),
-						"SvarogConfiguration.getConfigComponent ", dboUser.toJson());
+						"SvarogConfiguration.getConfigComponent ", u);
 			}
 		} catch (Exception e) {
 			return PerunUtil.handleException(e, "error.perun.failedToGetPersonalInfo");
