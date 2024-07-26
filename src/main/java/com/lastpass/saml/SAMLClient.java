@@ -239,6 +239,7 @@ public class SAMLClient {
 
 		return assertions;
 	}
+
 	private void validateLogout(LogoutResponse response) throws ValidationException {
 		// response signature must match IdP's key, if present
 		Signature sig = response.getSignature();
@@ -252,7 +253,7 @@ public class SAMLClient {
 		}
 
 		// response destination must match ACS
-		if (!spConfig.getAcs().equals(response.getDestination()))
+		if (!spConfig.getLogoutResult().equals(response.getDestination()))
 			throw new ValidationException("Response is destined for a different endpoint");
 
 		DateTime now = DateTime.now();
@@ -267,8 +268,6 @@ public class SAMLClient {
 			if (issueInstant.isAfter(now.plusSeconds(slack)))
 				throw new ValidationException("Response IssueInstant is in the future");
 		}
-
-
 
 	}
 
@@ -611,8 +610,6 @@ public class SAMLClient {
 		}
 	}
 
-	
-
 	/**
 	 * Check an authnResponse and return the subject if validation succeeds. The
 	 * NameID from the subject in the first valid assertion is returned along with
@@ -637,7 +634,6 @@ public class SAMLClient {
 		} catch (ValidationException e) {
 			throw new SAMLException(e);
 		}
-
 
 		return null;
 	}
