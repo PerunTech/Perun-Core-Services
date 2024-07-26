@@ -56,7 +56,7 @@ import com.lastpass.saml.AttributeSet;
 import com.lastpass.saml.SAMLClient;
 import com.lastpass.saml.SAMLException;
 import com.prtech.perun.PerunUtil;
-import com.prtech.saml.Client;
+import com.prtech.saml.PerunSamlClient;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.Sv;
 import com.prtech.svarog.SvConf;
@@ -79,7 +79,7 @@ import com.prtech.svarog_common.ResponseHandler.MessageType;
 @Path("/SvSecurity")
 public class WsSecurityActions {
 	static final Logger log4j = SvConf.getLogger(WsSecurityActions.class);
-	private static Client samlClient = null;
+	private static PerunSamlClient samlClient = null;
 	static private Cache<String, AttributeSet> ssoRequestCache;
 
 	static {
@@ -89,7 +89,7 @@ public class WsSecurityActions {
 		ssoRequestCache = (Cache<String, AttributeSet>) builder.<Long, DbDataObject>build();
 	}
 
-	private static Client getSamlClient() throws SvException, SAMLException, NoSuchAlgorithmException,
+	 static PerunSamlClient getPerunSaml() throws SvException, SAMLException, NoSuchAlgorithmException,
 			InvalidKeySpecException, IOException, CertificateException {
 		if (samlClient == null)
 			synchronized (WsSecurityActions.class) {
@@ -124,7 +124,7 @@ public class WsSecurityActions {
 						}
 					}
 
-					Client tmpClient = new Client(IOUtils.toInputStream(samlmetadata));
+					PerunSamlClient tmpClient = new PerunSamlClient(IOUtils.toInputStream(samlmetadata));
 					tmpClient.setSPPrivateKey(IOUtils.toInputStream(privateKey));
 					// InputStream targetStream = IOUtils.toInputStream(initialString);
 					tmpClient.setCertificate(IOUtils.toInputStream(cert));
@@ -218,8 +218,8 @@ public class WsSecurityActions {
 			@Context HttpServletRequest httpRequest) {
 
 		try (SvSecurity svs = new SvSecurity(PerunUtil.getClientIpAddress(httpRequest));) {
-			if (getSamlClient() != null) {
-				String samlRequest = getSamlClient().getSAMLRequest();
+			if (getPerunSaml() != null) {
+				String samlRequest = getPerunSaml().getSAMLRequest();
 				return Response.ok(samlRequest).build();
 			}
 		} catch (Exception e) {
@@ -237,8 +237,8 @@ public class WsSecurityActions {
 	public Response getLogoutRequest(@PathParam("session") String session, @Context HttpServletRequest httpRequest) {
 		try (SvSecurity svs = new SvSecurity(PerunUtil.getClientIpAddress(httpRequest));) {
 			DbDataObject user = svs.getUserBySession(session);
-			if (getSamlClient() != null) {
-				String samlRequest = getSamlClient().getLogoutRequest(user.getAsString(Sv.USER_NAME), session);
+			if (getPerunSaml() != null) {
+				String samlRequest = getPerunSaml().getLogoutRequest(user.getAsString(Sv.USER_NAME), session);
 				return Response.ok(samlRequest).build();
 			}
 		} catch (Exception e) {
@@ -276,8 +276,9 @@ public class WsSecurityActions {
 				String id = jsonUserData.get("ID").getAsString();
 				at = ssoRequestCache.getIfPresent(id);
 			} else {
-				samlClient.getSamlClient().setRequireSignedAssertion(false);
-				at = samlClient.getSamlClient().validateResponse(authResponse.get(0));
+				
+				getPerunSaml().getSamlClient().setRequireSignedAssertion(false);
+				at = getPerunSaml().getSamlClient().validateResponse(authResponse.get(0));
 				ssoRequestCache.put(at.getResponse().getInResponseTo(), at);
 			}
 			if (at != null) {

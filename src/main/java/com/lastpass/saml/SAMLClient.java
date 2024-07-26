@@ -28,6 +28,7 @@ import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.EncryptedAssertion;
 import org.opensaml.saml2.core.Issuer;
 import org.opensaml.saml2.core.LogoutRequest;
+import org.opensaml.saml2.core.LogoutResponse;
 import org.opensaml.saml2.core.NameID;
 import org.opensaml.saml2.core.Audience;
 import org.opensaml.saml2.core.AudienceRestriction;
@@ -192,6 +193,23 @@ public class SAMLClient {
 		}
 	}
 
+	private LogoutResponse parseLogoutResponse(String authnResponse) throws SAMLException {
+		try {
+			Document doc = parsers.getBuilder().parse(new InputSource(new StringReader(authnResponse)));
+
+			Element root = doc.getDocumentElement();
+			return (LogoutResponse) Configuration.getUnmarshallerFactory().getUnmarshaller(root).unmarshall(root);
+		} catch (org.opensaml.xml.parse.XMLParserException e) {
+			throw new SAMLException(e);
+		} catch (org.opensaml.xml.io.UnmarshallingException e) {
+			throw new SAMLException(e);
+		} catch (org.xml.sax.SAXException e) {
+			throw new SAMLException(e);
+		} catch (java.io.IOException e) {
+			throw new SAMLException(e);
+		}
+	}
+
 	/**
 	 * Decrypt an assertion using the privkey stored in SPConfig.
 	 */
@@ -220,6 +238,38 @@ public class SAMLClient {
 		}
 
 		return assertions;
+	}
+	private void validateLogout(LogoutResponse response) throws ValidationException {
+		// response signature must match IdP's key, if present
+		Signature sig = response.getSignature();
+		if (sig != null)
+			sigValidator.validate(sig);
+
+		// response must be successful
+		if (response.getStatus() == null || response.getStatus().getStatusCode() == null
+				|| !(StatusCode.SUCCESS_URI.equals(response.getStatus().getStatusCode().getValue()))) {
+			throw new ValidationException("Response has an unsuccessful status code");
+		}
+
+		// response destination must match ACS
+		if (!spConfig.getAcs().equals(response.getDestination()))
+			throw new ValidationException("Response is destined for a different endpoint");
+
+		DateTime now = DateTime.now();
+
+		// issue instant must be within a day
+		DateTime issueInstant = response.getIssueInstant();
+
+		if (issueInstant != null) {
+			if (issueInstant.isBefore(now.minusSeconds(slack)))
+				throw new ValidationException("Response IssueInstant is in the past");
+
+			if (issueInstant.isAfter(now.plusSeconds(slack)))
+				throw new ValidationException("Response IssueInstant is in the future");
+		}
+
+
+
 	}
 
 	private void validate(Response response) throws ValidationException {
@@ -397,7 +447,7 @@ public class SAMLClient {
 		n.setValue(nameId);
 		request.setNameID(n);
 		SessionIndex s = sesIndexBuilder.buildObject();
-		s.setSessionIndex(nameId);
+		s.setSessionIndex(sessionIndex);
 		request.getSessionIndexes().add(s);
 
 		Issuer issuer = issuerBuilder.buildObject();
@@ -559,6 +609,37 @@ public class SAMLClient {
 		} catch (IOException e) {
 			throw new SAMLException("Unable to compress the AuthnRequest", e);
 		}
+	}
+
+	
+
+	/**
+	 * Check an authnResponse and return the subject if validation succeeds. The
+	 * NameID from the subject in the first valid assertion is returned along with
+	 * the attributes.
+	 *
+	 * @param authnResponse a base64-encoded AuthnResponse from the SP
+	 * @throws SAMLException if validation failed.
+	 * @return the authenticated subject/attributes as an AttributeSet
+	 */
+	public AttributeSet validateLogoutResponse(String authnResponse) throws SAMLException {
+		byte[] decoded = DatatypeConverter.parseBase64Binary(authnResponse);
+		try {
+			authnResponse = new String(decoded, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			throw new SAMLException("UTF-8 is missing, oh well.", e);
+		}
+
+		LogoutResponse response = parseLogoutResponse(authnResponse);
+
+		try {
+			validateLogout(response);
+		} catch (ValidationException e) {
+			throw new SAMLException(e);
+		}
+
+
+		return null;
 	}
 
 	/**
