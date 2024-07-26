@@ -94,12 +94,12 @@ public class PerunSamlClient {
 		return samlRequest;
 	}
 
-	public String getLogoutRequest(String userName, String sessionId) throws NoSuchAlgorithmException,
+	public String getLogoutRequest(String requestId, String userName, String sessionId) throws NoSuchAlgorithmException,
 			InvalidKeySpecException, CertificateException, IOException, SecurityException {
 		String samlRequest = "";
 
 		try {
-			String requestId = SvUtil.getUUID(); // SAMLUtils.generateRequestId();
+			
 			samlRequest = samlClient.generateLogoutRequest(requestId, userName, sessionId);
 
 		} catch (SAMLException | UnsupportedEncodingException e) {
