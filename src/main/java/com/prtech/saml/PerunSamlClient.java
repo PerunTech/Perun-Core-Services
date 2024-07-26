@@ -30,7 +30,7 @@ import com.lastpass.saml.SAMLUtils;
 import com.lastpass.saml.SPConfig;
 import com.prtech.svarog.SvUtil;
 
-public class Client {
+public class PerunSamlClient {
 	public SAMLClient getSamlClient() {
 		return samlClient;
 	}
@@ -121,7 +121,7 @@ public class Client {
 		return loginURL;
 	}
 
-	public Client(InputStream inputStream) throws SAMLException {
+	public PerunSamlClient(InputStream inputStream) throws SAMLException {
 		SAMLInit.initialize();
 
 		samlClient = new SAMLClient(new SPConfig(), new IdPConfig(inputStream));
