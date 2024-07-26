@@ -34,169 +34,170 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 /**
- * SPConfig contains basic information about the service
- * that is asking for authorization.  This information is
- * put into the auth request sent to the IdP.
+ * SPConfig contains basic information about the service that is asking for
+ * authorization. This information is put into the auth request sent to the IdP.
  */
-public class SPConfig
-{
-    /** From whom requests are sent */
-    private String entityId;
+public class SPConfig {
+	/** From whom requests are sent */
+	private String entityId;
 
-    /** Where the assertions are sent */
-    private String acs;
+	/** Where the assertions are sent */
+	private String acs;
 
-    /** Private key used for decrypting assertions */
-    private PrivateKey privateKey;
+	/** Where the logout results are sent */
+	private String logoutResult;
 
-    /**
-     * Construct a new, empty SPConfig.
-     */
-    public SPConfig()
-    {
 
-    }
-    /**
-     * Construct a new SPConfig from a metadata XML file.
-     *
-     * @param metadataFile File where the metadata lives
-     *
-     * @throws SAMLException if an error condition occurs while trying to parse and process
-     *              the metadata
-     */
-    public SPConfig(File metadataFile)
-        throws SAMLException
-    {
-        FileInputStream inputStream;
-        try {
-            inputStream = new FileInputStream(metadataFile);
-        }
-        catch (java.io.IOException e) {
-            throw new SAMLException(e);
-        }
+	/** Where the logout request are sent */
+	private String logoutRequest;
+	
+	public String getLogoutResult() {
+		return logoutResult;
+	}
 
-        try {
-            init(inputStream);
-        } finally {
-            try {
-                inputStream.close();
-            }
-            catch (java.io.IOException e) {
-                //Ignore
-            }
-        }
-    }
+	public void setLogoutResult(String logoutResult) {
+		this.logoutResult = logoutResult;
+	}
 
-    /**
-     * Construct a new SPConfig from a metadata XML input stream.
-     *
-     * @param inputStream  An input stream containing a metadata XML document
-     *
-     * @throws SAMLException if an error condition occurs while trying to parse and process
-     *              the metadata
-     */
-    public SPConfig(InputStream inputStream)
-        throws SAMLException
-    {
-        init(inputStream);
-    }
+	public String getLogoutRequest() {
+		return logoutRequest;
+	}
 
-    private void init(InputStream inputStream)
-            throws SAMLException
-    {
-        BasicParserPool parsers = new BasicParserPool();
-        parsers.setNamespaceAware(true);
+	public void setLogoutRequest(String logoutRequest) {
+		this.logoutRequest = logoutRequest;
+	}
 
-        EntityDescriptor edesc;
+	/** Private key used for decrypting assertions */
+	private PrivateKey privateKey;
 
-        try {
-            Document doc = parsers.parse(inputStream);
-            Element root = doc.getDocumentElement();
+	/**
+	 * Construct a new, empty SPConfig.
+	 */
+	public SPConfig() {
 
-            UnmarshallerFactory unmarshallerFactory =
-                Configuration.getUnmarshallerFactory();
+	}
 
-            edesc = (EntityDescriptor) unmarshallerFactory
-                .getUnmarshaller(root)
-                .unmarshall(root);
-        }
-        catch (org.opensaml.xml.parse.XMLParserException e) {
-            throw new SAMLException(e);
-        }
-        catch (org.opensaml.xml.io.UnmarshallingException e) {
-            throw new SAMLException(e);
-        }
+	/**
+	 * Construct a new SPConfig from a metadata XML file.
+	 *
+	 * @param metadataFile File where the metadata lives
+	 *
+	 * @throws SAMLException if an error condition occurs while trying to parse and
+	 *                       process the metadata
+	 */
+	public SPConfig(File metadataFile) throws SAMLException {
+		FileInputStream inputStream;
+		try {
+			inputStream = new FileInputStream(metadataFile);
+		} catch (java.io.IOException e) {
+			throw new SAMLException(e);
+		}
 
-        // fetch sp information
-        SPSSODescriptor spDesc = edesc.getSPSSODescriptor(
-            "urn:oasis:names:tc:SAML:2.0:protocol");
+		try {
+			init(inputStream);
+		} finally {
+			try {
+				inputStream.close();
+			} catch (java.io.IOException e) {
+				// Ignore
+			}
+		}
+	}
 
-        if (spDesc == null)
-            throw new SAMLException("No SP SSO descriptor found");
+	/**
+	 * Construct a new SPConfig from a metadata XML input stream.
+	 *
+	 * @param inputStream An input stream containing a metadata XML document
+	 *
+	 * @throws SAMLException if an error condition occurs while trying to parse and
+	 *                       process the metadata
+	 */
+	public SPConfig(InputStream inputStream) throws SAMLException {
+		init(inputStream);
+	}
 
-        // get first redirect or post binding
-        String acsUrl = null;
-        for (AssertionConsumerService svc: spDesc.getAssertionConsumerServices()) {
-            if (svc.getBinding().equals(SAMLConstants.SAML2_REDIRECT_BINDING_URI) ||
-                svc.getBinding().equals(SAMLConstants.SAML2_POST_BINDING_URI)) {
-                acsUrl = svc.getLocation();
-                break;
-            }
-        }
+	private void init(InputStream inputStream) throws SAMLException {
+		BasicParserPool parsers = new BasicParserPool();
+		parsers.setNamespaceAware(true);
 
-        if (acsUrl == null)
-            throw new SAMLException("No acceptable Assertion Consumer Service found");
+		EntityDescriptor edesc;
 
-        this.setEntityId(edesc.getEntityID());
-        this.setAcs(acsUrl);
-    }
+		try {
+			Document doc = parsers.parse(inputStream);
+			Element root = doc.getDocumentElement();
 
-    /**
-     * Set the SP Entity Id.
-     */
-    public void setEntityId(String entityId)
-    {
-        this.entityId = entityId;
-    }
+			UnmarshallerFactory unmarshallerFactory = Configuration.getUnmarshallerFactory();
 
-    /**
-     * Get the SP Entity Id.
-     */
-    public String getEntityId()
-    {
-        return this.entityId;
-    }
+			edesc = (EntityDescriptor) unmarshallerFactory.getUnmarshaller(root).unmarshall(root);
+		} catch (org.opensaml.xml.parse.XMLParserException e) {
+			throw new SAMLException(e);
+		} catch (org.opensaml.xml.io.UnmarshallingException e) {
+			throw new SAMLException(e);
+		}
 
-    /**
-     * Set the SP ACS URL.  Auth responses are posted
-     * here.
-     */
-    public void setAcs(String acs)
-    {
-        this.acs = acs;
-    }
+		// fetch sp information
+		SPSSODescriptor spDesc = edesc.getSPSSODescriptor("urn:oasis:names:tc:SAML:2.0:protocol");
 
-    /**
-     * Get the IdP login URL.
-     */
-    public String getAcs()
-    {
-        return this.acs;
-    }
+		if (spDesc == null)
+			throw new SAMLException("No SP SSO descriptor found");
 
-    /**
-     * Set private key used for decrypting assertions.
-     */
-    public void setPrivateKey(PrivateKey privateKey)
-    {
-        this.privateKey = privateKey;
-    }
+		// get first redirect or post binding
+		String acsUrl = null;
+		for (AssertionConsumerService svc : spDesc.getAssertionConsumerServices()) {
+			if (svc.getBinding().equals(SAMLConstants.SAML2_REDIRECT_BINDING_URI)
+					|| svc.getBinding().equals(SAMLConstants.SAML2_POST_BINDING_URI)) {
+				acsUrl = svc.getLocation();
+				break;
+			}
+		}
 
-    /**
-     * Get private key used for decrypting assertions.
-     */
-    public PrivateKey getPrivateKey()
-    {
-        return this.privateKey;
-    }
+		if (acsUrl == null)
+			throw new SAMLException("No acceptable Assertion Consumer Service found");
+
+		this.setEntityId(edesc.getEntityID());
+		this.setAcs(acsUrl);
+	}
+
+	/**
+	 * Set the SP Entity Id.
+	 */
+	public void setEntityId(String entityId) {
+		this.entityId = entityId;
+	}
+
+	/**
+	 * Get the SP Entity Id.
+	 */
+	public String getEntityId() {
+		return this.entityId;
+	}
+
+	/**
+	 * Set the SP ACS URL. Auth responses are posted here.
+	 */
+	public void setAcs(String acs) {
+		this.acs = acs;
+	}
+
+
+	/**
+	 * Get the IdP login URL.
+	 */
+	public String getAcs() {
+		return this.acs;
+	}
+
+	/**
+	 * Set private key used for decrypting assertions.
+	 */
+	public void setPrivateKey(PrivateKey privateKey) {
+		this.privateKey = privateKey;
+	}
+
+	/**
+	 * Get private key used for decrypting assertions.
+	 */
+	public PrivateKey getPrivateKey() {
+		return this.privateKey;
+	}
 }

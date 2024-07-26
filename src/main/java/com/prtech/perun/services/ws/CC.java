@@ -15,5 +15,7 @@ public class CC {
 	public static final String SSO_POST_KEY = "SSO_POST_KEY";
 	public static final String SSO_REGISTER_USER = "SSO_REGISTER_USER";
 	public static final String USERDATA_PLACEHOLDER = "{USERDATA_PLACEHOLDER}";
+	public static final String SAML_SLO_RESPONSE_URL = "SAML_SLO_RESPONSE_URL";
+	public static final String SAML_SLO_REQUEST_URL = "SAML_SLO_REQUEST_URL";
 
 }

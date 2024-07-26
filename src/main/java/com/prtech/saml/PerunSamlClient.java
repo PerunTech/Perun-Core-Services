@@ -155,4 +155,20 @@ public class PerunSamlClient {
 		samlClient.getSPConfig().setAcs(url);
 	}
 
+	/**
+	 * Method to set logout request url
+	 * @param url
+	 */
+	public void setSPConfigLogoutRequest(String url) {
+		samlClient.getSPConfig().setLogoutRequest(url);
+	}
+
+	/**
+	 * Method to set logout result url
+	 * @param url
+	 */
+	public void setSPConfigLogoutResponse(String url) {
+		samlClient.getSPConfig().setLogoutResult(url);
+	}
+	
 }

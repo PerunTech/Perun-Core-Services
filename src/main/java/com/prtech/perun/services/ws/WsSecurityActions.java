@@ -106,11 +106,15 @@ public class WsSecurityActions {
 					String samlmetadata;
 					String entityId;
 					String AuthResponseURL;
+					String LogoutRequestURL;
+					String LogoutResponseURL;
 					try (SvSecurity svs = new SvSecurity();) {
 						((SvCore) svs).switchUser(svCONST.serviceUser);
 						try (SvNote svx = new SvNote(svs)) {
 							entityId = SvParameter.getSysParam(CC.SAML_ENTITY_ID, CC.NOT_CONFIGURED);
 							AuthResponseURL = SvParameter.getSysParam(CC.SAML_RESPONSE_URL, CC.NOT_CONFIGURED);
+							LogoutResponseURL = SvParameter.getSysParam(CC.SAML_SLO_RESPONSE_URL, CC.NOT_CONFIGURED);
+							LogoutRequestURL = SvParameter.getSysParam(CC.SAML_SLO_REQUEST_URL, CC.NOT_CONFIGURED);
 							samlmetadata = svx.getNote(0L, CC.SAML_METADATA);
 							if (samlmetadata.equals(Sv.EMPTY_STRING))
 								svx.setNote(0L, CC.SAML_METADATA, CC.NOT_CONFIGURED);
@@ -131,6 +135,8 @@ public class WsSecurityActions {
 
 					tmpClient.setSPConfigEntityId(entityId);
 					tmpClient.setSPConfigAuthResponseURL(AuthResponseURL);
+					tmpClient.setSPConfigLogoutRequest(LogoutRequestURL);
+					tmpClient.setSPConfigLogoutResponse(LogoutResponseURL);;
 
 					samlClient = tmpClient;
 				}
