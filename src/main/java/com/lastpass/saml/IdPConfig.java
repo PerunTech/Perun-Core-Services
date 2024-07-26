@@ -33,6 +33,7 @@ import org.opensaml.saml2.metadata.EntityDescriptor;
 import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.opensaml.saml2.metadata.SingleSignOnService;
 import org.opensaml.saml2.metadata.KeyDescriptor;
+import org.opensaml.saml2.metadata.SingleLogoutService;
 import org.opensaml.xml.signature.KeyInfo;
 import org.opensaml.xml.signature.X509Data;
 import org.opensaml.xml.signature.X509Certificate;
@@ -146,10 +147,21 @@ public class IdPConfig
                 break;
             }
         }
+        // get the http-redirect binding
+        String logoutUrl = null;
+        for (SingleLogoutService svc: idpDesc.getSingleLogoutServices()) {
+            if (svc.getBinding().equals(SAMLConstants.SAML2_REDIRECT_BINDING_URI)) {
+            	logoutUrl = svc.getLocation();
+                break;
+            }
+        }
+        
 
         if (loginUrl == null)
             throw new SAMLException("No acceptable Single Sign-on Service found");
 
+        if (logoutUrl == null)
+            throw new SAMLException("No acceptable Single Logout Service found");
         // extract the first signing cert from the file
         Certificate cert = null;
 
@@ -180,6 +192,7 @@ public class IdPConfig
 
         this.setEntityId(edesc.getEntityID());
         this.setLoginUrl(loginUrl);
+        this.setLogoutUrl(logoutUrl);
         this.setCert(cert);
     }
 
@@ -197,7 +210,18 @@ public class IdPConfig
     /** Where the AuthnRequest is sent (SSOLoginService endpoint) */
     private String loginUrl;
 
-    /** Certificate used to validate assertions */
+    /** Where the LogoutRequest is sent (SSOLogoutService endpoint) */
+    private String logoutUrl;
+
+    public String getLogoutUrl() {
+		return logoutUrl;
+	}
+
+	public void setLogoutUrl(String logoutUrl) {
+		this.logoutUrl = logoutUrl;
+	}
+
+	/** Certificate used to validate assertions */
     private Certificate cert;
 
     /**

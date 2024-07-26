@@ -439,7 +439,7 @@ public class SAMLClient {
 				.getBuilder(SessionIndex.DEFAULT_ELEMENT_NAME);
 
 		LogoutRequest request = builder.buildObject();
-		request.setDestination(idpConfig.getLoginUrl().toString());
+		request.setDestination(idpConfig.getLogoutUrl().toString());
 		request.setIssueInstant(new DateTime());
 		request.setID(requestId);
 
