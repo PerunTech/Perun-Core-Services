@@ -329,6 +329,83 @@ public class WsSecurityActions {
 
 	}
 
+	/**
+	 * Method to hand the SAML logout result
+	 * 
+	 * @param token
+	 * @param httpRequest
+	 * @return
+	 */
+	@Path("/logout/result/")
+	@POST
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Produces("text/html;charset=utf-8")
+	public Response samlLogoutResult(MultivaluedMap<String, String> formVals, @Context HttpServletRequest httpRequest) {
+		String clientIp = PerunUtil.getClientIpAddress(httpRequest);
+		try (SvSecurity svs = new SvSecurity(clientIp);) {
+
+			String keyName = SvParameter.getSysParam(CC.SSO_POST_KEY, CC.NOT_CONFIGURED);
+			List<String> authResponse = formVals.get(keyName);
+			String form = authResponse.get(0);
+			AttributeSet at = null;
+
+			samlClient.getSamlClient().setRequireSignedAssertion(false);
+			at = samlClient.getSamlClient().validateResponse(authResponse.get(0));
+			ssoRequestCache.put(at.getResponse().getInResponseTo(), at);
+			String url = SvParameter.getSysParam(CC.SSO_REDIRECT_URL, CC.NOT_CONFIGURED);
+			return Response
+					.seeOther(URI
+							.create(url.replace(CC.SESSION_PLACEHOLDER, URLEncoder.encode("Logout.Success", "UTF-8"))))
+					.build();
+
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			return PerunUtil.handleException(e, "SSO Authentication Error");
+		}
+	}
+
+	/**
+	 * Method to hand the SAML logout result
+	 * 
+	 * @param token
+	 * @param httpRequest
+	 * @return
+	 */
+	/**
+	 * Method to hand the SAML logout result
+	 * 
+	 * @param token
+	 * @param httpRequest
+	 * @return
+	 */
+	@Path("/logout/request/")
+	@POST
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Produces("text/html;charset=utf-8")
+	public Response samlLogoutRequest(MultivaluedMap<String, String> formVals, @Context HttpServletRequest httpRequest) {
+		String clientIp = PerunUtil.getClientIpAddress(httpRequest);
+		try (SvSecurity svs = new SvSecurity(clientIp);) {
+
+			String keyName = SvParameter.getSysParam(CC.SSO_POST_KEY, CC.NOT_CONFIGURED);
+			List<String> authResponse = formVals.get(keyName);
+			String form = authResponse.get(0);
+			AttributeSet at = null;
+
+			samlClient.getSamlClient().setRequireSignedAssertion(false);
+			at = samlClient.getSamlClient().validateResponse(authResponse.get(0));
+			ssoRequestCache.put(at.getResponse().getInResponseTo(), at);
+			String url = SvParameter.getSysParam(CC.SSO_REDIRECT_URL, CC.NOT_CONFIGURED);
+			return Response
+					.seeOther(URI
+							.create(url.replace(CC.SESSION_PLACEHOLDER, URLEncoder.encode("Logout.Success", "UTF-8"))))
+					.build();
+
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			return PerunUtil.handleException(e, "SSO Authentication Error");
+		}
+	}
+
 	Response getRegisterUser(AttributeSet at) {
 		try {
 			ssoRequestCache.put(at.getResponse().getInResponseTo(), at);
