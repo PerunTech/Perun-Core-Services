@@ -1,6 +1,7 @@
 package com.prtech.perun.services.ws;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.security.NoSuchAlgorithmException;
@@ -38,12 +39,14 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.xml.bind.DatatypeConverter;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.opensaml.saml2.core.AuthnStatement;
+import org.opensaml.saml2.core.LogoutResponse;
 import org.opensaml.xml.security.SecurityException;
 import org.zeromq.ZAuth.Auth;
 
@@ -89,7 +92,7 @@ public class WsSecurityActions {
 		ssoRequestCache = (Cache<String, AttributeSet>) builder.<Long, DbDataObject>build();
 	}
 
-	 static PerunSamlClient getPerunSaml() throws SvException, SAMLException, NoSuchAlgorithmException,
+	static PerunSamlClient getPerunSaml() throws SvException, SAMLException, NoSuchAlgorithmException,
 			InvalidKeySpecException, IOException, CertificateException {
 		if (samlClient == null)
 			synchronized (WsSecurityActions.class) {
@@ -136,7 +139,8 @@ public class WsSecurityActions {
 					tmpClient.setSPConfigEntityId(entityId);
 					tmpClient.setSPConfigAuthResponseURL(AuthResponseURL);
 					tmpClient.setSPConfigLogoutRequest(LogoutRequestURL);
-					tmpClient.setSPConfigLogoutResponse(LogoutResponseURL);;
+					tmpClient.setSPConfigLogoutResponse(LogoutResponseURL);
+					;
 
 					samlClient = tmpClient;
 				}
@@ -244,12 +248,16 @@ public class WsSecurityActions {
 		try (SvSecurity svs = new SvSecurity(PerunUtil.getClientIpAddress(httpRequest));) {
 			DbDataObject user = svs.getUserBySession(session);
 			if (getPerunSaml() != null) {
-				String samlRequest = getPerunSaml().getLogoutRequest(user.getAsString(Sv.USER_NAME), session);
+				String logoutRequest = SvUtil.getUUID(); // SAMLUtils.generateRequestId();
+				String samlRequest = getPerunSaml().getLogoutRequest(logoutRequest, user.getAsString(Sv.USER_NAME),
+						session);
+				AttributeSet s = new AttributeSet(session, null);
+				ssoRequestCache.put(logoutRequest, s);
 				return Response.ok(samlRequest).build();
 			}
 		} catch (Exception e) {
 			if (log4j.isDebugEnabled()) {
-				log4j.debug("Failed generating SAML AuthN Request", e);
+				log4j.debug("Failed generating SAML Logout Request", e);
 
 			}
 		}
@@ -265,10 +273,13 @@ public class WsSecurityActions {
 		String clientIp = PerunUtil.getClientIpAddress(httpRequest);
 		try (SvSecurity svs = new SvSecurity(clientIp);) {
 
+			// get the post key from the system params
 			String keyName = SvParameter.getSysParam(CC.SSO_POST_KEY, CC.NOT_CONFIGURED);
 			List<String> authResponse = formVals.get(keyName);
 			String form = authResponse.get(0);
 			JsonObject jsonUserData = null;
+			// if we have JSON containing the user registration under the post key, lets
+			// process it
 			if (form.startsWith("{")) {
 				Gson g = new Gson();
 				try {
@@ -277,21 +288,25 @@ public class WsSecurityActions {
 				}
 			}
 			AttributeSet at = null;
-
+			// if we already got user data from the request then get the Attributes from the
+			// session
 			if (jsonUserData != null) {
 				String id = jsonUserData.get("ID").getAsString();
 				at = ssoRequestCache.getIfPresent(id);
 			} else {
-				
+				// otherwise get the user attributes from the SAML response
 				getPerunSaml().getSamlClient().setRequireSignedAssertion(false);
 				at = getPerunSaml().getSamlClient().validateResponse(authResponse.get(0));
+				// add the response to the request cache for further use
 				ssoRequestCache.put(at.getResponse().getInResponseTo(), at);
 			}
+			// if we got the SAML attribute set lets process the user
 			if (at != null) {
 				((SvCore) svs).switchUser(svCONST.serviceUser);
 				String userName = at.getNameId();
 				try (SvWriter svw = new SvWriter(svs)) {
 					DbDataObject user = null;
+					// if we got the userdata from JSON then create the user
 					if (jsonUserData != null) {
 						// {"USER_TYPE":"External","PIN":"0110000000037","USER_NAME":"0110000000037","FIRST_NAME":"Rirste","LAST_NAME":"Pejov","TAX_ID":"0110000000037","E_MAIL":"ristep@gmail.com","ID":"_44ba549190029767aa5ccc066f2f7ecad0f5b14fa7e74111559fedd4de27e010"}
 						// {"user_type":"external","pin":"0110000000037","user_name":"0110000000037","first_name":"rirste","last_name":"pejov","tax_id":"123321123","e_mail":"2131@gmail.com"}:
@@ -302,7 +317,9 @@ public class WsSecurityActions {
 								"EXTERNAL", "VALID", true);
 
 					}
+					// verify if it exists
 					user = svs.getUser(userName);
+					// now authenticate
 					AuthnStatement as = at.getResponse().getAssertions().get(0).getAuthnStatements().get(0);
 					String userSession = as.getSessionIndex();
 					svs.saveSessionToken(user, svw, userSession, "SSO");
@@ -313,8 +330,13 @@ public class WsSecurityActions {
 							.build();
 
 				} catch (SvException e) {
-					if (e.getLabelCode().equals(Sv.Exceptions.NO_USER_FOUND))
+					// ok the user is not registered, so lets take him to the registration form
+					if (e.getLabelCode().equals(Sv.Exceptions.NO_USER_FOUND)) {
+						// store the response from the SAML SSO in the cache so we can reuse it after
+						// the user fills in the registration
+						ssoRequestCache.put(at.getResponse().getInResponseTo(), at);
 						return getRegisterUser(at);
+					}
 
 				}
 			}
@@ -352,18 +374,22 @@ public class WsSecurityActions {
 		try (SvSecurity svs = new SvSecurity(clientIp);) {
 
 			String keyName = SvParameter.getSysParam(CC.SSO_POST_KEY, CC.NOT_CONFIGURED);
-			List<String> authResponse = formVals.get(keyName);
-			String form = authResponse.get(0);
-			AttributeSet at = null;
+			List<String> samlResponse = formVals.get(keyName);
+			String form = samlResponse.get(0);
+			getPerunSaml().getSamlClient().setRequireSignedAssertion(false);
+			LogoutResponse response = getPerunSaml().getSamlClient().validateLogoutResponse(form);
 
-			samlClient.getSamlClient().setRequireSignedAssertion(false);
-			at = samlClient.getSamlClient().validateResponse(authResponse.get(0));
-			ssoRequestCache.put(at.getResponse().getInResponseTo(), at);
-			String url = SvParameter.getSysParam(CC.SSO_REDIRECT_URL, CC.NOT_CONFIGURED);
-			return Response
-					.seeOther(URI
-							.create(url.replace(CC.SESSION_PLACEHOLDER, URLEncoder.encode("Logout.Success", "UTF-8"))))
-					.build();
+			AttributeSet at = ssoRequestCache.getIfPresent(response.getInResponseTo());
+			if (at != null) {
+				svs.logoff(at.getNameId());
+				String url = SvParameter.getSysParam(CC.SSO_REDIRECT_URL, CC.NOT_CONFIGURED);
+				return Response
+						.seeOther(URI.create(
+								url.replace(CC.SESSION_PLACEHOLDER, URLEncoder.encode("Logout.Success", "UTF-8"))))
+						.build();
+			} else
+				return PerunUtil.handleException(new SvException("request.not.exists", svCONST.systemUser),
+						"SSO Authentication Error");
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -389,7 +415,8 @@ public class WsSecurityActions {
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Produces("text/html;charset=utf-8")
-	public Response samlLogoutRequest(MultivaluedMap<String, String> formVals, @Context HttpServletRequest httpRequest) {
+	public Response samlLogoutRequest(MultivaluedMap<String, String> formVals,
+			@Context HttpServletRequest httpRequest) {
 		String clientIp = PerunUtil.getClientIpAddress(httpRequest);
 		try (SvSecurity svs = new SvSecurity(clientIp);) {
 
@@ -398,8 +425,8 @@ public class WsSecurityActions {
 			String form = authResponse.get(0);
 			AttributeSet at = null;
 
-			samlClient.getSamlClient().setRequireSignedAssertion(false);
-			at = samlClient.getSamlClient().validateResponse(authResponse.get(0));
+			getPerunSaml().getSamlClient().setRequireSignedAssertion(false);
+			at = getPerunSaml().getSamlClient().validateResponse(authResponse.get(0));
 			ssoRequestCache.put(at.getResponse().getInResponseTo(), at);
 			String url = SvParameter.getSysParam(CC.SSO_REDIRECT_URL, CC.NOT_CONFIGURED);
 			return Response
@@ -415,7 +442,7 @@ public class WsSecurityActions {
 
 	Response getRegisterUser(AttributeSet at) {
 		try {
-			ssoRequestCache.put(at.getResponse().getInResponseTo(), at);
+
 			String url = SvParameter.getSysParam(CC.SSO_REGISTER_USER, CC.NOT_CONFIGURED);
 			JsonObject juser = new JsonObject();
 			juser.addProperty(Sv.USER_NAME.toString(), at.getNameId());

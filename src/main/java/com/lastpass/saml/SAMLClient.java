@@ -619,7 +619,7 @@ public class SAMLClient {
 	 * @throws SAMLException if validation failed.
 	 * @return the authenticated subject/attributes as an AttributeSet
 	 */
-	public AttributeSet validateLogoutResponse(String authnResponse) throws SAMLException {
+	public LogoutResponse validateLogoutResponse(String authnResponse) throws SAMLException {
 		byte[] decoded = DatatypeConverter.parseBase64Binary(authnResponse);
 		try {
 			authnResponse = new String(decoded, "UTF-8");
@@ -634,8 +634,8 @@ public class SAMLClient {
 		} catch (ValidationException e) {
 			throw new SAMLException(e);
 		}
-
-		return null;
+		return response;
+		
 	}
 
 	/**
