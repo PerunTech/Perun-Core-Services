@@ -17,5 +17,6 @@ public class CC {
 	public static final String USERDATA_PLACEHOLDER = "{USERDATA_PLACEHOLDER}";
 	public static final String SAML_SLO_RESPONSE_URL = "SAML_SLO_RESPONSE_URL";
 	public static final String SAML_SLO_REQUEST_URL = "SAML_SLO_REQUEST_URL";
+	public static final String SSO_REQUEST_KEY = "SSO_REQUEST_KEY";
 
 }

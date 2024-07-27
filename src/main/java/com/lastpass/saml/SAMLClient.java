@@ -20,6 +20,7 @@ package com.lastpass.saml;
 import org.opensaml.Configuration;
 import org.opensaml.saml2.core.Response;
 import org.opensaml.saml2.core.SessionIndex;
+import org.opensaml.saml2.core.Status;
 import org.opensaml.saml2.core.Subject;
 import org.opensaml.saml2.core.Conditions;
 import org.opensaml.saml2.core.AuthnStatement;
@@ -210,6 +211,23 @@ public class SAMLClient {
 		}
 	}
 
+	private LogoutRequest parseLogoutRequest(String authnRequest) throws SAMLException {
+		try {
+			Document doc = parsers.getBuilder().parse(new InputSource(new StringReader(authnRequest)));
+
+			Element root = doc.getDocumentElement();
+			return (LogoutRequest) Configuration.getUnmarshallerFactory().getUnmarshaller(root).unmarshall(root);
+		} catch (org.opensaml.xml.parse.XMLParserException e) {
+			throw new SAMLException(e);
+		} catch (org.opensaml.xml.io.UnmarshallingException e) {
+			throw new SAMLException(e);
+		} catch (org.xml.sax.SAXException e) {
+			throw new SAMLException(e);
+		} catch (java.io.IOException e) {
+			throw new SAMLException(e);
+		}
+	}
+
 	/**
 	 * Decrypt an assertion using the privkey stored in SPConfig.
 	 */
@@ -260,6 +278,31 @@ public class SAMLClient {
 
 		// issue instant must be within a day
 		DateTime issueInstant = response.getIssueInstant();
+
+		if (issueInstant != null) {
+			if (issueInstant.isBefore(now.minusSeconds(slack)))
+				throw new ValidationException("Response IssueInstant is in the past");
+
+			if (issueInstant.isAfter(now.plusSeconds(slack)))
+				throw new ValidationException("Response IssueInstant is in the future");
+		}
+
+	}
+
+	private void validateLogoutRequest(LogoutRequest request) throws ValidationException {
+		// response signature must match IdP's key, if present
+		Signature sig = request.getSignature();
+		if (sig != null)
+			sigValidator.validate(sig);
+
+		// response destination must match ACS
+		if (!spConfig.getLogoutRequest().equals(request.getDestination()))
+			throw new ValidationException("Response is destined for a different endpoint");
+
+		DateTime now = DateTime.now();
+
+		// issue instant must be within a day
+		DateTime issueInstant = request.getIssueInstant();
 
 		if (issueInstant != null) {
 			if (issueInstant.isBefore(now.minusSeconds(slack)))
@@ -487,6 +530,70 @@ public class SAMLClient {
 	}
 
 	@SuppressWarnings("unchecked")
+	private String createLogoutResponse(String requestId, String inResponseTo, String statusCode) throws SAMLException,
+			NoSuchAlgorithmException, InvalidKeySpecException, CertificateException, IOException, SecurityException {
+		XMLObjectBuilderFactory builderFactory = Configuration.getBuilderFactory();
+
+		SAMLObjectBuilder<LogoutResponse> builder = (SAMLObjectBuilder<LogoutResponse>) builderFactory
+				.getBuilder(LogoutResponse.DEFAULT_ELEMENT_NAME);
+
+		SAMLObjectBuilder<Issuer> issuerBuilder = (SAMLObjectBuilder<Issuer>) builderFactory
+				.getBuilder(Issuer.DEFAULT_ELEMENT_NAME);
+
+		SAMLObjectBuilder<Status> statusBuilder = (SAMLObjectBuilder<Status>) builderFactory
+				.getBuilder(Status.DEFAULT_ELEMENT_NAME);
+		SAMLObjectBuilder<StatusCode> statusCodeBuilder = (SAMLObjectBuilder<StatusCode>) builderFactory
+				.getBuilder(StatusCode.DEFAULT_ELEMENT_NAME);
+
+		LogoutResponse response = builder.buildObject();
+		response.setDestination(idpConfig.getLogoutUrlResponse().toString());
+		response.setIssueInstant(new DateTime());
+		response.setID(requestId);
+		response.setInResponseTo(inResponseTo);
+		Status s = statusBuilder.buildObject();
+		StatusCode code = statusCodeBuilder.buildObject();
+		code.setValue(statusCode);
+		s.setStatusCode(code);
+		response.setStatus(s);
+
+		Issuer issuer = issuerBuilder.buildObject();
+		issuer.setValue(spConfig.getEntityId());
+		response.setIssuer(issuer);
+		BasicX509Credential cred = new BasicX509Credential();
+		cred.setEntityId(spConfig.getEntityId());
+		cred.setPrivateKey(spConfig.getPrivateKey());
+		cred.setEntityCertificate(entityCertificate);
+
+		SignatureBuilder signFactory = new SignatureBuilder();
+		Signature signature = signFactory.buildObject(Signature.DEFAULT_ELEMENT_NAME);
+		signature.setCanonicalizationAlgorithm(SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
+		signature.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256);
+		signature.setSigningCredential(cred);
+		SecurityHelper.prepareSignatureParams(signature, cred, Configuration.getGlobalSecurityConfiguration(), null);
+		// set signature
+		response.setSignature(signature);
+
+		try {
+			// samlobject to xml dom object
+			Element elem = Configuration.getMarshallerFactory().getMarshaller(response).marshall(response);
+			try {
+				Signer.signObject(signature);
+			} catch (SignatureException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			// and to a string...
+			Document document = elem.getOwnerDocument();
+			DOMImplementationLS domImplLS = (DOMImplementationLS) document.getImplementation();
+			LSSerializer serializer = domImplLS.createLSSerializer();
+			serializer.getDomConfig().setParameter("xml-declaration", false);
+			return serializer.writeToString(elem);
+		} catch (MarshallingException e) {
+			throw new SAMLException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
 	private String createAuthnRequest(String requestId) throws SAMLException, NoSuchAlgorithmException,
 			InvalidKeySpecException, CertificateException, IOException, SecurityException {
 		XMLObjectBuilderFactory builderFactory = Configuration.getBuilderFactory();
@@ -611,7 +718,7 @@ public class SAMLClient {
 	}
 
 	/**
-	 * Check an authnResponse and return the subject if validation succeeds. The
+	 * Check an logoutResponse and return the subject if validation succeeds. The
 	 * NameID from the subject in the first valid assertion is returned along with
 	 * the attributes.
 	 *
@@ -635,7 +742,33 @@ public class SAMLClient {
 			throw new SAMLException(e);
 		}
 		return response;
-		
+
+	}
+
+	/**
+	 * Check an logoutRequest and validate *
+	 * 
+	 * @param authnResponse a base64-encoded AuthnResponse from the SP
+	 * @throws SAMLException if validation failed.
+	 * @return the authenticated subject/attributes as an AttributeSet
+	 */
+	public LogoutRequest validateLogoutRequest(String authnRequest) throws SAMLException {
+		byte[] decoded = DatatypeConverter.parseBase64Binary(authnRequest);
+		try {
+			authnRequest = new String(decoded, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			throw new SAMLException("UTF-8 is missing, oh well.", e);
+		}
+
+		LogoutRequest request = parseLogoutRequest(authnRequest);
+
+		try {
+			validateLogoutRequest(request);
+		} catch (ValidationException e) {
+			throw new SAMLException(e);
+		}
+		return request;
+
 	}
 
 	/**
@@ -699,5 +832,28 @@ public class SAMLClient {
 			}
 		}
 		return new AttributeSet(nameId, attributes, response);
+	}
+
+	/**
+	 * Create a new LogoutResponse suitable for responding to a request by the IDP
+	 *
+	 * @return a deflated, base64-encoded AuthnRequest
+	 * @throws IOException
+	 * @throws CertificateException
+	 * @throws InvalidKeySpecException
+	 * @throws NoSuchAlgorithmException
+	 * @throws SecurityException
+	 */
+	public String generateLogoutResponse(String requestId, String inResponseTo, String statusCode) throws SAMLException,
+			NoSuchAlgorithmException, InvalidKeySpecException, CertificateException, IOException, SecurityException {
+		String request = createLogoutResponse(requestId, inResponseTo, statusCode);
+		try {
+			// byte[] compressed = deflate(request.getBytes("UTF-8"));
+			return DatatypeConverter.printBase64Binary(request.getBytes("UTF-8"));
+		} catch (UnsupportedEncodingException e) {
+			throw new SAMLException("Apparently your platform lacks UTF-8.  That's too bad.", e);
+		} catch (IOException e) {
+			throw new SAMLException("Unable to compress the AuthnRequest", e);
+		}
 	}
 }
