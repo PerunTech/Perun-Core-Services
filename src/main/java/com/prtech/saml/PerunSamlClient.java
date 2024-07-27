@@ -99,8 +99,22 @@ public class PerunSamlClient {
 		String samlRequest = "";
 
 		try {
-			
+
 			samlRequest = samlClient.generateLogoutRequest(requestId, userName, sessionId);
+
+		} catch (SAMLException | UnsupportedEncodingException e) {
+			// response invalid, return to login page...
+		}
+
+		return samlRequest;
+	}
+
+	public String getLogoutResponse(String requestId, String inResponseTo, String statusCode) throws NoSuchAlgorithmException,
+			InvalidKeySpecException, CertificateException, IOException, SecurityException {
+		String samlRequest = "";
+		try {
+
+			samlRequest = samlClient.generateLogoutResponse(requestId, inResponseTo, statusCode);
 
 		} catch (SAMLException | UnsupportedEncodingException e) {
 			// response invalid, return to login page...
@@ -157,6 +171,7 @@ public class PerunSamlClient {
 
 	/**
 	 * Method to set logout request url
+	 * 
 	 * @param url
 	 */
 	public void setSPConfigLogoutRequest(String url) {
@@ -165,10 +180,11 @@ public class PerunSamlClient {
 
 	/**
 	 * Method to set logout result url
+	 * 
 	 * @param url
 	 */
 	public void setSPConfigLogoutResponse(String url) {
 		samlClient.getSPConfig().setLogoutResult(url);
 	}
-	
+
 }

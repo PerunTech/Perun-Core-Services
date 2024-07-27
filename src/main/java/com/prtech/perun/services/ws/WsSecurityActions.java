@@ -46,7 +46,11 @@ import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.opensaml.saml2.core.AuthnStatement;
+import org.opensaml.saml2.core.LogoutRequest;
 import org.opensaml.saml2.core.LogoutResponse;
+import org.opensaml.saml2.core.NameID;
+import org.opensaml.saml2.core.SessionIndex;
+import org.opensaml.saml2.core.StatusCode;
 import org.opensaml.xml.security.SecurityException;
 import org.zeromq.ZAuth.Auth;
 
@@ -420,24 +424,37 @@ public class WsSecurityActions {
 		String clientIp = PerunUtil.getClientIpAddress(httpRequest);
 		try (SvSecurity svs = new SvSecurity(clientIp);) {
 
-			String keyName = SvParameter.getSysParam(CC.SSO_POST_KEY, CC.NOT_CONFIGURED);
+			String keyName = SvParameter.getSysParam(CC.SSO_REQUEST_KEY, CC.NOT_CONFIGURED);
 			List<String> authResponse = formVals.get(keyName);
 			String form = authResponse.get(0);
 			AttributeSet at = null;
 
 			getPerunSaml().getSamlClient().setRequireSignedAssertion(false);
-			at = getPerunSaml().getSamlClient().validateResponse(authResponse.get(0));
-			ssoRequestCache.put(at.getResponse().getInResponseTo(), at);
-			String url = SvParameter.getSysParam(CC.SSO_REDIRECT_URL, CC.NOT_CONFIGURED);
-			return Response
-					.seeOther(URI
-							.create(url.replace(CC.SESSION_PLACEHOLDER, URLEncoder.encode("Logout.Success", "UTF-8"))))
-					.build();
+			LogoutRequest r = getPerunSaml().getSamlClient().validateLogoutRequest(authResponse.get(0));
+			String inResponseTo = r.getID();
+			String userName = r.getNameID().getValue();
+			for (SessionIndex s : r.getSessionIndexes()) {
+				try {
+					DbDataObject user = svs.getUserBySession(s.getSessionIndex());
+					if (user.getAsString(Sv.USER_NAME).equals(userName))
+						svs.logoff(s.getSessionIndex());
+				} catch (Exception e) {
+					// do nothing if we can't get the user
+				}
+
+			}
+			if (getPerunSaml() != null) {
+				String logoutRequest = SvUtil.getUUID(); // SAMLUtils.generateRequestId();
+				String samlRequest = getPerunSaml().getLogoutResponse(logoutRequest, inResponseTo,
+						StatusCode.SUCCESS_URI);
+				return Response.ok(samlRequest).build();
+			}
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			return PerunUtil.handleException(e, "SSO Authentication Error");
 		}
+		return Response.serverError().build();
 	}
 
 	Response getRegisterUser(AttributeSet at) {
