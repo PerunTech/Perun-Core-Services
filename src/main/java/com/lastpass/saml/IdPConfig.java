@@ -213,7 +213,6 @@ public class IdPConfig
     /** Where the LogoutRequest is sent (SSOLogoutService endpoint) */
     private String logoutUrl;
 
-    private String logoutUrlResponse;
 
     public String getLogoutUrl() {
 		return logoutUrl;
@@ -221,14 +220,6 @@ public class IdPConfig
 
 	public void setLogoutUrl(String logoutUrl) {
 		this.logoutUrl = logoutUrl;
-	}
-
-	public String getLogoutUrlResponse() {
-		return logoutUrlResponse;
-	}
-
-	public void setLogoutUrlResponse(String logoutUrlResponse) {
-		this.logoutUrlResponse = logoutUrlResponse;
 	}
 
 	/** Certificate used to validate assertions */

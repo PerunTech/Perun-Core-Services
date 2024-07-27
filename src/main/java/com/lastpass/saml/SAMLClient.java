@@ -546,7 +546,7 @@ public class SAMLClient {
 				.getBuilder(StatusCode.DEFAULT_ELEMENT_NAME);
 
 		LogoutResponse response = builder.buildObject();
-		response.setDestination(idpConfig.getLogoutUrlResponse().toString());
+		response.setDestination(spConfig.getLogoutRequest().toString());
 		response.setIssueInstant(new DateTime());
 		response.setID(requestId);
 		response.setInResponseTo(inResponseTo);
