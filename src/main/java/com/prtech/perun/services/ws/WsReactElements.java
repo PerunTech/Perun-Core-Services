@@ -4166,6 +4166,8 @@ public class WsReactElements {
 			// try to find the type with ID
 			pobjectType = findTableType(objectName);
 			svr = new SvReader(sessionId);
+			if (parentId == 0L)
+				throw new SvException("perun.main.parent_is_zero", svr.getInstanceUser());
 			tablesUsedArray[0] = getTableNameById(pobjectType, svr);
 			tableShowArray[0] = true;
 			DbDataArray vData = new DbDataArray();
