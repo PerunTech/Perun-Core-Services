@@ -4884,6 +4884,44 @@ public class WsReactElements {
 	}
 
 	/**
+	 * Web service to get the schema for react UI , UI schema to be stored in
+	 * SVAROG_FIELDS , field GUI_METADATA sub_object "react" , sub_object
+	 * "uischema", it will just read the full object as it is and add it to return
+	 * string with the same field name to be paired to the object returned by
+	 * getTableJSONSchema WS
+	 * 
+	 * @param sessionId Session ID (SID) of the web communication between browser
+	 *                  and web server
+	 * @param tableName String table name for which we want to insert new element
+	 *                  (record)
+	 * 
+	 * @return Json string with UI json for all fields in the table
+	 */
+	@Path("/getTableUISchemaWithDateRange/{sessionId}/{tableName}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getTableUISchemaWithDateRange(@PathParam("sessionId") String sessionId,
+			@PathParam("tableName") String tableName, @Context HttpServletRequest httpRequest) {
+		Response response = getTableUISchema(sessionId, tableName, null);
+		JsonObject jsonResponse = new Gson().fromJson(response.getEntity().toString(), JsonObject.class);
+		if (jsonResponse.has("type") && jsonResponse.get("type").getAsString().equals(MessageType.ERROR.toString())) {
+			return response;
+		}
+
+		String searchDatesLabelCode = "search.dates";
+		JsonObject searchDates = new JsonObject();
+		JsonObject dateFrom = new JsonObject();
+		dateFrom.addProperty("ui:widget", "CustomDateWithNowButton");
+		JsonObject dateTo = new JsonObject();
+		dateTo.addProperty("ui:widget", "CustomDateWithNowButton");
+		searchDates.add(Rc.DATE_FROM, dateFrom);
+		searchDates.add(Rc.DATE_TO, dateTo);
+		jsonResponse.add(searchDatesLabelCode, searchDates);
+
+		return Response.status(200).entity(jsonResponse.toString()).build();
+	}
+
+	/**
 	 * Web service to get the a form and all its data fields , also return object
 	 * id, pkid, parent_id and object_type, the idea is: if object_id >0 then this
 	 * is old object so we just return the form, but if this object does not exist
@@ -7869,7 +7907,7 @@ public class WsReactElements {
 				isfullSvarogData, mapFieldDenormalizedField);
 
 	}
-
+	
 	@Path("/getTableSearchJSONSchema/{sessionId}/{table_name}")
 	@GET
 	@Produces("application/json")
@@ -7877,100 +7915,13 @@ public class WsReactElements {
 			@PathParam("table_name") String tableName, @Context HttpServletRequest httpRequest) {
 		JsonObject jData = new JsonObject();
 		SvReader svr = null;
-
+		
 		try {
 			svr = new SvReader(sessionId);
-			JsonObject jLeaf = null;
 			DbDataObject tableObject = SvCore.getDbtByName(tableName);
 			jData.addProperty(Rc.TITLE, I18n.getText(getLocaleId(svr), tableObject.getVal(Rc.LABEL_CODE).toString()));
 			jData.addProperty(Rc.TYPE, Rc.OBJECT);
-			DbDataArray dboFieldsPerTable = SvCore.getFields(tableObject.getObjectId());
-			JsonObject jFields = new JsonObject();
-
-			for (DbDataObject tempDboField : dboFieldsPerTable.getItems()) {
-				String tmpField = tempDboField.getVal(Rc.FIELD_NAME).toString();
-				JsonObject jsonSearchGUI = getReactSearchGuiDataByField(tempDboField);
-				JsonObject jsonreactGUI = getReactGuiDataByField(tempDboField);
-				if (jsonSearchGUI != null && jsonreactGUI != null && processField(tmpField)) {
-					jLeaf = new JsonObject();
-
-					jLeaf = addFieldTypeToJsonObject(tempDboField, jLeaf, true);
-					jLeaf.addProperty(Rc.TITLE,
-							I18n.getText(getLocaleId(svr), tempDboField.getVal(Rc.LABEL_CODE).toString()));
-					if (jsonSearchGUI != null && jsonSearchGUI.has("minLength"))
-						jLeaf.addProperty("minLength", jsonSearchGUI.get("minLength").getAsNumber());
-					if (jsonreactGUI != null && jsonreactGUI.has("inputDescValue"))
-						jLeaf.addProperty("inputDescValue", jsonreactGUI.get("inputDescValue").getAsString());
-					if (jsonreactGUI != null && jsonreactGUI.has("descriptionValue"))
-						jLeaf.addProperty("descriptionValue", jsonreactGUI.get("descriptionValue").getAsString());
-					if (jsonreactGUI != null && jsonreactGUI.has("searchTable"))
-						jLeaf.addProperty("searchTable", jsonreactGUI.get("searchTable").getAsString());
-
-					jLeaf = prepareFormJsonCodeList1(tempDboField, jLeaf, svr);
-					jFields = prepareFormJsonGroup(tempDboField, jFields, jLeaf);
-
-					if (tempDboField.getVal(Rc.REFERENTIAL_TABLE) != null
-							&& tempDboField.getVal(Rc.REFERENTIAL_FIELD) != null && jsonreactGUI != null
-							&& jsonreactGUI.has(Rc.DENORMALIZED_MNEMONIC)) {
-						DbDataObject denormalizedField = findField(tempDboField.getVal(Rc.REFERENTIAL_TABLE).toString(),
-								jsonreactGUI.get(Rc.DENORMALIZED_MNEMONIC).getAsString(), svr);
-
-						if (denormalizedField != null && !tempDboField.getVal(Rc.FIELD_NAME).toString()
-								.equals(denormalizedField.getVal(Rc.FIELD_NAME).toString())) {
-							DbDataObject tmpDenormalizedField = new DbDataObject();
-							tmpDenormalizedField.fromJson(tempDboField.toJson());
-							tmpDenormalizedField.setVal(Rc.FIELD_NAME,
-									tmpField + "." + denormalizedField.getVal(Rc.FIELD_NAME).toString());
-							tmpDenormalizedField.setVal(Rc.FIELD_TYPE,
-									denormalizedField.getVal(Rc.FIELD_TYPE).toString());
-							jLeaf = new JsonObject();
-							jLeaf = addFieldTypeToJsonObject(tmpDenormalizedField, jLeaf, true);
-							jLeaf.addProperty(Rc.TITLE,
-									I18n.getText(getLocaleId(svr), tableObject.getVal(Rc.LABEL_CODE).toString() + "."
-											+ denormalizedField.getVal(Rc.LABEL_CODE).toString()));
-							jFields = prepareFormJsonGroup(tmpDenormalizedField, jFields, jLeaf);
-						}
-
-					}
-				}
-
-			}
-			if (tableObject.getVal(Rc.GUI_METADATA) != null) {
-				JsonArray searchFields = getSearchGuiDataByTable(tableObject);
-				if (searchFields != null) {
-					JsonObject searchField = null;
-					DbDataObject dbField = null;
-					for (int i = 0; i < searchFields.size(); i++) {
-						searchField = searchFields.get(i).getAsJsonObject();
-						String strTableName = searchField.get("table").getAsString();
-						if (searchField.get("field").getAsString().equals(Rc.OBJECT_ID)
-								|| searchField.get("field").getAsString().equals(Rc.DT_INSERT)) {
-							strTableName = "SVAROG";
-						}
-						String strFieldName = searchField.get("field").getAsString();
-						dbField = findField(strTableName, strFieldName, svr);
-
-						jLeaf = new JsonObject();
-
-						jLeaf = addFieldTypeToJsonObject(dbField, jLeaf, true);
-						if (jLeaf.has("datetype")) {
-							jLeaf.addProperty("datetype", "shortdate");
-						}
-						jLeaf.addProperty(Rc.TITLE,
-								I18n.getText(getLocaleId(svr), dbField.getVal(Rc.LABEL_CODE).toString()));
-
-						jLeaf = prepareFormJsonCodeList1(dbField, jLeaf, svr);
-						DbDataObject tmpdbField = new DbDataObject();
-						if (!strTableName.equalsIgnoreCase("svarog")) {
-							tmpdbField.fromJson(dbField.toJson());
-							tmpdbField.setVal(Rc.FIELD_NAME, strTableName + "." + strFieldName);
-						} else {
-							tmpdbField = dbField;
-						}
-						jFields = prepareFormJsonGroup(tmpdbField, jFields, jLeaf);
-					}
-				}
-			}
+			JsonObject jFields = getTableSearchJSONSchemaFields(tableName, svr);
 			jData.add(Rc.PROPERTIES, jFields);
 		} catch (SvException e) {
 			return PerunUtil.handleException(e, "Error getting Search JSON Schema");
@@ -7978,6 +7929,132 @@ public class WsReactElements {
 			releaseAll(svr);
 		}
 		return Response.status(200).entity(jData.toString()).build();
+	}
+
+	@Path("/getTableSearchJSONSchemaWithDateRange/{sessionId}/{tableName}")
+	@GET
+	@Produces("application/json")
+	public Response getTableSearchJSONSchemaWithDateRange(@PathParam("sessionId") String sessionId,
+			@PathParam("tableName") String tableName, @Context HttpServletRequest httpRequest) {
+		Response response = getTableSearchJSONSchema(sessionId, tableName, null);
+		JsonObject jsonResponse = new Gson().fromJson(response.getEntity().toString(), JsonObject.class);
+		if (jsonResponse.has("type") && jsonResponse.get("type").getAsString().equals(MessageType.ERROR.toString())) {
+			return response;
+		}
+
+		try (SvReader svr = new SvReader(sessionId)) {
+			String localeId = getLocaleId(svr);
+			JsonObject searchDates = new JsonObject();
+			String searchDatesLabelCode = "search.dates";
+			searchDates.addProperty(Rc.TITLE, I18n.getText(localeId, searchDatesLabelCode));
+			searchDates.addProperty(Rc.TYPE, Rc.OBJECT);
+			JsonObject dateFrom = new JsonObject();
+			dateFrom.addProperty(Rc.TITLE, I18n.getText(localeId, "search.dates.date_from"));
+			dateFrom.addProperty(Rc.TYPE, Rc.STRING);
+			JsonObject dateTo = new JsonObject();
+			dateTo.addProperty(Rc.TITLE, I18n.getText(localeId, "search.dates.date_to"));
+			dateTo.addProperty(Rc.TYPE, Rc.STRING);
+			searchDates.add(Rc.PROPERTIES, new JsonObject());
+			searchDates.getAsJsonObject(Rc.PROPERTIES).add(Rc.DATE_FROM, dateFrom);
+			searchDates.getAsJsonObject(Rc.PROPERTIES).add(Rc.DATE_TO, dateTo);
+			jsonResponse.get(Rc.PROPERTIES).getAsJsonObject().add(searchDatesLabelCode, searchDates);
+		} catch (SvException e) {
+			return PerunUtil.handleException(e, "Error getting Search JSON Schema");
+		}
+
+		return Response.status(200).entity(jsonResponse.toString()).build();
+	}
+
+	private JsonObject getTableSearchJSONSchemaFields(String tableName, SvReader svr) throws SvException {
+		JsonObject jLeaf = null;
+		DbDataObject tableObject = SvCore.getDbtByName(tableName);
+		DbDataArray dboFieldsPerTable = SvCore.getFields(tableObject.getObjectId());
+		JsonObject jFields = new JsonObject();
+
+		for (DbDataObject tempDboField : dboFieldsPerTable.getItems()) {
+			String tmpField = tempDboField.getVal(Rc.FIELD_NAME).toString();
+			JsonObject jsonSearchGUI = getReactSearchGuiDataByField(tempDboField);
+			JsonObject jsonreactGUI = getReactGuiDataByField(tempDboField);
+			if (jsonSearchGUI != null && jsonreactGUI != null && processField(tmpField)) {
+				jLeaf = new JsonObject();
+
+				jLeaf = addFieldTypeToJsonObject(tempDboField, jLeaf, true);
+				jLeaf.addProperty(Rc.TITLE,
+						I18n.getText(getLocaleId(svr), tempDboField.getVal(Rc.LABEL_CODE).toString()));
+				if (jsonSearchGUI != null && jsonSearchGUI.has("minLength"))
+					jLeaf.addProperty("minLength", jsonSearchGUI.get("minLength").getAsNumber());
+				if (jsonreactGUI != null && jsonreactGUI.has("inputDescValue"))
+					jLeaf.addProperty("inputDescValue", jsonreactGUI.get("inputDescValue").getAsString());
+				if (jsonreactGUI != null && jsonreactGUI.has("descriptionValue"))
+					jLeaf.addProperty("descriptionValue", jsonreactGUI.get("descriptionValue").getAsString());
+				if (jsonreactGUI != null && jsonreactGUI.has("searchTable"))
+					jLeaf.addProperty("searchTable", jsonreactGUI.get("searchTable").getAsString());
+
+				jLeaf = prepareFormJsonCodeList1(tempDboField, jLeaf, svr);
+				jFields = prepareFormJsonGroup(tempDboField, jFields, jLeaf);
+
+				if (tempDboField.getVal(Rc.REFERENTIAL_TABLE) != null
+						&& tempDboField.getVal(Rc.REFERENTIAL_FIELD) != null && jsonreactGUI != null
+						&& jsonreactGUI.has(Rc.DENORMALIZED_MNEMONIC)) {
+					DbDataObject denormalizedField = findField(tempDboField.getVal(Rc.REFERENTIAL_TABLE).toString(),
+							jsonreactGUI.get(Rc.DENORMALIZED_MNEMONIC).getAsString(), svr);
+
+					if (denormalizedField != null && !tempDboField.getVal(Rc.FIELD_NAME).toString()
+							.equals(denormalizedField.getVal(Rc.FIELD_NAME).toString())) {
+						DbDataObject tmpDenormalizedField = new DbDataObject();
+						tmpDenormalizedField.fromJson(tempDboField.toJson());
+						tmpDenormalizedField.setVal(Rc.FIELD_NAME,
+								tmpField + "." + denormalizedField.getVal(Rc.FIELD_NAME).toString());
+						tmpDenormalizedField.setVal(Rc.FIELD_TYPE, denormalizedField.getVal(Rc.FIELD_TYPE).toString());
+						jLeaf = new JsonObject();
+						jLeaf = addFieldTypeToJsonObject(tmpDenormalizedField, jLeaf, true);
+						jLeaf.addProperty(Rc.TITLE,
+								I18n.getText(getLocaleId(svr), tableObject.getVal(Rc.LABEL_CODE).toString() + "."
+										+ denormalizedField.getVal(Rc.LABEL_CODE).toString()));
+						jFields = prepareFormJsonGroup(tmpDenormalizedField, jFields, jLeaf);
+					}
+
+				}
+			}
+
+		}
+		if (tableObject.getVal(Rc.GUI_METADATA) != null) {
+			JsonArray searchFields = getSearchGuiDataByTable(tableObject);
+			if (searchFields != null) {
+				JsonObject searchField = null;
+				DbDataObject dbField = null;
+				for (int i = 0; i < searchFields.size(); i++) {
+					searchField = searchFields.get(i).getAsJsonObject();
+					String strTableName = searchField.get("table").getAsString();
+					if (searchField.get("field").getAsString().equals(Rc.OBJECT_ID)
+							|| searchField.get("field").getAsString().equals(Rc.DT_INSERT)) {
+						strTableName = "SVAROG";
+					}
+					String strFieldName = searchField.get("field").getAsString();
+					dbField = findField(strTableName, strFieldName, svr);
+
+					jLeaf = new JsonObject();
+
+					jLeaf = addFieldTypeToJsonObject(dbField, jLeaf, true);
+					if (jLeaf.has("datetype")) {
+						jLeaf.addProperty("datetype", "shortdate");
+					}
+					jLeaf.addProperty(Rc.TITLE,
+							I18n.getText(getLocaleId(svr), dbField.getVal(Rc.LABEL_CODE).toString()));
+
+					jLeaf = prepareFormJsonCodeList1(dbField, jLeaf, svr);
+					DbDataObject tmpdbField = new DbDataObject();
+					if (!strTableName.equalsIgnoreCase("svarog")) {
+						tmpdbField.fromJson(dbField.toJson());
+						tmpdbField.setVal(Rc.FIELD_NAME, strTableName + "." + strFieldName);
+					} else {
+						tmpdbField = dbField;
+					}
+					jFields = prepareFormJsonGroup(tmpdbField, jFields, jLeaf);
+				}
+			}
+		}
+		return jFields;
 	}
 
 	@Path("/createTableRecordMultiStepForm/{session_id}/{parent_id}")
