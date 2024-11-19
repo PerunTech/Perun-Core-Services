@@ -92,6 +92,8 @@ public class Rc {
 	public static final String POST_DATA = "postData";
 	public static final String EMPTY_STRING = "";
 	public static final String DESC = "DESC";
+	public static final String DATE_FROM = "DATE_FROM";
+	public static final String DATE_TO = "DATE_TO";
 
 	// Post Data Params
 	public static final String PDP_FIELD_NAME = "fieldName";

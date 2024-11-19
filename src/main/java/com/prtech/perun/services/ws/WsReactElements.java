@@ -4882,6 +4882,44 @@ public class WsReactElements {
 	}
 
 	/**
+	 * Web service to get the schema for react UI , UI schema to be stored in
+	 * SVAROG_FIELDS , field GUI_METADATA sub_object "react" , sub_object
+	 * "uischema", it will just read the full object as it is and add it to return
+	 * string with the same field name to be paired to the object returned by
+	 * getTableJSONSchema WS
+	 * 
+	 * @param sessionId Session ID (SID) of the web communication between browser
+	 *                  and web server
+	 * @param tableName String table name for which we want to insert new element
+	 *                  (record)
+	 * 
+	 * @return Json string with UI json for all fields in the table
+	 */
+	@Path("/getTableUISchemaWithDateRange/{sessionId}/{tableName}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getTableUISchemaWithDateRange(@PathParam("sessionId") String sessionId,
+			@PathParam("tableName") String tableName, @Context HttpServletRequest httpRequest) {
+		Response response = getTableUISchema(sessionId, tableName, null);
+		JsonObject jsonResponse = new Gson().fromJson(response.getEntity().toString(), JsonObject.class);
+		if (jsonResponse.has("type") && jsonResponse.get("type").getAsString().equals(MessageType.ERROR.toString())) {
+			return response;
+		}
+
+		String searchDatesLabelCode = "search.dates";
+		JsonObject searchDates = new JsonObject();
+		JsonObject dateFrom = new JsonObject();
+		dateFrom.addProperty("ui:widget", "CustomDateWithNowButton");
+		JsonObject dateTo = new JsonObject();
+		dateTo.addProperty("ui:widget", "CustomDateWithNowButton");
+		searchDates.add(Rc.DATE_FROM, dateFrom);
+		searchDates.add(Rc.DATE_TO, dateTo);
+		jsonResponse.add(searchDatesLabelCode, searchDates);
+
+		return Response.status(200).entity(jsonResponse.toString()).build();
+	}
+
+	/**
 	 * Web service to get the a form and all its data fields , also return object
 	 * id, pkid, parent_id and object_type, the idea is: if object_id >0 then this
 	 * is old object so we just return the form, but if this object does not exist
@@ -7890,7 +7928,41 @@ public class WsReactElements {
 		}
 		return Response.status(200).entity(jData.toString()).build();
 	}
-	
+
+	@Path("/getTableSearchJSONSchemaWithDateRange/{sessionId}/{tableName}")
+	@GET
+	@Produces("application/json")
+	public Response getTableSearchJSONSchemaWithDateRange(@PathParam("sessionId") String sessionId,
+			@PathParam("tableName") String tableName, @Context HttpServletRequest httpRequest) {
+		Response response = getTableSearchJSONSchema(sessionId, tableName, null);
+		JsonObject jsonResponse = new Gson().fromJson(response.getEntity().toString(), JsonObject.class);
+		if (jsonResponse.has("type") && jsonResponse.get("type").getAsString().equals(MessageType.ERROR.toString())) {
+			return response;
+		}
+
+		try (SvReader svr = new SvReader(sessionId)) {
+			String localeId = getLocaleId(svr);
+			JsonObject searchDates = new JsonObject();
+			String searchDatesLabelCode = "search.dates";
+			searchDates.addProperty(Rc.TITLE, I18n.getText(localeId, searchDatesLabelCode));
+			searchDates.addProperty(Rc.TYPE, Rc.OBJECT);
+			JsonObject dateFrom = new JsonObject();
+			dateFrom.addProperty(Rc.TITLE, I18n.getText(localeId, "search.dates.date_from"));
+			dateFrom.addProperty(Rc.TYPE, Rc.STRING);
+			JsonObject dateTo = new JsonObject();
+			dateTo.addProperty(Rc.TITLE, I18n.getText(localeId, "search.dates.date_to"));
+			dateTo.addProperty(Rc.TYPE, Rc.STRING);
+			searchDates.add(Rc.PROPERTIES, new JsonObject());
+			searchDates.getAsJsonObject(Rc.PROPERTIES).add(Rc.DATE_FROM, dateFrom);
+			searchDates.getAsJsonObject(Rc.PROPERTIES).add(Rc.DATE_TO, dateTo);
+			jsonResponse.get(Rc.PROPERTIES).getAsJsonObject().add(searchDatesLabelCode, searchDates);
+		} catch (SvException e) {
+			return PerunUtil.handleException(e, "Error getting Search JSON Schema");
+		}
+
+		return Response.status(200).entity(jsonResponse.toString()).build();
+	}
+
 	@Path("/getTableSearchJSONSchema_test/{sessionId}/{table_name}/{field}")
 	@GET
 	@Produces("application/json")
