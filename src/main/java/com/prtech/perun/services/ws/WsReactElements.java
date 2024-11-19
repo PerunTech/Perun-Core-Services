@@ -7949,9 +7949,13 @@ public class WsReactElements {
 			JsonObject dateFrom = new JsonObject();
 			dateFrom.addProperty(Rc.TITLE, I18n.getText(localeId, "search.dates.date_from"));
 			dateFrom.addProperty(Rc.TYPE, Rc.STRING);
+			dateFrom.addProperty(Rc.FORMAT, "date");
+			dateFrom.addProperty(Rc.DATETYPE, "shortdate");
 			JsonObject dateTo = new JsonObject();
 			dateTo.addProperty(Rc.TITLE, I18n.getText(localeId, "search.dates.date_to"));
 			dateTo.addProperty(Rc.TYPE, Rc.STRING);
+			dateTo.addProperty(Rc.FORMAT, "date");
+			dateTo.addProperty(Rc.DATETYPE, "shortdate");
 			searchDates.add(Rc.PROPERTIES, new JsonObject());
 			searchDates.getAsJsonObject(Rc.PROPERTIES).add(Rc.DATE_FROM, dateFrom);
 			searchDates.getAsJsonObject(Rc.PROPERTIES).add(Rc.DATE_TO, dateTo);
