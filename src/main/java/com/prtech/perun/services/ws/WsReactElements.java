@@ -7963,50 +7963,6 @@ public class WsReactElements {
 		return Response.status(200).entity(jsonResponse.toString()).build();
 	}
 
-	@Path("/getTableSearchJSONSchema_test/{sessionId}/{table_name}/{field}")
-	@GET
-	@Produces("application/json")
-	public Response getTableSearchJSONSchema_test(@PathParam("sessionId") String sessionId,
-			@PathParam("table_name") String tableName, @PathParam("field") String fieldName,
-			@Context HttpServletRequest httpRequest) {
-		JsonObject jData = new JsonObject();
-		SvReader svr = null;
-
-		try {
-			svr = new SvReader(sessionId);
-			DbDataObject tableObject = SvCore.getDbtByName(tableName);
-			jData.addProperty(Rc.TITLE, I18n.getText(getLocaleId(svr), tableObject.getVal(Rc.LABEL_CODE).toString()));
-			jData.addProperty(Rc.TYPE, Rc.OBJECT);
-			JsonObject jFields = getTableSearchJSONSchemaFields(tableName, svr);
-			JsonObject temp = null;
-			JsonArray fields = null;
-			// TODO check with conf
-			if (tableObject.getVal(Rc.GUI_METADATA) != null)
-				temp = (new Gson()).fromJson(tableObject.getVal(Rc.GUI_METADATA).toString(), JsonObject.class);
-			if (temp != null && temp.has("additional_search_fields")){// TODO name change
-				fields = (JsonArray) temp.get("additional_search_fields"); //{"field_name":"name","type":"string","title":"title"}
-				for (JsonElement f : fields) {
-					JsonObject object = new JsonObject();
-					object.addProperty("type", f.getAsJsonObject().get("type").getAsString());
-					object.addProperty("title", f.getAsJsonObject().get("title").getAsString());
-					jFields.add(f.getAsJsonObject().get("field_name").getAsString(), object);
-				}
-			}
-			//worst case scenario za bez findfield funkc.
-//			JsonObject object = new JsonObject();
-//			object.addProperty("type", "string");
-//			object.addProperty("title", fieldName);
-//			jFields.add(table_name + fieldName, object); //field in path
-			jData.add(Rc.PROPERTIES, jFields);
-		} catch (SvException e) {
-			return PerunUtil.handleException(e, "Error getting Search JSON Schema");
-		} finally {
-			releaseAll(svr);
-		}
-		return Response.status(200).entity(jData.toString()).build();
-	}
-	
-	
 	private JsonObject getTableSearchJSONSchemaFields(String tableName, SvReader svr) throws SvException {
 		JsonObject jLeaf = null;
 		DbDataObject tableObject = SvCore.getDbtByName(tableName);
