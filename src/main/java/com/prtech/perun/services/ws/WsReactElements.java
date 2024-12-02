@@ -19,8 +19,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -37,8 +37,23 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.glassfish.jersey.media.multipart.FormDataBodyPart;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.glassfish.jersey.media.multipart.FormDataMultiPart;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LinearRing;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -74,31 +89,15 @@ import com.prtech.svarog_common.DbQueryObject;
 import com.prtech.svarog_common.DbQueryObject.DbJoinType;
 import com.prtech.svarog_common.DbQueryObject.LinkType;
 import com.prtech.svarog_common.DbSearch;
+import com.prtech.svarog_common.DbSearch.DbLogicOperand;
 import com.prtech.svarog_common.DbSearchCriterion;
+import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.IDbFilter;
 import com.prtech.svarog_common.ResponseHandler;
-import com.prtech.svarog_common.DbSearch.DbLogicOperand;
-import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.ResponseHandler.MessageType;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Envelope;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.LinearRing;
-import org.locationtech.jts.geom.MultiPolygon;
-import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.Polygon;
-
 import com.prtech.svarog_geojson.GeoJsonReader;
 import com.prtech.svarog_geojson.GeoJsonWriter;
-import org.apache.commons.io.IOUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.glassfish.jersey.media.multipart.FormDataBodyPart;
-import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
-import org.glassfish.jersey.media.multipart.FormDataMultiPart;
-import org.glassfish.jersey.media.multipart.FormDataParam;
 
 @Path("/ReactElements")
 public class WsReactElements {
@@ -4897,6 +4896,105 @@ public class WsReactElements {
 	 * 
 	 * @return Json string with UI json for all fields in the table
 	 */
+	@Path("/getTableUISchemaOverride/{sessionId}/{table_name}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getTableUISchemaOverride(@PathParam("sessionId") String sessionId,
+			@PathParam("table_name") String tableName, @Context HttpServletRequest httpRequest) {
+		Gson gson = new Gson();
+		JsonObject jsonData = new JsonObject();
+		try (SvReader svr = new SvReader(sessionId);) {
+			Long tableId = SvReader.getDbtByName(tableName).getObjectId();
+			DbDataArray typetoGet = svr.getObjectsByParentId(tableId, svCONST.OBJECT_TYPE_FIELD, null, 0, 0,
+					Rc.SORT_ORDER);
+			for (int i = 0; i < typetoGet.getItems().size(); i++) {
+				JsonObject jsonreactGUI = null;
+				JsonObject jsonObj = null;
+				JsonObject jsonUISchema = null;
+				Boolean hasOverrideKey = false;
+				DbDataObject tempDboField = typetoGet.getItems().get(i);
+				String tmpField = tempDboField.getVal(Rc.FIELD_NAME).toString();
+				if (processField(tmpField)) {
+					if (tempDboField.getVal(Rc.GUI_METADATA) != null)
+						jsonObj = gson.fromJson(tempDboField.getVal(Rc.GUI_METADATA).toString(), JsonObject.class);
+					if (jsonObj != null && jsonObj.has(Rc.REACT)) {
+						jsonreactGUI = (JsonObject) jsonObj.get(Rc.REACT);
+						if (jsonreactGUI.has(Rc.OVERRIDE_READONLY)
+								&& jsonreactGUI.get(Rc.OVERRIDE_READONLY).getAsBoolean())
+							hasOverrideKey = true;
+					}
+					if (jsonreactGUI != null && jsonreactGUI.has(Rc.UISCHEMA)) {
+						jsonUISchema = (JsonObject) jsonreactGUI.get(Rc.UISCHEMA);
+						if (jsonUISchema.has("ui:readonly") && jsonUISchema.get("ui:readonly").getAsBoolean()
+								&& hasOverrideKey) {
+							jsonUISchema.addProperty("ui:readonly", false);
+						}
+					}
+					if (jsonUISchema != null) {
+						String groupPath = null;
+						if (jsonreactGUI != null && jsonreactGUI.has(Rc.GROUPPATH)) {
+							groupPath = jsonreactGUI.get(Rc.GROUPPATH).getAsString();
+							JsonObject groupValues = null;
+							if (jsonData.has(groupPath))
+								groupValues = (JsonObject) jsonData.get(groupPath);
+							if (groupValues == null)
+								groupValues = new JsonObject();
+							groupValues.add(tmpField, jsonUISchema);
+							jsonData.add(groupPath, groupValues);
+						} else
+							jsonData.add(tmpField, jsonUISchema);
+
+						if (tempDboField.getVal(Rc.REFERENTIAL_TABLE) != null
+								&& tempDboField.getVal(Rc.REFERENTIAL_FIELD) != null && jsonreactGUI != null
+								&& jsonreactGUI.has(Rc.DENORMALIZED_MNEMONIC)) {
+							DbDataObject denormalizedField = findField(
+									tempDboField.getVal(Rc.REFERENTIAL_TABLE).toString(),
+									jsonreactGUI.get(Rc.DENORMALIZED_MNEMONIC).getAsString(), svr);
+
+							if (denormalizedField != null && !tempDboField.getVal(Rc.FIELD_NAME).toString()
+									.equals(denormalizedField.getVal(Rc.FIELD_NAME).toString())) {
+								JsonObject tmpJsonUISchema = gson.fromJson(jsonUISchema, JsonObject.class);
+								if (!jsonreactGUI.has("denormalizeUiVisible")
+										|| jsonreactGUI.get("denormalizeUiVisible").getAsBoolean()) {
+									if (tmpJsonUISchema.has("ui:widget")) {
+										tmpJsonUISchema.remove("ui:widget");
+									}
+								}
+								jsonData.add(tempDboField.getVal(Rc.FIELD_NAME).toString() + '.'
+										+ denormalizedField.getVal(Rc.FIELD_NAME).toString(), tmpJsonUISchema);
+							}
+
+						}
+					}
+				}
+				if ("GEOM".equalsIgnoreCase(tmpField)) {
+					jsonObj = gson.fromJson(
+							"{\"ui:widget\": \"hidden\",\"ui:options\":{\"orderable\":false,\"rows\":15},\"items\":{\"cordxvals\":{\"ui:widget\":\"textarea\"},\"cordyvals\":{\"ui:widget\":\"textarea\"}}}",
+							JsonObject.class);
+					jsonData.add(Rc.MULTYPOLYARRAY, jsonObj);
+				}
+			}
+		} catch (SvException e) {
+			return PerunUtil.handleException(e, "Error getting Table UI Schema");
+		}
+
+		return Response.status(200).entity(jsonData.toString()).build();
+	}
+
+	/**
+	 * Web service to get the schema for react UI , UI schema to be stored in
+	 * SVAROG_FIELDS , field GUI_METADATA sub_object "react" , sub_object
+	 * "uischema", it will just read the full object as it is and add it to return
+	 * string with the same field name to be paired to the object returned by
+	 * getTableJSONSchema WS
+	 * 
+	 * @param sessionId Session ID (SID) of the web communication between browser
+	 *                  and web server
+	 * @param tableName String table name for which we want to insert new element
+	 *                  (record)
+	 * 
+	 * @return Json string with UI json for all fields in the table
+	 */
 	@Path("/getTableUISchemaWithDateRange/{sessionId}/{tableName}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
@@ -7907,7 +8005,7 @@ public class WsReactElements {
 				isfullSvarogData, mapFieldDenormalizedField);
 
 	}
-	
+
 	@Path("/getTableSearchJSONSchema/{sessionId}/{table_name}")
 	@GET
 	@Produces("application/json")
@@ -7915,7 +8013,7 @@ public class WsReactElements {
 			@PathParam("table_name") String tableName, @Context HttpServletRequest httpRequest) {
 		JsonObject jData = new JsonObject();
 		SvReader svr = null;
-		
+
 		try {
 			svr = new SvReader(sessionId);
 			DbDataObject tableObject = SvCore.getDbtByName(tableName);
