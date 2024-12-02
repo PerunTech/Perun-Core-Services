@@ -4830,41 +4830,7 @@ public class WsReactElements {
 					// if this is first object in group create the group obect,
 					// if not, retreve it, add it to exising and put it back
 					if (jsonUISchema != null) {
-						String groupPath = null;
-						if (jsonreactGUI != null && jsonreactGUI.has(Rc.GROUPPATH)) { // grouppath
-																						// found
-							groupPath = jsonreactGUI.get(Rc.GROUPPATH).getAsString();
-							JsonObject groupValues = null;
-							if (jsonData.has(groupPath))
-								groupValues = (JsonObject) jsonData.get(groupPath);
-							if (groupValues == null)
-								groupValues = new JsonObject();
-							groupValues.add(tmpField, jsonUISchema);
-							jsonData.add(groupPath, groupValues);
-						} else // no grouppath found
-							jsonData.add(tmpField, jsonUISchema);
-
-						if (tempDboField.getVal(Rc.REFERENTIAL_TABLE) != null
-								&& tempDboField.getVal(Rc.REFERENTIAL_FIELD) != null && jsonreactGUI != null
-								&& jsonreactGUI.has(Rc.DENORMALIZED_MNEMONIC)) {
-							DbDataObject denormalizedField = findField(
-									tempDboField.getVal(Rc.REFERENTIAL_TABLE).toString(),
-									jsonreactGUI.get(Rc.DENORMALIZED_MNEMONIC).getAsString(), svr);
-
-							if (denormalizedField != null && !tempDboField.getVal(Rc.FIELD_NAME).toString()
-									.equals(denormalizedField.getVal(Rc.FIELD_NAME).toString())) {
-								JsonObject tmpJsonUISchema = gson.fromJson(jsonUISchema, JsonObject.class);
-								if (!jsonreactGUI.has("denormalizeUiVisible")
-										|| jsonreactGUI.get("denormalizeUiVisible").getAsBoolean()) {
-									if (tmpJsonUISchema.has("ui:widget")) {
-										tmpJsonUISchema.remove("ui:widget");
-									}
-								}
-								jsonData.add(tempDboField.getVal(Rc.FIELD_NAME).toString() + '.'
-										+ denormalizedField.getVal(Rc.FIELD_NAME).toString(), tmpJsonUISchema);
-							}
-
-						}
+						fillTableUISchemaData(gson, jsonData, svr, jsonreactGUI, jsonUISchema, tempDboField, tmpField);
 					}
 				}
 				if ("GEOM".equalsIgnoreCase(tmpField)) {
@@ -4931,40 +4897,7 @@ public class WsReactElements {
 						}
 					}
 					if (jsonUISchema != null) {
-						String groupPath = null;
-						if (jsonreactGUI != null && jsonreactGUI.has(Rc.GROUPPATH)) {
-							groupPath = jsonreactGUI.get(Rc.GROUPPATH).getAsString();
-							JsonObject groupValues = null;
-							if (jsonData.has(groupPath))
-								groupValues = (JsonObject) jsonData.get(groupPath);
-							if (groupValues == null)
-								groupValues = new JsonObject();
-							groupValues.add(tmpField, jsonUISchema);
-							jsonData.add(groupPath, groupValues);
-						} else
-							jsonData.add(tmpField, jsonUISchema);
-
-						if (tempDboField.getVal(Rc.REFERENTIAL_TABLE) != null
-								&& tempDboField.getVal(Rc.REFERENTIAL_FIELD) != null && jsonreactGUI != null
-								&& jsonreactGUI.has(Rc.DENORMALIZED_MNEMONIC)) {
-							DbDataObject denormalizedField = findField(
-									tempDboField.getVal(Rc.REFERENTIAL_TABLE).toString(),
-									jsonreactGUI.get(Rc.DENORMALIZED_MNEMONIC).getAsString(), svr);
-
-							if (denormalizedField != null && !tempDboField.getVal(Rc.FIELD_NAME).toString()
-									.equals(denormalizedField.getVal(Rc.FIELD_NAME).toString())) {
-								JsonObject tmpJsonUISchema = gson.fromJson(jsonUISchema, JsonObject.class);
-								if (!jsonreactGUI.has("denormalizeUiVisible")
-										|| jsonreactGUI.get("denormalizeUiVisible").getAsBoolean()) {
-									if (tmpJsonUISchema.has("ui:widget")) {
-										tmpJsonUISchema.remove("ui:widget");
-									}
-								}
-								jsonData.add(tempDboField.getVal(Rc.FIELD_NAME).toString() + '.'
-										+ denormalizedField.getVal(Rc.FIELD_NAME).toString(), tmpJsonUISchema);
-							}
-
-						}
+						fillTableUISchemaData(gson, jsonData, svr, jsonreactGUI, jsonUISchema, tempDboField, tmpField);
 					}
 				}
 				if ("GEOM".equalsIgnoreCase(tmpField)) {
@@ -4979,6 +4912,41 @@ public class WsReactElements {
 		}
 
 		return Response.status(200).entity(jsonData.toString()).build();
+	}
+
+	private void fillTableUISchemaData(Gson gson, JsonObject jsonData, SvReader svr, JsonObject jsonreactGUI,
+			JsonObject jsonUISchema, DbDataObject tempDboField, String tmpField) throws SvException {
+		String groupPath = null;
+		if (jsonreactGUI != null && jsonreactGUI.has(Rc.GROUPPATH)) {
+			groupPath = jsonreactGUI.get(Rc.GROUPPATH).getAsString();
+			JsonObject groupValues = null;
+			if (jsonData.has(groupPath))
+				groupValues = (JsonObject) jsonData.get(groupPath);
+			if (groupValues == null)
+				groupValues = new JsonObject();
+			groupValues.add(tmpField, jsonUISchema);
+			jsonData.add(groupPath, groupValues);
+		} else
+			jsonData.add(tmpField, jsonUISchema);
+
+		if (tempDboField.getVal(Rc.REFERENTIAL_TABLE) != null && tempDboField.getVal(Rc.REFERENTIAL_FIELD) != null
+				&& jsonreactGUI != null && jsonreactGUI.has(Rc.DENORMALIZED_MNEMONIC)) {
+			DbDataObject denormalizedField = findField(tempDboField.getVal(Rc.REFERENTIAL_TABLE).toString(),
+					jsonreactGUI.get(Rc.DENORMALIZED_MNEMONIC).getAsString(), svr);
+
+			if (denormalizedField != null && !tempDboField.getVal(Rc.FIELD_NAME).toString()
+					.equals(denormalizedField.getVal(Rc.FIELD_NAME).toString())) {
+				JsonObject tmpJsonUISchema = gson.fromJson(jsonUISchema, JsonObject.class);
+				if (!jsonreactGUI.has("denormalizeUiVisible")
+						|| jsonreactGUI.get("denormalizeUiVisible").getAsBoolean()) {
+					if (tmpJsonUISchema.has("ui:widget")) {
+						tmpJsonUISchema.remove("ui:widget");
+					}
+				}
+				jsonData.add(tempDboField.getVal(Rc.FIELD_NAME).toString() + '.'
+						+ denormalizedField.getVal(Rc.FIELD_NAME).toString(), tmpJsonUISchema);
+			}
+		}
 	}
 
 	/**
