@@ -96,6 +96,7 @@ public class Rc {
 	public static final String DATE_TO = "DATE_TO";
 	public static final String FORMAT = "format";
 	public static final String DATETYPE = "datetype";
+	public static final String OVERRIDE_READONLY = "overrideReadonly";
 
 	// Post Data Params
 	public static final String PDP_FIELD_NAME = "fieldName";
