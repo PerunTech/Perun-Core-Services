@@ -4694,6 +4694,8 @@ public class WsReactElements {
 							jLeaf.addProperty("descriptionValue", jsonreactGUI.get("descriptionValue").getAsString());
 						if (jsonreactGUI != null && jsonreactGUI.has("searchTable"))
 							jLeaf.addProperty("searchTable", jsonreactGUI.get("searchTable").getAsString());
+						if (jsonreactGUI != null && jsonreactGUI.has("format") && !jsonreactGUI.get("format").getAsBoolean())
+							jLeaf.remove("format");
 						// prepare drop-down if not a boolean field
 						// if
 						// (!"BOOLEAN".equalsIgnoreCase(typetoGet.getItems().get(i).getVal("FIELD_TYPE").toString()))
