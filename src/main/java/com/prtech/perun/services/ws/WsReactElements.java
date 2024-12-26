@@ -863,13 +863,15 @@ public class WsReactElements {
 			DbDataObject tableObject = jsonreactGUI.has(Rc.IDTABLE)
 					? SvCore.getDbtByName(jsonreactGUI.get(Rc.IDTABLE).getAsString())
 					: null;
-			// TODO replace try catch with joson.has
-			try {
-				DbSearchCriterion critU = new DbSearchCriterion(jsonreactGUI.get("idfield").getAsString(),
-						DbCompareOperand.EQUAL, jsonreactGUI.get("idvalue").getAsString());
-				expr.addDbSearchItem(critU);
-			} catch (Exception e) {
-				debugException(e);
+			if (jsonreactGUI.has("idfield") && jsonreactGUI.has("idvalue")) {
+				try {
+					DbSearchCriterion critU = new DbSearchCriterion(jsonreactGUI.get("idfield").getAsString(),
+							DbCompareOperand.EQUAL, jsonreactGUI.get("idvalue").getAsString());
+					expr.addDbSearchItem(critU);
+				} catch (SvException e) {
+					debugException(e);
+				}
+			} else {
 				expr = null;
 			}
 			DbDataArray vData = null;
