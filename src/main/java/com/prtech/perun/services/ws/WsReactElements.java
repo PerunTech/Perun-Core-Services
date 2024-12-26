@@ -906,7 +906,10 @@ public class WsReactElements {
 							switch (jsonObj.get(Rc.TYPE).getAsString()) {
 							case "integer":
 							case "number":
-								listIDs.add(Long.valueOf(item.getVal(idSetFiels).toString()));
+								if ("OBJECT_ID".equals(idSetFiels))
+									listIDs.add(item.getObjectId());
+								else
+									listIDs.add(Long.valueOf(item.getVal(idSetFiels).toString()));
 								break;
 							default:
 								listIDs.add(item.getVal(idSetFiels).toString());
