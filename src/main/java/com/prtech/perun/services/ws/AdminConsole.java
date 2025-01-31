@@ -296,7 +296,7 @@ public class AdminConsole {
 			if (e.getLabelCode().equals("error.invalid_session")) {
 				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
 						I18n.getText("error.invalid_session"), new JsonObject());
-				return Response.status(200).entity(jrh.getAll().toString()).build();
+				return Response.status(401).entity(jrh.getAll().toString()).build();
 			}
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
@@ -336,7 +336,7 @@ public class AdminConsole {
 			if (e.getLabelCode().equals("error.invalid_session")) {
 				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
 						I18n.getText("error.invalid_session"), new JsonObject());
-				return Response.status(200).entity(jrh.getAll().toString()).build();
+				return Response.status(401).entity(jrh.getAll().toString()).build();
 			}
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
@@ -396,7 +396,7 @@ public class AdminConsole {
 			if (e.getLabelCode().equals("error.invalid_session")) {
 				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
 						I18n.getText("error.invalid_session"), new JsonObject());
-				return Response.status(200).entity(jrh.getAll().toString()).build();
+				return Response.status(401).entity(jrh.getAll().toString()).build();
 			}
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
@@ -1328,7 +1328,7 @@ public class AdminConsole {
 			if (e.getLabelCode().equals("error.invalid_session")) {
 				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
 						I18n.getText("error.invalid_session"), new JsonObject());
-				return Response.status(200).entity(jrh.getAll().toString()).build();
+				return Response.status(401).entity(jrh.getAll().toString()).build();
 			}
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
