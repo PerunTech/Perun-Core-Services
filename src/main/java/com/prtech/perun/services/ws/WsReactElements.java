@@ -8901,5 +8901,39 @@ public class WsReactElements {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
+	
+	@Path("/uploadAvatar/sid/{sessionId}")
+	@POST
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	@Encoded
+	@Produces("text/html;charset=utf-8")
+	public Response uploadAvatar(@PathParam("sessionId") String sessionId, @FormDataParam("file") InputStream fileInput,
+			@FormDataParam("file") FormDataContentDisposition fileDetail, @Context HttpServletRequest httpRequest) {
+		ResponseHandler jrh = new ResponseHandler();
+		String fileType = "AVATAR";
+			try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr); SvFileStore svfs = new SvFileStore(svr)) {
+			DbDataObject dbo = svr.getInstanceUser();
+			String fileName = new String(fileDetail.getFileName().getBytes(StandardCharsets.ISO_8859_1),
+					StandardCharsets.UTF_8).replace(",", " ");
+
+			byte[] data = IOUtils.toByteArray(fileInput);
+
+			if (data.length < 1) {
+				throw new SvException(I18n.getText(getLocaleId(svr), "error.cannot_upload_empty_file"),
+						svr.getInstanceUser());
+			}
+			DbDataArray dbArraySvFiles = svfs.getFiles(dbo, "AVATAR", null);
+			svw.deleteObjects(dbArraySvFiles, false, true);
+			svw.dbCommit();
+			
+			uploadFile(dbo, fileName, null, new DateTime(), data, fileType, 0L, svr);
+			svr.dbCommit();
+			jrh.create(MessageType.SUCCESS, I18n.getText(getLocaleId(svr), "success.message.upload_file"),
+					I18n.getText(getLocaleId(svr), "success.message.upload_file"), new JsonObject());
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error uploading files");
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
 
 }
