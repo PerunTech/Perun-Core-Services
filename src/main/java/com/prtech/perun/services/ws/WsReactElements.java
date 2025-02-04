@@ -8922,9 +8922,13 @@ public class WsReactElements {
 				throw new SvException(I18n.getText(getLocaleId(svr), "error.cannot_upload_empty_file"),
 						svr.getInstanceUser());
 			}
+
+			if (data.length > 500000) {
+				throw new SvException(I18n.getText(getLocaleId(svr), "error.cannot_upload_file_over_500KB"),
+						svr.getInstanceUser());
+			}
 			DbDataArray dbArraySvFiles = svfs.getFiles(dbo, "AVATAR", null);
 			svw.deleteObjects(dbArraySvFiles, false, true);
-			svw.dbCommit();
 			
 			uploadFile(dbo, fileName, null, new DateTime(), data, fileType, 0L, svr);
 			svr.dbCommit();
