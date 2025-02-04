@@ -8844,7 +8844,7 @@ public class WsReactElements {
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
 
-	private void uploadFile(DbDataObject dbo, String fileName, String note, DateTime fileDate, byte[] data,
+	private Long uploadFile(DbDataObject dbo, String fileName, String note, DateTime fileDate, byte[] data,
 			String fileType, Long fileStoreId, SvReader svr) throws SvException {
 		try (SvFileStore svfs = new SvFileStore(svr);) {
 			DbDataObject dboFile = new DbDataObject();
@@ -8856,6 +8856,7 @@ public class WsReactElements {
 			dboFile.setVal("FILE_NOTES", note);
 			dboFile.setVal("FILE_STORE_ID", fileStoreId);
 			svfs.saveFile(dboFile, dbo, data, true);
+			return dboFile.getObjectId();
 		}
 	}
 
@@ -8910,7 +8911,9 @@ public class WsReactElements {
 	public Response uploadAvatar(@PathParam("sessionId") String sessionId, @FormDataParam("file") InputStream fileInput,
 			@FormDataParam("file") FormDataContentDisposition fileDetail, @Context HttpServletRequest httpRequest) {
 		ResponseHandler jrh = new ResponseHandler();
+		JsonObject responseObject = new JsonObject();
 		String fileType = "AVATAR";
+		Long objectId = null;
 			try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr); SvFileStore svfs = new SvFileStore(svr)) {
 			DbDataObject dbo = svr.getInstanceUser();
 			String fileName = new String(fileDetail.getName().getBytes(StandardCharsets.ISO_8859_1),
@@ -8931,10 +8934,12 @@ public class WsReactElements {
 			if(!dbArraySvFiles.isEmpty())
 				svw.deleteObjects(dbArraySvFiles, false, true);
 			
-			uploadFile(dbo, fileName, null, new DateTime(), data, fileType, 0L, svr);
+			objectId = uploadFile(dbo, fileName, null, new DateTime(), data, fileType, 0L, svr);
 			svr.dbCommit();
+			
+			responseObject.addProperty("objectId", objectId);
 			jrh.create(MessageType.SUCCESS, I18n.getText(getLocaleId(svr), "success.message.upload_file"),
-					I18n.getText(getLocaleId(svr), "success.message.upload_file"), new JsonObject());
+					I18n.getText(getLocaleId(svr), "success.message.upload_file"), responseObject);
 		} catch (Exception e) {
 			return PerunUtil.handleException(e, "Error uploading files");
 		}
