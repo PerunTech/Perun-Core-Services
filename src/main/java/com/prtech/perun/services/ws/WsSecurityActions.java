@@ -70,6 +70,7 @@ import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvExecManager;
+import com.prtech.svarog.SvFileStore;
 import com.prtech.svarog.SvNote;
 import com.prtech.svarog.SvParameter;
 import com.prtech.svarog.SvReader;
@@ -583,6 +584,8 @@ public class WsSecurityActions {
 				JsonObject u = dboUser.toJson();
 				JsonObject ug = svr.getDefaultUserGroup().toSimpleJson();
 				u.add("default_user_group", ug);
+				JsonObject avatarInfo = getAvatarFileObjectInfo(dboUser, svr);
+				u.add("user_avatar_file_info", avatarInfo);
 				jrh.create(MessageType.SUCCESS, I18n.getText("configuration.loaded"),
 						"SvarogConfiguration.getConfigComponent ", u);
 			}
@@ -590,6 +593,20 @@ public class WsSecurityActions {
 			return PerunUtil.handleException(e, "error.perun.failedToGetPersonalInfo");
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+	
+	public JsonObject getAvatarFileObjectInfo (DbDataObject dbo, SvReader svr) throws SvException {
+		JsonObject avatarInfo = new JsonObject();
+		try(SvFileStore svfs = new SvFileStore(svr)){
+		DbDataArray dbArraySvFiles = svfs.getFiles(dbo, "AVATAR", null);
+		if (!dbArraySvFiles.isEmpty()) {
+			avatarInfo.addProperty("objectId", dbArraySvFiles.get(0).getObjectId());
+			avatarInfo.addProperty("fileName", dbArraySvFiles.get(0).getAsString("file_name"));
+		}
+		} catch (SvException e) {
+			log4j.error("Error occurred while getting avatar file... {}", e);
+		}
+		return avatarInfo;
 	}
 
 	@Path("/i18n/{locale}/{label_group}")
