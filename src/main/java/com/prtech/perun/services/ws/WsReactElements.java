@@ -8913,7 +8913,7 @@ public class WsReactElements {
 		String fileType = "AVATAR";
 			try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr); SvFileStore svfs = new SvFileStore(svr)) {
 			DbDataObject dbo = svr.getInstanceUser();
-			String fileName = new String(fileDetail.getFileName().getBytes(StandardCharsets.ISO_8859_1),
+			String fileName = new String(fileDetail.getName().getBytes(StandardCharsets.ISO_8859_1),
 					StandardCharsets.UTF_8).replace(",", " ");
 
 			byte[] data = IOUtils.toByteArray(fileInput);
