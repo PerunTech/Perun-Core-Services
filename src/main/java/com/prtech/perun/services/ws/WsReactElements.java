@@ -8928,7 +8928,8 @@ public class WsReactElements {
 						svr.getInstanceUser());
 			}
 			DbDataArray dbArraySvFiles = svfs.getFiles(dbo, "AVATAR", null);
-			svw.deleteObjects(dbArraySvFiles, false, true);
+			if(!dbArraySvFiles.isEmpty())
+				svw.deleteObjects(dbArraySvFiles, false, true);
 			
 			uploadFile(dbo, fileName, null, new DateTime(), data, fileType, 0L, svr);
 			svr.dbCommit();
