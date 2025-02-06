@@ -1349,7 +1349,7 @@ public class AdminConsole {
 			@Context HttpServletRequest httpRequest) throws SvException {
 		ResponseHandler jrh = new ResponseHandler();
 
-		try (SvReader svr = new SvReader(session); SvWriter svw = new SvWriter(svr);) {
+		try (SvReader svr = new SvReader(session); SvSecurity svs = new SvSecurity(svr)) {
 
 			if (formVals != null) {
 				for (Entry<String, List<String>> entry : formVals.entrySet()) {
@@ -1360,7 +1360,7 @@ public class AdminConsole {
 						jobj = gs.fromJson(key, JsonObject.class);
 
 						DbDataObject user = svr.getObjectById(svr.getInstanceUser().getObjectId(),
-								SvReader.getTypeIdByName("SVAROG_USERS"), null);
+								svCONST.OBJECT_TYPE_USER, null);
 
 						if (jobj.get("confUserPassword") != null && jobj.get("userPassword") != null
 								&& jobj.get("userPassword").equals(jobj.get("confUserPassword"))) {
@@ -1369,13 +1369,18 @@ public class AdminConsole {
 											.equalsIgnoreCase(jobj.get("userName").getAsString())
 									&& jobj.get("oldPassword") != null && user.getVal("PASSWORD_HASH").toString()
 											.equals(SvUtil.getMD5(jobj.get("oldPassword").getAsString()))) {
+								if (!jobj.get("userPassword").getAsString()
+										.equals(jobj.get("oldPassword").getAsString())) {
 
-								user.setVal("PASSWORD_HASH", SvUtil.getMD5(jobj.get("userPassword").getAsString()));
-								svw.saveObject(user, false);
-								svw.dbCommit();
-
-								jrh.create(MessageType.SUCCESS, I18n.getText("changePassword.success"),
-										I18n.getText("changePassword.success"), new JsonObject());
+									svs.updatePassword(user.getVal("USER_NAME").toString(),
+											jobj.get("oldPassword").getAsString(),
+											jobj.get("userPassword").getAsString());
+									jrh.create(MessageType.SUCCESS, I18n.getText("changePassword.success"),
+											I18n.getText("changePassword.success"), new JsonObject());
+								} else {
+									jrh.create(MessageType.ERROR, I18n.getText("error.newPasswordMatchesOldPassword"),
+											I18n.getText("error.newPasswordMatchesOldPassword"), new JsonObject());
+								}
 							} else {
 								jrh.create(MessageType.ERROR, I18n.getText("error.incorrectUserNameOrPassword"),
 										I18n.getText("error.incorrectUserNameOrPassword"), new JsonObject());
