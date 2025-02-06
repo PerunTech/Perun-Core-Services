@@ -8945,5 +8945,65 @@ public class WsReactElements {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
+	
+	/*
+	 * Web service that uses getObjectsByLink and returns linked objects by id for
+	 * multiple link types for the object types
+	 * 
+	 * to be used for user and user_groups
+	 * 
+	 * @param sessionId Session ID (SID) 
+	 * 
+	 * @param objectId ID of the Object for which we like to get all linked objects
+	 * 
+	 * @param tableName String Name of the table that returning objects are
+	 * 
+	 * @param objType2 name of table that is link type object 2 / other object_type
+	 * besides tableName object_type
+	 * 
+	 * @param default link Default LinkType if there is a specified default link it
+	 * adds default:true to object linked by default link, can be null
+	 * 
+	 * @param linkStatus String status of the link, can be null
+	 * 
+	 * @param rowLimit How many items we want for return, 0 for all
+	 * 
+	 * @return Json Array of objects of type table_name, children of object with ID
+	 * parentId
+	 */
+	@Path("/getLinkedObjectsById/{sessionId}/{objectId}/{tableName}/{objType1}/{objType2}/{defaultLink}/{rowLimit}/{linkStatus}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getLinkedObjectsById(@PathParam("sessionId") String sessionId, @PathParam("objectId") Long objectId,
+			@PathParam("tableName") String tableName, @PathParam("objType2") String objType2,
+			@PathParam("rowLimit") Integer rowLimit, @PathParam("defaultLink") String defaultLink,
+			@PathParam("linkStatus") String linkStatus, @Context HttpServletRequest httpRequest) {
+		JsonArray jArr = null;
+		try (SvReader svr = new SvReader(sessionId)) {
+
+			JsonArray vData = new JsonArray();
+			Long objectType1 = SvCore.getTypeIdByName(tableName);
+			Long objectType2 = SvCore.getTypeIdByName(objType2);
+			List<DbDataObject> linkTypes = SvCore.getLinkTypes(objectType1, objectType2, true);
+
+			for (DbDataObject linkType : linkTypes) {
+				String linkName = linkType.getVal("LINK_TYPE").toString();
+				Response response = getObjectsByLink(sessionId, objectId, tableName, linkName, linkStatus, rowLimit,
+						httpRequest);
+				if (response.getStatus() == 200) {
+					jArr = (new Gson()).fromJson((String) response.getEntity(), JsonArray.class);
+					for (int i = 0; i < jArr.size(); i++) {
+						JsonObject object = jArr.get(i).getAsJsonObject();
+						if (defaultLink != null && defaultLink.equals(linkName))
+							object.addProperty("DEFAULT", true);
+						vData.add(object);
+					}
+				}
+			}
+			return Response.status(200).entity(vData.toString()).build();
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error getting Linked Objects");
+		}
+	}
 
 }
