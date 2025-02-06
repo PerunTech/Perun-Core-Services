@@ -1337,6 +1337,74 @@ public class AdminConsole {
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
 	
+	/*
+	 * Method to changePassword for currently logged in user
+	 * 
+	 * userName, oldPassword, userPassword, confUserPassword
+	 */
+	@Path("/changePassword/{session_id}")
+	@POST
+	@Produces("application/json")
+	public Response changePassword(@PathParam("session_id") String session, MultivaluedMap<String, String> formVals,
+			@Context HttpServletRequest httpRequest) throws SvException {
+		ResponseHandler jrh = new ResponseHandler();
+
+		try (SvReader svr = new SvReader(session); SvSecurity svs = new SvSecurity(svr)) {
+
+			if (formVals != null) {
+				for (Entry<String, List<String>> entry : formVals.entrySet()) {
+					if (entry.getKey() != null && !entry.getKey().isEmpty()) {
+						String key = entry.getKey();
+						JsonObject jobj = new JsonObject();
+						Gson gs = new Gson();
+						jobj = gs.fromJson(key, JsonObject.class);
+
+						DbDataObject user = svr.getObjectById(svr.getInstanceUser().getObjectId(),
+								svCONST.OBJECT_TYPE_USER, null);
+
+						if (jobj.get("confUserPassword") != null && jobj.get("userPassword") != null
+								&& jobj.get("userPassword").equals(jobj.get("confUserPassword"))) {
+							if (jobj.get("userName") != null && user != null && user.getVal("USER_NAME") != null
+									&& user.getVal("USER_NAME").toString()
+											.equalsIgnoreCase(jobj.get("userName").getAsString())
+									&& jobj.get("oldPassword") != null && user.getVal("PASSWORD_HASH").toString()
+											.equals(SvUtil.getMD5(jobj.get("oldPassword").getAsString()))) {
+								if (!jobj.get("userPassword").getAsString()
+										.equals(jobj.get("oldPassword").getAsString())) {
+
+									svs.updatePassword(user.getVal("USER_NAME").toString(),
+											jobj.get("oldPassword").getAsString(),
+											jobj.get("userPassword").getAsString());
+									jrh.create(MessageType.SUCCESS, I18n.getText("changePassword.success"),
+											I18n.getText("changePassword.success"), new JsonObject());
+								} else {
+									jrh.create(MessageType.ERROR, I18n.getText("error.newPasswordMatchesOldPassword"),
+											I18n.getText("error.newPasswordMatchesOldPassword"), new JsonObject());
+								}
+							} else {
+								jrh.create(MessageType.ERROR, I18n.getText("error.incorrectUserNameOrPassword"),
+										I18n.getText("error.incorrectUserNameOrPassword"), new JsonObject());
+							}
+						} else {
+							jrh.create(MessageType.ERROR, I18n.getText("changePassword.error.passwordNotMatch"),
+									I18n.getText("changePassword.error.passwordNotMatch"), new JsonObject());
+						}
+					}
+				}
+			}
+		} catch (SvException e) {
+			if (e.getLabelCode().equals("error.invalid_session")) {
+				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
+						I18n.getText("error.invalid_session"), new JsonObject());
+				return Response.status(401).entity(jrh.getAll().toString()).build();
+			}
+			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
+					new JsonObject());
+			return Response.status(500).entity(jrh.getAll().toString()).build();
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+	
 	@Path("/get-configuration/sid/{sid}/component-name/{componentName}")
 	@GET
 	@Produces("text/html;charset=utf-8")
