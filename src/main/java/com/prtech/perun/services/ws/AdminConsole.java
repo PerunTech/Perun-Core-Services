@@ -558,17 +558,10 @@ public class AdminConsole {
 
 			if (dboUserGroup != null && !dboUserGroup.isEmpty()) {
 				for (DbDataObject dboG : dboUserGroup.getItems()) {
-					jsonObj = new JsonObject();
-					String groupName = dboG.getVal("GROUP_NAME").toString();
-					String objectId = dboG.getObjectId().toString();
-					jsonObj.addProperty("groupName", groupName);
-					jsonObj.addProperty("objectId", objectId);
-					jsonObj.addProperty("defaultGroup", defaultGroup);
-					jsonArray.add(jsonObj);
+					dboG.setVal("defaultGroup", defaultGroup);
+					jsonArray.add(dboG.toSimpleJson());
 				}
 
-				jrh.create(MessageType.SUCCESS, I18n.getText("console.success.defaultUsers"),
-						I18n.getText("console.success.defaultUsers"), jsonArray);
 			} else {
 				jrh.create(MessageType.WARNING, I18n.getText("console.warning.userGroupNotFound"),
 						I18n.getText("console.warning.userGroupNotFound"), new JsonObject());
@@ -577,13 +570,13 @@ public class AdminConsole {
 			if (e.getLabelCode().equals("error.invalid_session")) {
 				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
 						I18n.getText("error.invalid_session"), new JsonObject());
-				return Response.status(200).entity(jrh.getAll().toString()).build();
+				return Response.status(401).entity(jrh.getAll().toString()).build();
 			}
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
 		}
-		return Response.status(200).entity(jrh.getAll().toString()).build();
+		return Response.status(200).entity(jsonArray).build();
 	}
 
 	/**
