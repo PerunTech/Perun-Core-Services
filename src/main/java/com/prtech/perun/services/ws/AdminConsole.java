@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.prtech.perun.PerunUtil;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvConf.SvDbType;
@@ -566,15 +567,8 @@ public class AdminConsole {
 				jrh.create(MessageType.WARNING, I18n.getText("console.warning.userGroupNotFound"),
 						I18n.getText("console.warning.userGroupNotFound"), new JsonObject());
 			}
-		} catch (SvException e) {
-			if (e.getLabelCode().equals("error.invalid_session")) {
-				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
-						I18n.getText("error.invalid_session"), new JsonObject());
-				return Response.status(401).entity(jrh.getAll().toString()).build();
-			}
-			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
-					new JsonObject());
-			return Response.status(200).entity(jrh.getAll().toString()).build();
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error in getLinkedGroups");
 		}
 		return Response.status(200).entity(jsonArray).build();
 	}
