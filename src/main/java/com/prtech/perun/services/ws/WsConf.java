@@ -296,7 +296,7 @@ public class WsConf {
 					jObj.addProperty("id", dbocard.getPlugin().getContextName());
 					jObj.addProperty("title", I18n.getText(dbocard.getLabelCode()));
 					jObj.addProperty("text", I18n.getLongText(dbocard.getLabelCode()));
-					jObj.addProperty("card_hidden", cardIsHidden(dbocard.getDboPlugin()));
+					jObj.addProperty("cardHidden", cardIsHidden(dbocard.getDboPlugin()));
 					if (!svr.isAdmin()) {
 
 						jObj.addProperty("cardDirectAccess", manageCardAccess(dbocard.getDboPlugin(), svr));
