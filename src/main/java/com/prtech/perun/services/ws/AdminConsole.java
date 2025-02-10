@@ -354,56 +354,50 @@ public class AdminConsole {
 	@GET
 	@Produces("application/json")
 	public Response getLinkedUsers(@PathParam("session_id") String session, @PathParam("object_id") Long objectId,
-			@Context HttpServletRequest httpRequest) throws SvException {
-		ResponseHandler jrh = new ResponseHandler();
-		try (SvReader svr = new SvReader(session); SvLink svlink = new SvLink(svr)) {
-			DbReader rdr = new DbReader();
-			JsonArray jsonArray = new JsonArray();
-			DbDataObject defaultGroup = SvCore.getLinkType("USER_DEFAULT_GROUP", SvCore.getTypeIdByName("SVAROG_USERS"),
-					SvCore.getTypeIdByName("SVAROG_USER_GROUPS"));
+	        @Context HttpServletRequest httpRequest) throws SvException {
+	    ResponseHandler jrh = new ResponseHandler();
+	    JsonArray jsonArray = new JsonArray();
+	    try (SvReader svr = new SvReader(session); SvLink svlink = new SvLink(svr)) {
+	        DbDataObject defaultGroup = SvCore.getLinkType("USER_DEFAULT_GROUP", SvCore.getTypeIdByName("SVAROG_USERS"),
+	                SvCore.getTypeIdByName("SVAROG_USER_GROUPS"));
 
-			DbDataObject additionalGroup = SvCore.getLinkType("USER_GROUP", SvCore.getTypeIdByName("SVAROG_USERS"),
-					SvCore.getTypeIdByName("SVAROG_USER_GROUPS"));
+	        DbDataObject additionalGroup = SvCore.getLinkType("USER_GROUP", SvCore.getTypeIdByName("SVAROG_USERS"),
+	                SvCore.getTypeIdByName("SVAROG_USER_GROUPS"));
 
-			DbDataArray dbaDefaultGroupUsers = svr.getObjectsByLinkedId(objectId,
-					SvCore.getTypeIdByName("SVAROG_USER_GROUPS"), defaultGroup, SvCore.getTypeIdByName("SVAROG_USERS"),
-					true, null, null, null);
+	        DbDataArray dbaDefaultGroupUsers = svr.getObjectsByLinkedId(objectId,
+	                SvCore.getTypeIdByName("SVAROG_USER_GROUPS"), defaultGroup, SvCore.getTypeIdByName("SVAROG_USERS"),
+	                true, null, null, null);
 
-			DbDataArray dbaAdditionalGroupUsers = svr.getObjectsByLinkedId(objectId,
-					SvCore.getTypeIdByName("SVAROG_USER_GROUPS"), additionalGroup,
-					SvCore.getTypeIdByName("SVAROG_USERS"), true, null, null, null);
+	        DbDataArray dbaAdditionalGroupUsers = svr.getObjectsByLinkedId(objectId,
+	                SvCore.getTypeIdByName("SVAROG_USER_GROUPS"), additionalGroup,
+	                SvCore.getTypeIdByName("SVAROG_USERS"), true, null, null, null);
 
-			if ((dbaDefaultGroupUsers != null && !dbaDefaultGroupUsers.isEmpty())
-					|| (dbaAdditionalGroupUsers != null && !dbaAdditionalGroupUsers.isEmpty())) {
-				if (dbaDefaultGroupUsers != null && !dbaDefaultGroupUsers.isEmpty()) {
-					for (DbDataObject dboDefaultGroupUser : dbaDefaultGroupUsers.getItems()) {
-						JsonObject jsonObj = rdr.getDboUserDetailsAsJsonObject(dboDefaultGroupUser);
-						jsonArray.add(jsonObj);
-					}
-				}
-				if (dbaAdditionalGroupUsers != null && !dbaAdditionalGroupUsers.isEmpty()) {
-					for (DbDataObject dboAdditionalGroupUser : dbaAdditionalGroupUsers.getItems()) {
-						JsonObject jsonObj = rdr.getDboUserDetailsAsJsonObject(dboAdditionalGroupUser);
-						jsonArray.add(jsonObj);
-					}
-				}
-				jrh.create(MessageType.SUCCESS, I18n.getText("console.success.defaultUsers"),
-						I18n.getText("console.success.defaultUsers"), jsonArray);
-			} else {
-				jrh.create(MessageType.WARNING, I18n.getText("console.warning.usersNotFound"),
-						I18n.getText("console.warning.usersNotFound"), new JsonObject());
-			}
-		} catch (SvException e) {
-			if (e.getLabelCode().equals("error.invalid_session")) {
-				jrh.create(MessageType.ERROR, I18n.getText("error.invalid_session"),
-						I18n.getText("error.invalid_session"), new JsonObject());
-				return Response.status(401).entity(jrh.getAll().toString()).build();
-			}
-			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
-					new JsonObject());
-			return Response.status(200).entity(jrh.getAll().toString()).build();
-		}
-		return Response.status(200).entity(jrh.getAll().toString()).build();
+	        if ((dbaDefaultGroupUsers != null && !dbaDefaultGroupUsers.isEmpty())
+	                || (dbaAdditionalGroupUsers != null && !dbaAdditionalGroupUsers.isEmpty())) {
+	            if (dbaDefaultGroupUsers != null && !dbaDefaultGroupUsers.isEmpty()) {
+	                for (DbDataObject dboDefaultGroupUser : dbaDefaultGroupUsers.getItems()) {
+	                    dboDefaultGroupUser.setVal("USER_UID", null);
+	                    dboDefaultGroupUser.setVal("PASSWORD_HASH", null);
+	                    dboDefaultGroupUser.setVal("CONFIRM_PASSWORD_HASH", null);
+	                    jsonArray.add(dboDefaultGroupUser.toSimpleJson());
+	                }
+	            }
+	            if (dbaAdditionalGroupUsers != null && !dbaAdditionalGroupUsers.isEmpty()) {
+	                for (DbDataObject dboAdditionalGroupUser : dbaAdditionalGroupUsers.getItems()) {
+	                    dboAdditionalGroupUser.setVal("USER_UID", null);
+	                    dboAdditionalGroupUser.setVal("PASSWORD_HASH", null);
+	                    dboAdditionalGroupUser.setVal("CONFIRM_PASSWORD_HASH", null);
+	                    jsonArray.add(dboAdditionalGroupUser.toSimpleJson());
+	                }
+	            }
+	        } else {
+	            jrh.create(MessageType.WARNING, I18n.getText("console.warning.usersNotFound"),
+	                    I18n.getText("console.warning.usersNotFound"), new JsonObject());
+	        }
+	    } catch (Exception e) {
+	        return PerunUtil.handleException(e, "Error in getLinkedGroups");
+	    }
+	    return Response.status(200).entity(jsonArray).build();
 	}
 
 	@Path("/Users/ByUserGroup/sid/{sid}/groupName/{groupName}")
