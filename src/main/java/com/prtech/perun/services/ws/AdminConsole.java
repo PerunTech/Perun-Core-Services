@@ -39,6 +39,7 @@ import com.prtech.svarog_common.DbQueryExpression;
 import com.prtech.svarog_common.DbQueryObject;
 import com.prtech.svarog_common.DbSearch;
 import com.prtech.svarog_common.DbSearchCriterion;
+import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.ResponseHandler;
 import com.prtech.svarog_common.DbQueryObject.DbJoinType;
@@ -1411,6 +1412,54 @@ public class AdminConsole {
 		jrh.create(MessageType.SUCCESS, I18n.getText("success.get_configuration"),
 				I18n.getText("success.get_configuration"), jarr);
 		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+	
+	@Path("/searchUsers/{sessionId}")
+	@POST
+	@Produces("application/json")
+	public Response getUsersWithFilter(@PathParam("sessionId") String sessionId,
+			MultivaluedMap<String, String> formVals, @Context HttpServletRequest httpRequest) {
+		String[] tablesUsedArray = new String[1];
+		Boolean[] tableShowArray = new Boolean[1];
+		int tablesusedCount = 1;
+		String retString = "";
+		try (SvReader svr = new SvReader(sessionId);) {
+			JsonObject jsonData = null;
+			if (formVals != null)
+				for (Entry<String, List<String>> entry : formVals.entrySet()) {
+					if (entry.getKey() != null && !entry.getKey().isEmpty()) {
+						String key = entry.getKey();
+						jsonData = new Gson().fromJson(key, JsonObject.class);
+					}
+				}
+			if (jsonData != null && jsonData.size() > 0) {
+				DbSearchExpression expr = new DbSearchExpression();
+				DbDataArray dboFieldsPerTable = SvCore.getFields(svCONST.OBJECT_TYPE_USER);
+				for (DbDataObject dbo : dboFieldsPerTable.getItems()) {
+					String fieldName = dbo.getVal(Rc.FIELD_NAME).toString();
+					if (jsonData.has(fieldName) && jsonData.get(fieldName) != null) {
+						String fieldValue = "%" + jsonData.get(fieldName).getAsString().toUpperCase() + "%";
+						DbSearchCriterion crit = new DbSearchCriterion(fieldName, DbCompareOperand.LIKE, fieldValue);
+						expr.addDbSearchItem(crit);
+					}
+				}
+				if (expr.getExprList().size() > 0) {
+					DbDataArray vData = svr.getObjects(expr, svCONST.OBJECT_TYPE_USER, null, null, null);
+					tablesUsedArray[0] = Rc.SVAROG_USERS;
+					tableShowArray[0] = true;
+					for (DbDataObject object : vData.getItems()) {
+						object.setVal("USER_UID", null);
+						object.setVal("PASSWORD_HASH", null);
+						object.setVal("CONFIRM_PASSWORD_HASH", null);
+					}
+					retString = WsReactElements.prapareTableQueryData(vData, tablesUsedArray, tableShowArray,
+							tablesusedCount, true, svr);
+				}
+			}
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error getting users with filter");
+		}
+		return Response.status(200).entity(retString).build();
 	}
 	
 }
