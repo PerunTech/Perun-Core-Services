@@ -207,8 +207,8 @@ public class AdminConsole {
 
 							svs.createUser(jobj.get("USER_NAME").getAsString().toUpperCase(), password,
 									jobj.get("FIRST_NAME").getAsString(), jobj.get("LAST_NAME").getAsString(),
-									jobj.get("E_MAIL").getAsString(), jobj.get("PIN").getAsString(), "", "INTERNAL",
-									null, false);
+									jobj.get("E_MAIL").getAsString(), jobj.get("PIN").getAsString(), "",
+									jobj.get("USER_TYPE").getAsString(), null, false);
 							if (jobj.has("linkToUsers")) {
 								DbDataObject user = dbr.searchDbObjectBySingleFilter(svCONST.OBJECT_TYPE_USER,
 										"USER_NAME", jobj.get("USER_NAME").getAsString().toUpperCase(), svr);
