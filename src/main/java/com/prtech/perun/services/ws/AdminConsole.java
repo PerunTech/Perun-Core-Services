@@ -1,6 +1,7 @@
 package com.prtech.perun.services.ws;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -19,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.prtech.perun.PerunUtil;
 import com.prtech.svarog.I18n;
@@ -199,17 +201,17 @@ public class AdminConsole {
 						JsonObject jobj = new JsonObject();
 						Gson gs = new Gson();
 						jobj = gs.fromJson(key, JsonObject.class);
-						if (jobj.get("confUserPassword") != null && jobj.get("userPassword") != null
-								&& jobj.get("userPassword").equals(jobj.get("confUserPassword"))) {
-							password = jobj.get("userPassword").getAsString().toUpperCase();
+						if (jobj.get("CONFIRM_PASSWORD_HASH") != null && jobj.get("PASSWORD_HASH") != null
+								&& jobj.get("PASSWORD_HASH").equals(jobj.get("CONFIRM_PASSWORD_HASH"))) {
+							password = jobj.get("PASSWORD_HASH").getAsString().toUpperCase();
 
-							svs.createUser(jobj.get("userName").getAsString().toUpperCase(), password,
-									jobj.get("firstName").getAsString(), jobj.get("lastName").getAsString(),
-									jobj.get("userEmail").getAsString(), jobj.get("pin").getAsString(), "", "INTERNAL",
-									null, false);
+							svs.createUser(jobj.get("USER_NAME").getAsString().toUpperCase(), password,
+									jobj.get("FIRST_NAME").getAsString(), jobj.get("LAST_NAME").getAsString(),
+									jobj.get("E_MAIL").getAsString(), jobj.get("PIN").getAsString(), "",
+									jobj.get("USER_TYPE").getAsString(), null, false);
 							if (jobj.has("linkToUsers")) {
 								DbDataObject user = dbr.searchDbObjectBySingleFilter(svCONST.OBJECT_TYPE_USER,
-										"USER_NAME", jobj.get("userName").getAsString().toUpperCase(), svr);
+										"USER_NAME", jobj.get("USER_NAME").getAsString().toUpperCase(), svr);
 								DbDataObject users = dbr.searchDbObjectBySingleFilter(DbCompareOperand.LIKE,
 										svCONST.OBJECT_TYPE_GROUP, "GROUP_NAME", "USERS", svr);
 								if (!Objects.isNull(user) && !Objects.isNull(users)) {
@@ -358,7 +360,11 @@ public class AdminConsole {
 	        @Context HttpServletRequest httpRequest) throws SvException {
 	    ResponseHandler jrh = new ResponseHandler();
 	    JsonArray jsonArray = new JsonArray();
+	    DbDataArray dbArray = new DbDataArray();
 	    try (SvReader svr = new SvReader(session); SvLink svlink = new SvLink(svr)) {
+	    	String[] tablesUsedArray = new String[1];
+			Boolean[] tableShowArray = new Boolean[1];
+			int tablesusedCount = 1;
 	        DbDataObject defaultGroup = SvCore.getLinkType("USER_DEFAULT_GROUP", SvCore.getTypeIdByName("SVAROG_USERS"),
 	                SvCore.getTypeIdByName("SVAROG_USER_GROUPS"));
 
@@ -380,7 +386,7 @@ public class AdminConsole {
 	                    dboDefaultGroupUser.setVal("USER_UID", null);
 	                    dboDefaultGroupUser.setVal("PASSWORD_HASH", null);
 	                    dboDefaultGroupUser.setVal("CONFIRM_PASSWORD_HASH", null);
-	                    jsonArray.add(dboDefaultGroupUser.toSimpleJson());
+	                    dbArray.addDataItem(dboDefaultGroupUser);
 	                }
 	            }
 	            if (dbaAdditionalGroupUsers != null && !dbaAdditionalGroupUsers.isEmpty()) {
@@ -388,9 +394,14 @@ public class AdminConsole {
 	                    dboAdditionalGroupUser.setVal("USER_UID", null);
 	                    dboAdditionalGroupUser.setVal("PASSWORD_HASH", null);
 	                    dboAdditionalGroupUser.setVal("CONFIRM_PASSWORD_HASH", null);
-	                    jsonArray.add(dboAdditionalGroupUser.toSimpleJson());
+	                    dbArray.addDataItem(dboAdditionalGroupUser);
 	                }
 	            }
+	            tablesUsedArray[0] = Rc.SVAROG_USERS;
+				tableShowArray[0] = true;
+
+				jsonArray = WsReactElements.prapareTableQueryData(dbArray, tablesUsedArray,
+						tableShowArray, tablesusedCount, true, svr, true, null);
 	        } else {
 	            jrh.create(MessageType.WARNING, I18n.getText("console.warning.usersNotFound"),
 	                    I18n.getText("console.warning.usersNotFound"), new JsonObject());
@@ -528,34 +539,41 @@ public class AdminConsole {
 	@Produces("application/json")
 	public Response getLinkedGroups(@PathParam("session_id") String session, @PathParam("object_id") Long object_id,
 			@Context HttpServletRequest httpRequest) throws SvException {
-		JsonObject jsonObj = null;
-		JsonArray jsonArray = null;
+		JsonArray jsonArray = new JsonArray();
 		DbDataObject dboUser = null;
 		DbDataArray dboUserGroup = null;
-		boolean defaultGroup = false;
 		DbDataObject dboUserDefaultGroup = null;
 
 		ResponseHandler jrh = new ResponseHandler();
 
 		try (SvReader svr = new SvReader(session); SvWriter svw = new SvWriter(session)) {
-			jsonArray = new JsonArray();
+			String[] tablesUsedArray = new String[1];
+			Boolean[] tableShowArray = new Boolean[1];
+			int tablesusedCount = 1;
 			dboUserDefaultGroup = new DbDataObject();
+			String defaultUserGroup = null;
 
 			dboUser = svr.getObjectById(object_id, SvReader.getTypeIdByName("SVAROG_USERS"), null);
 
 			if (dboUser != null) {
 				dboUserGroup = svr.getAllUserGroups(dboUser, false);
 				dboUserDefaultGroup = svr.getDefaultUserGroup();
-			}
-
-			if (dboUserDefaultGroup != null) {
-				defaultGroup = true;
+				defaultUserGroup = dboUserDefaultGroup.getObjectId().toString();
 			}
 
 			if (dboUserGroup != null && !dboUserGroup.isEmpty()) {
-				for (DbDataObject dboG : dboUserGroup.getItems()) {
-					dboG.setVal("defaultGroup", defaultGroup);
-					jsonArray.add(dboG.toSimpleJson());
+				tablesUsedArray[0] = Rc.SVAROG_USER_GROUPS;
+				tableShowArray[0] = true;
+				jsonArray = WsReactElements.prapareTableQueryData(dboUserGroup, tablesUsedArray,
+						tableShowArray, tablesusedCount, true, svr, true, null);
+				
+				Iterator<JsonElement> iterator = jsonArray.iterator();
+				while (iterator.hasNext()) {
+					JsonObject obj = iterator.next().getAsJsonObject();
+					String objectIdString = obj.get(Rc.SVAROG_USER_GROUPS + ".OBJECT_ID").getAsString();
+					if (dboUserDefaultGroup != null && defaultUserGroup != null
+							&& defaultUserGroup.equals(objectIdString))
+					obj.addProperty("DEFAULTGROUP", true);
 				}
 
 			} else {
