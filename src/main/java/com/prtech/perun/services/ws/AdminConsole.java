@@ -395,9 +395,9 @@ public class AdminConsole {
 	                    I18n.getText("console.warning.usersNotFound"), new JsonObject());
 	        }
 	    } catch (Exception e) {
-	        return PerunUtil.handleException(e, "Error in getLinkedGroups");
+	        return PerunUtil.handleException(e, "Error in getLinkedUsers");
 	    }
-	    return Response.status(200).entity(jsonArray).build();
+	    return Response.status(200).entity(jsonArray.toString()).build();
 	}
 
 	@Path("/Users/ByUserGroup/sid/{sid}/groupName/{groupName}")
@@ -564,7 +564,7 @@ public class AdminConsole {
 		} catch (Exception e) {
 			return PerunUtil.handleException(e, "Error in getLinkedGroups");
 		}
-		return Response.status(200).entity(jsonArray).build();
+		return Response.status(200).entity(jsonArray.toString()).build();
 	}
 
 	/**
