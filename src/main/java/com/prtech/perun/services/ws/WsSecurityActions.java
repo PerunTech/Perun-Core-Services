@@ -582,7 +582,8 @@ public class WsSecurityActions {
 						I18n.getText("error.perun.user_not_found"), new JsonObject());
 			} else {
 				JsonObject u = dboUser.toJson();
-				JsonObject ug = svr.getDefaultUserGroup().toSimpleJson();
+				JsonObject ug = svr.getDefaultUserGroup() != null ? svr.getDefaultUserGroup().toSimpleJson()
+						: new JsonObject();
 				u.add("default_user_group", ug);
 				JsonObject avatarInfo = getAvatarFileObjectInfo(dboUser, svr);
 				u.add("user_avatar_file_info", avatarInfo);
