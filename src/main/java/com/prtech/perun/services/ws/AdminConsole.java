@@ -244,6 +244,56 @@ public class AdminConsole {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
+	
+	/**
+	 * edit user
+	 */
+	@Path("/editUser/{session_id}/{object_id}")
+	@POST
+	@Produces("application/json")
+	public Response editUser(@PathParam("session_id") String session, @PathParam("object_id") Long objectId,
+			MultivaluedMap<String, String> formVals, @Context HttpServletRequest httpRequest) throws SvException {
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(session);
+				SvWriter svw = new SvWriter(svr);) {
+
+			if (formVals != null) {
+				for (Entry<String, List<String>> entry : formVals.entrySet()) {
+					if (entry.getKey() != null && !entry.getKey().isEmpty()) {
+						String key = entry.getKey();
+						JsonObject jobj = new JsonObject();
+						Gson gs = new Gson();
+						jobj = gs.fromJson(key, JsonObject.class);
+
+						DbDataObject dboUser = svr.getObjectById(objectId, svCONST.OBJECT_TYPE_USER, null);
+
+						if (jobj.get("USER_NAME") != null && !jobj.get("USER_NAME").isJsonNull())
+							dboUser.setVal("USER_NAME", jobj.get("USER_NAME").getAsString());
+						if (jobj.get("FIRST_NAME") != null && !jobj.get("FIRST_NAME").isJsonNull())
+							dboUser.setVal("FIRST_NAME", jobj.get("FIRST_NAME").getAsString());
+						if (jobj.get("LAST_NAME") != null && !jobj.get("LAST_NAME").isJsonNull())
+							dboUser.setVal("LAST_NAME", jobj.get("LAST_NAME").getAsString());
+						if (jobj.get("E_MAIL") != null && !jobj.get("E_MAIL").isJsonNull())
+							dboUser.setVal("E_MAIL", jobj.get("E_MAIL").getAsString());
+						if (jobj.get("PIN") != null && !jobj.get("PIN").isJsonNull())
+							dboUser.setVal("PIN", jobj.get("PIN").getAsString());
+						if (jobj.get("TAX_ID") != null && !jobj.get("TAX_ID").isJsonNull())
+							dboUser.setVal("TAX_ID", jobj.get("TAX_ID").getAsString());
+						if (jobj.get("USER_TYPE") != null && !jobj.get("USER_TYPE").isJsonNull())
+							dboUser.setVal("USER_TYPE", jobj.get("USER_TYPE").getAsString());
+
+						if (dboUser.getIsDirty())
+							svw.saveObject(dboUser);
+					}
+				}
+				jrh.create(MessageType.SUCCESS, I18n.getText("saveUser.success.saveUser"),
+						I18n.getText("saveUser.success.saveUser"), new JsonObject());
+			}
+		} catch (Exception e) {
+			PerunUtil.handleException(e, "Error edit User");
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
 
 	/**
 	 * assignee user to group f.r
