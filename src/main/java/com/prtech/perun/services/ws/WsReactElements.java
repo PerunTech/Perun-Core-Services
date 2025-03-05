@@ -2774,28 +2774,35 @@ public class WsReactElements {
 			} else {
 				fallback = true;
 			}
-
-			if (fallback) {
+			try {
 				dmsLats = dbo.getVal("GPS_NORTH").toString().split("[°']+");
 				dmsLons = dbo.getVal("GPS_EAST").toString().split("[°']+");
 				ddLat = Double.valueOf(dmsLats[0]) + Double.valueOf(dmsLats[1]) / 60
 						+ Double.valueOf(dmsLats[2]) / 3600;
 				ddLon = Double.valueOf(dmsLons[0]) + Double.valueOf(dmsLons[1]) / 60
 						+ Double.valueOf(dmsLons[2]) / 3600;
+				coord.x = ddLon;
+				coord.y = ddLat;
+			} catch (Exception ex) {
+				log4j.error("Error converting coordinates",ex);
+			}
+
+			if (ddLon > 0.00 && !SvConf.getSDISrid().equals("4326")) {
 				cst = svr.dbGetConn().prepareStatement(
 						"SELECT 	ST_X (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?),	?) , ?) ),ST_Y (ST_TRANSFORM( ST_Transform(ST_SetSRID(ST_MakePoint(?, ?),?), ?), ?) );");
+				int srid = Integer.parseInt(SvConf.getSDISrid());
 				// x params
 				cst.setDouble(1, ddLon);
 				cst.setDouble(2, ddLat);
 				cst.setInt(3, 4326);
-				cst.setInt(4, 32638);
-				cst.setInt(5, 32638);
+				cst.setInt(4, srid);
+				cst.setInt(5, srid);
 				// y params
 				cst.setDouble(6, ddLon);
 				cst.setDouble(7, ddLat);
 				cst.setInt(8, 4326);
-				cst.setInt(9, 32638);
-				cst.setInt(10, 32638);
+				cst.setInt(9, srid);
+				cst.setInt(10, srid);
 				rs = cst.executeQuery();
 				while (rs.next()) {
 					coord.x = rs.getDouble(1);
@@ -4699,7 +4706,8 @@ public class WsReactElements {
 							jLeaf.addProperty("descriptionValue", jsonreactGUI.get("descriptionValue").getAsString());
 						if (jsonreactGUI != null && jsonreactGUI.has("searchTable"))
 							jLeaf.addProperty("searchTable", jsonreactGUI.get("searchTable").getAsString());
-						if (jsonreactGUI != null && jsonreactGUI.has("format") && !jsonreactGUI.get("format").getAsBoolean())
+						if (jsonreactGUI != null && jsonreactGUI.has("format")
+								&& !jsonreactGUI.get("format").getAsBoolean())
 							jLeaf.remove("format");
 						// prepare drop-down if not a boolean field
 						// if
@@ -8902,7 +8910,7 @@ public class WsReactElements {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
+
 	@Path("/uploadAvatar/sid/{sessionId}")
 	@POST
 	@Consumes(MediaType.MULTIPART_FORM_DATA)
@@ -8914,7 +8922,9 @@ public class WsReactElements {
 		JsonObject responseObject = new JsonObject();
 		String fileType = "AVATAR";
 		Long objectId = null;
-			try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr); SvFileStore svfs = new SvFileStore(svr)) {
+		try (SvReader svr = new SvReader(sessionId);
+				SvWriter svw = new SvWriter(svr);
+				SvFileStore svfs = new SvFileStore(svr)) {
 			DbDataObject dbo = svr.getInstanceUser();
 			String fileName = new String(fileDetail.getName().getBytes(StandardCharsets.ISO_8859_1),
 					StandardCharsets.UTF_8).replace(",", " ");
@@ -8931,12 +8941,12 @@ public class WsReactElements {
 						svr.getInstanceUser());
 			}
 			DbDataArray dbArraySvFiles = svfs.getFiles(dbo, "AVATAR", null);
-			if(!dbArraySvFiles.isEmpty())
+			if (!dbArraySvFiles.isEmpty())
 				svw.deleteObjects(dbArraySvFiles, false, true);
-			
+
 			objectId = uploadFile(dbo, fileName, null, new DateTime(), data, fileType, 0L, svr);
 			svr.dbCommit();
-			
+
 			responseObject.addProperty("objectId", objectId);
 			jrh.create(MessageType.SUCCESS, I18n.getText(getLocaleId(svr), "success.message.upload_file"),
 					I18n.getText(getLocaleId(svr), "success.message.upload_file"), responseObject);
@@ -8945,14 +8955,14 @@ public class WsReactElements {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
+
 	/*
 	 * Web service that uses getObjectsByLink and returns linked objects by id for
 	 * multiple link types for the object types
 	 * 
 	 * to be used for user and user_groups
 	 * 
-	 * @param sessionId Session ID (SID) 
+	 * @param sessionId Session ID (SID)
 	 * 
 	 * @param objectId ID of the Object for which we like to get all linked objects
 	 * 
