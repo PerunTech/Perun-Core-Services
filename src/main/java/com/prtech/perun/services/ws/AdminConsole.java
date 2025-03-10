@@ -783,6 +783,94 @@ public class AdminConsole {
 		} 
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
+	
+	/**
+	 * assign object to org_unit
+	 */
+	@Path("/assignToOU/sid/{sid}/objectIdOU/{objectIdOU}/objectId/{objectId}/tableName/{tableName}")
+	@POST
+	@Produces("text/html;charset=utf-8")
+	public Response assignToOU(@PathParam("sid") String sid, @PathParam("objectIdOU") Long objectIdOU,
+			@PathParam("objectId") Long objectId, @PathParam("tableName") String tableName,
+			@Context HttpServletRequest httpRequest) {
+		ResponseHandler jrh = new ResponseHandler();
+		DbDataObject dbO = null;
+		DbDataObject dbOU = null;
+		try (SvReader svr = new SvReader(sid); SvLink svl = new SvLink(svr)) {
+			dbO = svr.getObjectById(objectId, SvCore.getTypeIdByName(tableName), null);
+			dbOU = svr.getObjectById(objectIdOU, svCONST.OBJECT_TYPE_ORG_UNITS, null);
+
+			DbDataObject dboLinkType = SvCore.getLinkType("POA", svCONST.OBJECT_TYPE_ORG_UNITS,
+					SvCore.getTypeIdByName(tableName));
+			if (dboLinkType != null) {
+				svl.linkObjects(dbOU.getObjectId(), dbO.getObjectId(), dboLinkType.getObjectId(), null);
+			} else
+				throw (new SvException("system.error.no_poa_link", svr.getInstanceUser()));
+
+			jrh.create(MessageType.SUCCESS, I18n.getText("success.objectAssignedToOU"),
+					I18n.getText("success.msg.success.objectAssignedToOU"), new JsonObject());
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error linking objects");
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+	
+	/**
+	 * objects by type with POA link to ORG UNIT
+	 */
+	@Path("/get/objectsByOU/sid/{sid}/objectIdOU/{objectIdOU}/tableName/{tableName}")
+	@GET
+	@Produces("text/html;charset=utf-8")
+	public Response objectsByOU(@PathParam("sid") String sid, @PathParam("objectIdOU") Long objectIdOU,
+			@PathParam("tableName") String tableName, @Context HttpServletRequest httpRequest) {
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(sid)) {
+			DbDataObject dbl = SvCore.getLinkType("POA", svCONST.OBJECT_TYPE_ORG_UNITS, SvCore.getTypeIdByName(tableName));
+			DbDataArray dboAllObjectsByOU = svr.getObjectsByLinkedId(objectIdOU, svCONST.OBJECT_TYPE_ORG_UNITS, dbl,
+					SvCore.getTypeIdByName(tableName), false, null, null, null);
+
+			String[] tablesUsedArray = new String[1];
+			Boolean[] tableShowArray = new Boolean[1];
+			tablesUsedArray[0] = tableName;
+			tableShowArray[0] = true;
+			int tablesusedCount = 1;
+
+			JsonArray jsonArray = WsReactElements.prapareTableQueryData(dboAllObjectsByOU, tablesUsedArray,
+					tableShowArray, tablesusedCount, true, svr, false, null);
+
+			jrh.create(MessageType.SUCCESS, I18n.getText("console.success.loadObjectORGUNIT"),
+					I18n.getText("console.success.loadObjectORGUNIT"), jsonArray);
+		} catch (SvException e) {
+			return PerunUtil.handleException(e, "Error getting linked objects");
+		} 
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+	
+	/**
+	 * remove object from ORG UNIT
+	 */
+	@Path("/removeObjectFromOU/sid/{sid}/objectIdOU/{objectIdOU}/objectId/{objectId}/tableName/{tableName}")
+	@POST
+	@Produces("text/html;charset=utf-8")
+	public Response removeObjectFromOU(@PathParam("sid") String sid, @PathParam("objectIdOU") Long objectIdOU,
+			@PathParam("objectId") Long objectId, @PathParam("tableName") String tableName,
+			@Context HttpServletRequest httpRequest) {
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(sid);SvWriter svw = new SvWriter(svr)) {
+			DbDataObject dbl = SvCore.getLinkType("POA", svCONST.OBJECT_TYPE_ORG_UNITS, SvCore.getTypeIdByName(tableName));
+			DbDataObject linkObj = DbReader.findLink(objectIdOU, objectId, dbl.getObjectId(), svr);
+
+			if (linkObj != null)
+				svw.deleteObject(linkObj);
+
+			jrh.create(MessageType.SUCCESS, I18n.getText("success.objectWasRemovedFromOU"),
+					I18n.getText("success.objectWasRemovedFromOU"), new JsonObject());
+
+		} catch (SvException e) {
+			return PerunUtil.handleException(e, "Error deleting link");
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
 
 	/**
 	 * create custom acl code f.r formVals - keys - > {aclCode}/{accessType}
