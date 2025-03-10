@@ -787,8 +787,8 @@ public class AdminConsole {
 	/**
 	 * assign object to org_unit
 	 */
-	@Path("/get/assignToOU/sid/{sid}/objectIdOU/{objectIdOU}/objectId/{objectId}/tableName/{tableName}")
-	@GET
+	@Path("/assignToOU/sid/{sid}/objectIdOU/{objectIdOU}/objectId/{objectId}/tableName/{tableName}")
+	@POST
 	@Produces("text/html;charset=utf-8")
 	public Response assignToOU(@PathParam("sid") String sid, @PathParam("objectIdOU") Long objectIdOU,
 			@PathParam("objectId") Long objectId, @PathParam("tableName") String tableName,
@@ -849,8 +849,8 @@ public class AdminConsole {
 	/**
 	 * remove object from ORG UNIT
 	 */
-	@Path("/get/removeObjectFromOU/sid/{sid}/objectIdOU/{objectIdOU}/objectId/{objectId}/tableName/{tableName}")
-	@GET
+	@Path("/removeObjectFromOU/sid/{sid}/objectIdOU/{objectIdOU}/objectId/{objectId}/tableName/{tableName}")
+	@POST
 	@Produces("text/html;charset=utf-8")
 	public Response removeObjectFromOU(@PathParam("sid") String sid, @PathParam("objectIdOU") Long objectIdOU,
 			@PathParam("objectId") Long objectId, @PathParam("tableName") String tableName,
