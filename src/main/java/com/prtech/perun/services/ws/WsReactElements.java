@@ -631,9 +631,15 @@ public class WsReactElements {
 									listNames.add(enumName);
 									switch (fieldType) {
 									case Rc.NUMERIC:
-										jLeaf.addProperty(Rc.ID, Long.valueOf(item.getVal(idSetFiels).toString()));
-										jLeaf.addProperty(Rc.VALUE_LC,
-												Long.valueOf(item.getVal(idSetFiels).toString()));
+										if ("OBJECT_ID".equals(idSetFiels)) {
+											jLeaf.addProperty(Rc.ID, Long.valueOf(item.getObjectId().toString()));
+											jLeaf.addProperty(Rc.ID, Long.valueOf(item.getObjectId().toString()));
+										}
+										else {
+											jLeaf.addProperty(Rc.ID, Long.valueOf(item.getVal(idSetFiels).toString()));
+											jLeaf.addProperty(Rc.VALUE_LC,
+													Long.valueOf(item.getVal(idSetFiels).toString()));
+										}
 										break;
 									default:
 										jLeaf.addProperty(Rc.ID, item.getVal(idSetFiels).toString());
