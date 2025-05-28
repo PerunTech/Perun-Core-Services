@@ -633,7 +633,7 @@ public class WsReactElements {
 									case Rc.NUMERIC:
 										if ("OBJECT_ID".equals(idSetFiels)) {
 											jLeaf.addProperty(Rc.ID, Long.valueOf(item.getObjectId().toString()));
-											jLeaf.addProperty(Rc.ID, Long.valueOf(item.getObjectId().toString()));
+											jLeaf.addProperty(Rc.VALUE_LC, Long.valueOf(item.getObjectId().toString()));
 										}
 										else {
 											jLeaf.addProperty(Rc.ID, Long.valueOf(item.getVal(idSetFiels).toString()));
