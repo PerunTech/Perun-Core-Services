@@ -634,8 +634,7 @@ public class WsReactElements {
 										if ("OBJECT_ID".equals(idSetFiels)) {
 											jLeaf.addProperty(Rc.ID, Long.valueOf(item.getObjectId().toString()));
 											jLeaf.addProperty(Rc.VALUE_LC, Long.valueOf(item.getObjectId().toString()));
-										}
-										else {
+										} else {
 											jLeaf.addProperty(Rc.ID, Long.valueOf(item.getVal(idSetFiels).toString()));
 											jLeaf.addProperty(Rc.VALUE_LC,
 													Long.valueOf(item.getVal(idSetFiels).toString()));
@@ -2790,7 +2789,7 @@ public class WsReactElements {
 				coord.x = ddLon;
 				coord.y = ddLat;
 			} catch (Exception ex) {
-				log4j.error("Error converting coordinates",ex);
+				log4j.error("Error converting coordinates", ex);
 			}
 
 			if (ddLon > 0.00 && !SvConf.getSDISrid().equals("4326")) {
@@ -3735,7 +3734,7 @@ public class WsReactElements {
 			@PathParam("no_rec") Integer recordNumber, @PathParam("sortOrder") String sortOrder,
 			@Context HttpServletRequest httpRequest) {
 		return getTableWithMultipleFilters(sessionId, tableName, fieldNames, criterumConjuctions, fieldValues,
-				recordNumber, null, sortOrder, httpRequest);
+				recordNumber, Rc.PKID, sortOrder, httpRequest);
 	}
 
 	/**
@@ -3853,15 +3852,8 @@ public class WsReactElements {
 					DbDataArray vData = svr.getObjects(expr, tableID, null, recordNumber, 0);
 					if (sortField != null) {
 						ArrayList<DbDataObject> items = vData.getSortedItems(sortField, true);
-						vData = new DbDataArray();
-						if (sortOrder.equals("ASC"))
-							for (int i = 0; i < items.size(); i++) {
-								vData.addDataItem(items.get(i));
-							}
-						else
-							for (int i = items.size(); --i >= 0;) {
-								vData.addDataItem(items.get(i));
-							}
+						if (sortOrder.equals(Rc.DESC))
+							Collections.reverse(items);
 					}
 					tablesUsedArray[0] = getTableNameById(tableID, svr);
 					tableShowArray[0] = true;
