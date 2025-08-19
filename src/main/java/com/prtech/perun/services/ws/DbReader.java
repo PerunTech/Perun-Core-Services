@@ -64,10 +64,10 @@ public class DbReader {
 	/**
 	 * Simple help method for fetching DB object by single filter
 	 * 
-	 * @param objectType The id of the type/table
-	 * @param columnName The column name to search by
+	 * @param objectType  The id of the type/table
+	 * @param columnName  The column name to search by
 	 * @param columnValue The value to be searched for
-	 * @param svr Standard SvCore instance
+	 * @param svr         Standard SvCore instance
 	 * @return
 	 */
 	public DbDataObject searchDbObjectBySingleFilter(Long objectType, String columnName, Object columnValue,
@@ -100,6 +100,27 @@ public class DbReader {
 	}
 
 	/**
+	 * Simple method for searching objects by single filter
+	 * 
+	 * @param objectType
+	 * @param columnName
+	 * @param value
+	 * @param svr
+	 * @return
+	 */
+	public DbDataArray searchObjectsBySingleFilter(DbCompareOperand operand, Long objectType, String columnName,
+			Object value, SvReader svr) {
+		DbDataArray dba = null;
+		try {
+			DbSearchCriterion cr1 = new DbSearchCriterion(columnName, operand, value);
+			dba = svr.getObjects(cr1, objectType, null, 0, 0);
+		} catch (SvException e) {
+			log4j.error(e);
+		}
+		return dba;
+	}
+
+	/**
 	 * Find 'link_type' for given linkName
 	 * 
 	 * @param linkName name of the link
@@ -128,7 +149,7 @@ public class DbReader {
 	 * @param linkObjId1 entity/village object id
 	 * @param linkObjId2 disaster claim object id
 	 * @param linkName   name of the link between the two objects
-	 * @param svr SvReader instance
+	 * @param svr        SvReader instance
 	 * @return DbDataObject
 	 */
 	public static DbDataObject findLink(Long linkObjId1, Long linkObjId2, String linkName, SvReader svr)
@@ -159,7 +180,7 @@ public class DbReader {
 	 * @param linkObjId1 entity/village object id
 	 * @param linkObjId2 disaster claim object id
 	 * @param linkTypeId object id of the link type
-	 * @param svr The SvCore to be used for connectivity 
+	 * @param svr        The SvCore to be used for connectivity
 	 * @return DbDataObject The link object
 	 * @throws SvException Any underlying exception
 	 */
@@ -550,7 +571,7 @@ public class DbReader {
 	 * its session
 	 * 
 	 * @param actionPermissionKey The ACL key
-	 * @param svr The SvReader instance 
+	 * @param svr                 The SvReader instance
 	 * @throws SvException
 	 */
 	public void checkIfCurrentUserHasActionPermission(String actionPermissionKey, SvReader svr) throws SvException {
