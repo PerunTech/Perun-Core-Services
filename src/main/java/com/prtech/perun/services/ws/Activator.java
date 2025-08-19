@@ -15,12 +15,15 @@
  *
  */
 package com.prtech.perun.services.ws;
+
 import java.util.ArrayList;
 
 import org.apache.logging.log4j.Logger;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
+
+import com.prtech.menu.manager.MenuBuilder;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog_interfaces.ISvExecutor;
 import com.prtech.svarog_interfaces.ISvExecutorGroup;
@@ -36,8 +39,7 @@ import com.prtech.svarog_interfaces.ISvExecutorGroup;
  */
 public class Activator implements BundleActivator {
 	/**
-	 * THIS PROJECT HAS ONLY JAVA SERVICES.
-	 * No frontend html/js to serve
+	 * THIS PROJECT HAS ONLY JAVA SERVICES. No frontend html/js to serve
 	 */
 	/**
 	 * Logger instance from the Svarog classloader so we log our Svarog specific
@@ -46,14 +48,13 @@ public class Activator implements BundleActivator {
 	static final Logger log4j = SvConf.getLogger(Activator.class);
 
 	/**
-	 * List of service registrations which we use for unregistering when
-	 * cleaning up
+	 * List of service registrations which we use for unregistering when cleaning up
 	 */
 	private ArrayList<ServiceRegistration> registration = new ArrayList<ServiceRegistration>();
 
 	/**
-	 * List of JAXRS Service classes which we will later use for registration in
-	 * the bundle startup
+	 * List of JAXRS Service classes which we will later use for registration in the
+	 * bundle startup
 	 */
 	private ArrayList<Class<?>> jaxServiceClasses = initClasses();
 
@@ -62,7 +63,6 @@ public class Activator implements BundleActivator {
 	 * registration in the bundle startup
 	 */
 	private ArrayList<ISvExecutorGroup> executorServiceClasses = initExecutors();
-
 
 	/**
 	 * Init method adding all classes to the list
@@ -78,6 +78,7 @@ public class Activator implements BundleActivator {
 		list.add(AdminConsole.class);
 		list.add(PublicWs.class);
 		list.add(WsReporting.class);
+		list.add(MenuBuilder.class);
 		return list;
 
 	}
@@ -96,11 +97,10 @@ public class Activator implements BundleActivator {
 
 	/**
 	 * Implements BundleActivator.start(). Registers all instances of the JAXRS
-	 * services as well as all objects implementing ISvExecutor interfaces using
-	 * the bundle context;
+	 * services as well as all objects implementing ISvExecutor interfaces using the
+	 * bundle context;
 	 * 
-	 * @param context
-	 *            the framework context for the bundle.
+	 * @param context the framework context for the bundle.
 	 */
 	@SuppressWarnings("unchecked")
 	public void start(BundleContext context) {
@@ -132,11 +132,10 @@ public class Activator implements BundleActivator {
 	}
 
 	/**
-	 * Implements BundleActivator.stop(). Unregistering all services which have
-	 * been registered
+	 * Implements BundleActivator.stop(). Unregistering all services which have been
+	 * registered
 	 * 
-	 * @param context
-	 *            the framework context for the bundle.
+	 * @param context the framework context for the bundle.
 	 */
 	public void stop(BundleContext context) throws Exception {
 		for (ServiceRegistration svc : registration) {
