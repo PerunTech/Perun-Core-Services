@@ -172,7 +172,8 @@
 						</Bundle-Activator>
 						<Export-Package>
 							com.prtech.perun,
-							com.prtech.perun.services.ws
+							com.prtech.perun.services.ws,
+							com.prtech.menu.manager
 						</Export-Package>
 						<Import-Package>
 							com.eclipsesource.jaxrs.publisher;version=!,*
