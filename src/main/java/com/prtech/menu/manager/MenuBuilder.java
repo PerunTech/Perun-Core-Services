@@ -49,7 +49,9 @@ public class MenuBuilder {
 				return Response.status(Response.Status.NOT_FOUND).entity("Menu not found").build();
 			}
 			JsonObject resultJson = buildFullHierarchy(menuRoot, svr);
-			return Response.ok(resultJson).build();
+			String jsonString = new GsonBuilder().setPrettyPrinting().create().toJson(resultJson);
+			// Return serialized JSON string as application/json
+			return Response.ok(jsonString, MediaType.APPLICATION_JSON).build();
 		} catch (Exception e) {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
