@@ -25,7 +25,6 @@ import org.osgi.framework.ServiceRegistration;
 
 import com.prtech.menu.manager.MenuBuilder;
 import com.prtech.svarog.SvConf;
-import com.prtech.svarog_interfaces.ISvExecutor;
 import com.prtech.svarog_interfaces.ISvExecutorGroup;
 
 /**
