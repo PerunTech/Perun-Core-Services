@@ -4,7 +4,7 @@ package com.prtech.menu.manager;
  * This class contains only constants used in the menu.manager package
  */
 
-public class MC {
+public class CC {
 
 	public static final String PERUN_MENU = "PERUN_MENU";
 	public static final String MENU_CODE = "MENU_CODE";

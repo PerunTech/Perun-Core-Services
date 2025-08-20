@@ -2,7 +2,7 @@ package com.prtech.perun.services.ws;
 
 import java.util.ArrayList;
 
-import com.prtech.menu.manager.MC;
+import com.prtech.menu.manager.CC;
 import com.prtech.svarog.Sv;
 import com.prtech.svarog_common.DbDataField;
 import com.prtech.svarog_common.DbDataField.DbFieldType;
@@ -146,7 +146,7 @@ public class DbInit implements IDbInit {
 	// perun table for dynamic menus
 	private static DbDataTable createPerunMenuTable() {
 		DbDataTable dbe = new DbDataTable();
-		dbe.setDbTableName(MC.PERUN_MENU);
+		dbe.setDbTableName(CC.PERUN_MENU);
 		dbe.setDbRepoName("{MASTER_REPO}");
 		dbe.setDbSchema("{DEFAULT_SCHEMA}");
 		dbe.setIsSystemTable(false);
@@ -166,7 +166,7 @@ public class DbInit implements IDbInit {
 		dbf1.setLabel_code("perun_menu.pkid");
 
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName(MC.MENU_CODE);
+		dbf2.setDbFieldName(CC.MENU_CODE);
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(50);
 		dbf2.setIsUnique(true);
@@ -174,7 +174,7 @@ public class DbInit implements IDbInit {
 		dbf2.setLabel_code("perun_menu.menu_code");
 
 		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName(MC.LABEL_CODE);
+		dbf3.setDbFieldName(CC.LABEL_CODE);
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(50);
 		dbf3.setIsUnique(true);
@@ -183,7 +183,7 @@ public class DbInit implements IDbInit {
 
 		// codelist - enum MENU_TYPES
 		DbDataField dbf4 = new DbDataField();
-		dbf4.setDbFieldName(MC.MENU_TYPE);
+		dbf4.setDbFieldName(CC.MENU_TYPE);
 		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf4.setDbFieldSize(50);
 		dbf4.setIsNull(true);
@@ -192,14 +192,14 @@ public class DbInit implements IDbInit {
 
 		// json
 		DbDataField dbf5 = new DbDataField();
-		dbf5.setDbFieldName(MC.MENU_CONF);
+		dbf5.setDbFieldName(CC.MENU_CONF);
 		dbf5.setDbFieldType(DbFieldType.TEXT);
 		dbf5.setIsNull(true);
 		dbf5.setLabel_code("perun_menu.menu_conf");
 
 		// table name of the menu parent
 		DbDataField dbf6 = new DbDataField();
-		dbf6.setDbFieldName(MC.PARENT_TABLE_NAME);
+		dbf6.setDbFieldName(CC.PARENT_TABLE_NAME);
 		dbf6.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf6.setDbFieldSize(50);
 		dbf6.setIsNull(true);
@@ -207,7 +207,7 @@ public class DbInit implements IDbInit {
 
 		// code_value of svarog codelist item
 		DbDataField dbf7 = new DbDataField();
-		dbf7.setDbFieldName(MC.SVAROG_CDL_CAT);
+		dbf7.setDbFieldName(CC.SVAROG_CDL_CAT);
 		dbf7.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf7.setDbFieldSize(50);
 		dbf7.setIsNull(true);
@@ -215,7 +215,7 @@ public class DbInit implements IDbInit {
 
 		// label_code of svarog_acl
 		DbDataField dbf8 = new DbDataField();
-		dbf8.setDbFieldName(MC.SVAROG_ACL_LBL);
+		dbf8.setDbFieldName(CC.SVAROG_ACL_LBL);
 		dbf8.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf8.setDbFieldSize(100);
 		dbf8.setIsNull(true);
@@ -223,14 +223,14 @@ public class DbInit implements IDbInit {
 
 		// internal category
 		DbDataField dbf9 = new DbDataField();
-		dbf9.setDbFieldName(MC.INTERNAL_CAT);
+		dbf9.setDbFieldName(CC.INTERNAL_CAT);
 		dbf9.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf9.setDbFieldSize(200);
 		dbf9.setIsNull(true);
 		dbf9.setLabel_code("perun_menu.internal_cat");
 
 		DbDataField dbf10 = new DbDataField();
-		dbf10.setDbFieldName(MC.VERSION);
+		dbf10.setDbFieldName(CC.VERSION);
 		dbf10.setDbFieldType(DbFieldType.NUMERIC);
 		dbf10.setDbFieldSize(3);
 		dbf10.setDbFieldScale(0);

@@ -91,7 +91,7 @@ public class MenuBuilderDeprecated {
 	}
 
 	private static DbDataObject findMenuByCode(String menuCode, SvReader svr) throws Exception {
-		DbSearchCriterion filter = new DbSearchCriterion(MC.MENU_CODE, DbCompareOperand.EQUAL, menuCode);
+		DbSearchCriterion filter = new DbSearchCriterion(CC.MENU_CODE, DbCompareOperand.EQUAL, menuCode);
 		DbDataArray result = svr.getObjects(filter, svCONST.OBJECT_TYPE_MENU, null, 0, 0);
 		return result != null && !result.getItems().isEmpty() ? result.get(0) : null;
 	}
@@ -115,7 +115,7 @@ public class MenuBuilderDeprecated {
 		// Merge all buttonArrays
 		JsonArray mergedButtons = new JsonArray();
 		for (DbDataObject dbo : hierarchyMenus) {
-			String confStr = (String) dbo.getVal(MC.MENU_CONF);
+			String confStr = (String) dbo.getVal(CC.MENU_CONF);
 			if (confStr != null) {
 				JsonObject confJson = JsonParser.parseString(confStr).getAsJsonObject();
 				if (confJson.has("buttonArray")) {
