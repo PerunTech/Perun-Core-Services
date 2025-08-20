@@ -15,6 +15,8 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.*;
 import com.prtech.perun.services.ws.DbReader;
 import com.prtech.svarog.SvReader;
+import com.prtech.svarog.SvSecurity;
+import com.prtech.svarog.SvUtil;
 import com.prtech.svarog_common.*;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 
@@ -75,26 +77,65 @@ public class MenuBuilder {
 		if (menuDbo == null || visited.contains(menuDbo.getObjectId()))
 			return;
 		visited.add(menuDbo.getObjectId());
-
 		String menuConfStr = (String) menuDbo.getVal(CC.MENU_CONF);
-		if (menuConfStr != null) {
-			JsonObject confJson = JsonParser.parseString(menuConfStr).getAsJsonObject();
-
-			// Import referenced menu if exists
-			if (confJson.has(CC.IMPORT_MENU)) {
-				String importCode = confJson.get(CC.IMPORT_MENU).getAsString();
-				DbDataObject imported = new DbReader().searchDbObjectBySingleFilter(DbCompareOperand.EQUAL,
+		if (menuConfStr == null)
+			return;
+		JsonObject confJson = JsonParser.parseString(menuConfStr).getAsJsonObject();
+		if (!confJson.has("buttonArray"))
+			return;
+		JsonArray btns = confJson.getAsJsonArray("buttonArray");
+		for (JsonElement btn : btns) {
+			if (btn.isJsonObject() && btn.getAsJsonObject().has(CC.IMPORT_MENU)) {
+				String importCode = btn.getAsJsonObject().get(CC.IMPORT_MENU).getAsString();
+				DbDataObject importedMenu = new DbReader().searchDbObjectBySingleFilter(DbCompareOperand.EQUAL,
 						SvReader.getTypeIdByName(CC.PERUN_MENU), CC.MENU_CODE, importCode, svr);
-				if (imported != null)
-					buildRecursive(imported, svr, visited, mergedButtons);
-			}
-
-			// Append own buttonArray
-			if (confJson.has("buttonArray")) {
-				JsonArray btns = confJson.getAsJsonArray("buttonArray");
-				for (JsonElement btn : btns)
-					mergedButtons.add(btn.deepCopy());
+				if (importedMenu != null) {
+					buildRecursive(importedMenu, svr, visited, mergedButtons);
+				} else {
+					log4j.warn("IMPORT_MENU: Menu code not found: " + importCode);
+				}
+			} else {
+				mergedButtons.add(btn.deepCopy());
 			}
 		}
+	}
+
+	/**
+	 * Console test for merging a full menu tree from a given menu code.
+	 */
+	public static void main(String[] args) {
+		String sid = null;
+		try (SvSecurity svc = new SvSecurity()) {
+			sid = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
+			log4j.info("Logged in with session ID: " + sid);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return;
+		}
+
+		if (sid == null)
+			return;
+
+		String targetMenuCode = "pharmacies_registry_menu_tt";
+
+		try (SvReader svr = new SvReader(sid)) {
+			DbDataObject targetMenu = findMenuByCode(targetMenuCode, svr);
+			if (targetMenu == null) {
+				log4j.info("Menu not found: " + targetMenuCode);
+				return;
+			}
+
+			JsonObject fullHierarchyJson = buildFullHierarchy(targetMenu, svr, new HashSet<>());
+			log4j.info("!!! Full merged menu in JSON: !!!");
+			System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(fullHierarchyJson));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	private static DbDataObject findMenuByCode(String menuCode, SvReader svr) throws Exception {
+		DbSearchCriterion filter = new DbSearchCriterion(CC.MENU_CODE, DbCompareOperand.EQUAL, menuCode);
+		DbDataArray result = svr.getObjects(filter, SvReader.getTypeIdByName(CC.PERUN_MENU), null, 0, 0);
+		return result != null && !result.getItems().isEmpty() ? result.get(0) : null;
 	}
 }
