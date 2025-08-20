@@ -75,25 +75,25 @@ public class MenuBuilder {
 		if (menuDbo == null || visited.contains(menuDbo.getObjectId()))
 			return;
 		visited.add(menuDbo.getObjectId());
-
 		String menuConfStr = (String) menuDbo.getVal(CC.MENU_CONF);
-		if (menuConfStr != null) {
-			JsonObject confJson = JsonParser.parseString(menuConfStr).getAsJsonObject();
-
-			// Import referenced menu if exists
-			if (confJson.has(CC.IMPORT_MENU)) {
-				String importCode = confJson.get(CC.IMPORT_MENU).getAsString();
-				DbDataObject imported = new DbReader().searchDbObjectBySingleFilter(DbCompareOperand.EQUAL,
+		if (menuConfStr == null)
+			return;
+		JsonObject confJson = JsonParser.parseString(menuConfStr).getAsJsonObject();
+		if (!confJson.has("buttonArray"))
+			return;
+		JsonArray btns = confJson.getAsJsonArray("buttonArray");
+		for (JsonElement btn : btns) {
+			if (btn.isJsonObject() && btn.getAsJsonObject().has(CC.IMPORT_MENU)) {
+				String importCode = btn.getAsJsonObject().get(CC.IMPORT_MENU).getAsString();
+				DbDataObject importedMenu = new DbReader().searchDbObjectBySingleFilter(DbCompareOperand.EQUAL,
 						SvReader.getTypeIdByName(CC.PERUN_MENU), CC.MENU_CODE, importCode, svr);
-				if (imported != null)
-					buildRecursive(imported, svr, visited, mergedButtons);
-			}
-
-			// Append own buttonArray
-			if (confJson.has("buttonArray")) {
-				JsonArray btns = confJson.getAsJsonArray("buttonArray");
-				for (JsonElement btn : btns)
-					mergedButtons.add(btn.deepCopy());
+				if (importedMenu != null) {
+					buildRecursive(importedMenu, svr, visited, mergedButtons);
+				} else {
+					log4j.warn("IMPORT_MENU: Menu code not found: " + importCode);
+				}
+			} else {
+				mergedButtons.add(btn.deepCopy());
 			}
 		}
 	}
