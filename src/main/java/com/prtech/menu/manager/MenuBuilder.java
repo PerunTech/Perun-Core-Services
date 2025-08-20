@@ -41,7 +41,7 @@ public class MenuBuilder {
 	public Response generateMenu(@PathParam("sid") String sessionId, @PathParam("rootMenuCode") String rootMenuCode) {
 		try (SvReader svr = new SvReader(sessionId)) {
 			DbDataObject menuRoot = new DbReader().searchDbObjectBySingleFilter(DbCompareOperand.EQUAL,
-					SvReader.getTypeIdByName(MC.PERUN_MENU), MC.MENU_CODE, rootMenuCode, svr);
+					SvReader.getTypeIdByName(CC.PERUN_MENU), CC.MENU_CODE, rootMenuCode, svr);
 			if (menuRoot == null)
 				return Response.status(Response.Status.NOT_FOUND).entity("Menu not found").build();
 			JsonObject resultJson = buildFullHierarchy(menuRoot, svr, new HashSet<>());
@@ -76,15 +76,15 @@ public class MenuBuilder {
 			return;
 		visited.add(menuDbo.getObjectId());
 
-		String menuConfStr = (String) menuDbo.getVal(MC.MENU_CONF);
+		String menuConfStr = (String) menuDbo.getVal(CC.MENU_CONF);
 		if (menuConfStr != null) {
 			JsonObject confJson = JsonParser.parseString(menuConfStr).getAsJsonObject();
 
 			// Import referenced menu if exists
-			if (confJson.has(MC.IMPORT_MENU)) {
-				String importCode = confJson.get(MC.IMPORT_MENU).getAsString();
+			if (confJson.has(CC.IMPORT_MENU)) {
+				String importCode = confJson.get(CC.IMPORT_MENU).getAsString();
 				DbDataObject imported = new DbReader().searchDbObjectBySingleFilter(DbCompareOperand.EQUAL,
-						SvReader.getTypeIdByName(MC.PERUN_MENU), MC.MENU_CODE, importCode, svr);
+						SvReader.getTypeIdByName(CC.PERUN_MENU), CC.MENU_CODE, importCode, svr);
 				if (imported != null)
 					buildRecursive(imported, svr, visited, mergedButtons);
 			}
