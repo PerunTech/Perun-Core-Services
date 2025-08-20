@@ -5,12 +5,19 @@ package com.prtech.menu.manager;
  */
 
 public class MC {
-	public static String MENU_CODE = "MENU_CODE";
-	public static String LABEL_CODE = "LABEL_CODE";
-	public static String MENU_TYPE = "MENU_TYPE";
-	public static String MENU_CONF = "MENU_CONF";
-	public static String VERSION = "VERSION";
+
+	public static final String PERUN_MENU = "PERUN_MENU";
+	public static final String MENU_CODE = "MENU_CODE";
+	public static final String LABEL_CODE = "LABEL_CODE";
+	public static final String MENU_TYPE = "MENU_TYPE";
+	public static final String MENU_CONF = "MENU_CONF";
+	public static final String VERSION = "VERSION";
+	public static final String PARENT_TABLE_NAME = "PARENT_TABLE_NAME";
+	public static final String SVAROG_CDL_CAT = "SVAROG_CDL_CAT";
+	public static final String SVAROG_ACL_LBL = "SVAROG_ACL_LBL";
+	public static final String INTERNAL_CAT = "INTERNAL_CAT";
 
 	public static final String PARENT_NAME = "PARENT_NAME";
+	public static final String IMPORT_MENU = "IMPORT_MENU";
 
 }
