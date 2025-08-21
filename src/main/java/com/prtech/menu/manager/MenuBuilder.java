@@ -165,12 +165,14 @@ public class MenuBuilder {
 	 */
 	public static DbDataArray findObjectsUsingSvCache(String columnName, String columnValue, String tableName,
 			String cacheAlias, SvReader svr) throws SvException {
-		String uniqueCacheId = columnValue;
+		String uniqueCacheId = "MENU-BUILD" + "-" + columnValue;
 		DbDataArray result = SvComplexCache.getData(uniqueCacheId, svr);
 		if (result != null) {
 			return result;
 		}
-		DbSearchCriterion search = new DbSearchCriterion(columnName, DbCompareOperand.EQUAL, columnValue);
+		// DbSearchCriterion search = new DbSearchCriterion(columnName,
+		// DbCompareOperand.EQUAL, columnValue);
+		DbSearchCriterion search = new DbSearchCriterion("STATUS", DbCompareOperand.EQUAL, "VALID");
 		SvRelationCache src = new SvRelationCache(SvCore.getDbtByName(tableName), search, cacheAlias, null, null, null,
 				null);
 		SvComplexCache.addRelationCache(uniqueCacheId, src, false);
