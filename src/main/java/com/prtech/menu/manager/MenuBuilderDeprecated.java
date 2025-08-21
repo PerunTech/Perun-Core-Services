@@ -44,7 +44,7 @@ public class MenuBuilderDeprecated {
 	public Response generateMenu(@PathParam("sid") String sessionId, @PathParam("menuCode") String menuCode) {
 		try (SvReader svr = new SvReader(sessionId)) {
 			DbDataObject menuRoot = new DbReader().searchDbObjectBySingleFilter(DbCompareOperand.EQUAL,
-					svCONST.OBJECT_TYPE_MENU, "menu_code", menuCode, svr);
+					SvReader.getTypeIdByName(CC.PERUN_MENU), "menu_code", menuCode, svr);
 			if (menuRoot == null) {
 				return Response.status(Response.Status.NOT_FOUND).entity("Menu not found").build();
 			}
@@ -73,7 +73,7 @@ public class MenuBuilderDeprecated {
 		if (sid == null)
 			return;
 
-		String targetMenuCode = "pharmacies_registry_menu_t"; // Change if needed
+		String targetMenuCode = "pharmacies_registry_menu_tt"; // Change if needed
 
 		try (SvReader svr = new SvReader(sid)) {
 			DbDataObject targetMenu = findMenuByCode(targetMenuCode, svr);
@@ -92,7 +92,7 @@ public class MenuBuilderDeprecated {
 
 	private static DbDataObject findMenuByCode(String menuCode, SvReader svr) throws Exception {
 		DbSearchCriterion filter = new DbSearchCriterion(CC.MENU_CODE, DbCompareOperand.EQUAL, menuCode);
-		DbDataArray result = svr.getObjects(filter, svCONST.OBJECT_TYPE_MENU, null, 0, 0);
+		DbDataArray result = svr.getObjects(filter, SvReader.getTypeIdByName(CC.PERUN_MENU), null, 0, 0);
 		return result != null && !result.getItems().isEmpty() ? result.get(0) : null;
 	}
 
@@ -137,7 +137,7 @@ public class MenuBuilderDeprecated {
 		if (menuDbo.getParentId() == null || menuDbo.getParentId() == 0 || visited.contains(menuDbo.getParentId()))
 			return;
 
-		DbDataObject parent = svr.getObjectById(menuDbo.getParentId(), svCONST.OBJECT_TYPE_MENU, null);
+		DbDataObject parent = svr.getObjectById(menuDbo.getParentId(), SvReader.getTypeIdByName(CC.PERUN_MENU), null);
 		if (parent != null && !visited.contains(parent.getObjectId())) {
 			collectParents(parent, svr, visited, accumulator); // recursive
 			accumulator.add(parent); // add after recursion to keep top-down order
@@ -150,7 +150,8 @@ public class MenuBuilderDeprecated {
 		if (visited.contains(menuDbo.getObjectId()))
 			return;
 
-		DbDataArray children = svr.getObjectsByParentId(menuDbo.getObjectId(), svCONST.OBJECT_TYPE_MENU, null);
+		DbDataArray children = svr.getObjectsByParentId(menuDbo.getObjectId(), SvReader.getTypeIdByName(CC.PERUN_MENU),
+				null);
 		for (DbDataObject child : children.getItems()) {
 			if (!visited.contains(child.getObjectId())) {
 				accumulator.add(child);
@@ -158,5 +159,44 @@ public class MenuBuilderDeprecated {
 				collectChildren(child, svr, visited, accumulator); // recursive
 			}
 		}
+	}
+
+	/**
+	 * Console test for merging a full menu tree from a given menu code.
+	 */
+	public static void main(String[] args) {
+		String sid = null;
+		try (SvSecurity svc = new SvSecurity()) {
+			sid = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
+			log4j.info("Logged in with session ID: " + sid);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return;
+		}
+
+		if (sid == null)
+			return;
+
+		String targetMenuCode = "pharmacies_registry_menu_tt";
+
+		try (SvReader svr = new SvReader(sid)) {
+			DbDataObject targetMenu = findMenuByCode(targetMenuCode, svr);
+			if (targetMenu == null) {
+				log4j.info("Menu not found: " + targetMenuCode);
+				return;
+			}
+
+			JsonObject fullHierarchyJson = buildFullHierarchy(targetMenu, svr, new HashSet<>());
+			log4j.info("!!! Full merged menu in JSON: !!!");
+			System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(fullHierarchyJson));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private static DbDataObject findMenuByCode(String menuCode, SvReader svr) throws Exception {
+		DbSearchCriterion filter = new DbSearchCriterion(CC.MENU_CODE, DbCompareOperand.EQUAL, menuCode);
+		DbDataArray result = svr.getObjects(filter, SvReader.getTypeIdByName(CC.PERUN_MENU), null, 0, 0);
+		return result != null && !result.getItems().isEmpty() ? result.get(0) : null;
 	}
 }

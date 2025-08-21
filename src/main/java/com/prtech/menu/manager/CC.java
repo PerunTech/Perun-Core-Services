@@ -19,5 +19,8 @@ public class CC {
 
 	public static final String PARENT_NAME = "PARENT_NAME";
 	public static final String IMPORT_MENU = "IMPORT_MENU";
+	
+	public static final String STATUS = "STATUS";
+	public static final String VALID = "VALID";
 
 }
