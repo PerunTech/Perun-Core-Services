@@ -165,14 +165,12 @@ public class MenuBuilder {
 	 */
 	public static DbDataArray findObjectsUsingSvCache(String columnName, String columnValue, String tableName,
 			String cacheAlias, SvReader svr) throws SvException {
-		String uniqueCacheId = "MENU-BUILD" + "-" + columnValue;
+		String uniqueCacheId = CC.PERUN_MENU;
 		DbDataArray result = SvComplexCache.getData(uniqueCacheId, svr);
 		if (result != null) {
 			return result;
 		}
-		// DbSearchCriterion search = new DbSearchCriterion(columnName,
-		// DbCompareOperand.EQUAL, columnValue);
-		DbSearchCriterion search = new DbSearchCriterion("STATUS", DbCompareOperand.EQUAL, "VALID");
+		DbSearchCriterion search = new DbSearchCriterion(CC.STATUS, DbCompareOperand.EQUAL, CC.VALID);
 		SvRelationCache src = new SvRelationCache(SvCore.getDbtByName(tableName), search, cacheAlias, null, null, null,
 				null);
 		SvComplexCache.addRelationCache(uniqueCacheId, src, false);
@@ -197,9 +195,13 @@ public class MenuBuilder {
 	public static DbDataObject findObjectUsingSvCache(String columnName, String columnValue, String tableName,
 			String cacheAlias, SvReader svr) throws SvException {
 		DbDataArray dbArr = findObjectsUsingSvCache(columnName, columnValue, tableName, cacheAlias, svr);
-		if (!dbArr.isEmpty())
-			return dbArr.get(0);
-		else
+		if (!dbArr.isEmpty()) {
+			DbDataObject dbo = dbArr.getItemByIdx(columnValue);
+			if (dbo == null) {
+				dbArr.rebuildIndex(columnName, true);
+			}
+			return dbArr.getItemByIdx(columnValue);
+		} else
 			return null;
 	}
 
