@@ -596,16 +596,17 @@ public class WsSecurityActions {
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
 	
-	public JsonObject getAvatarFileObjectInfo (DbDataObject dbo, SvReader svr) throws SvException {
+	public JsonObject getAvatarFileObjectInfo(DbDataObject dbo, SvReader svr) throws SvException {
 		JsonObject avatarInfo = new JsonObject();
-		try(SvFileStore svfs = new SvFileStore(svr)){
-		DbDataArray dbArraySvFiles = svfs.getFiles(dbo, "AVATAR", null);
-		if (!dbArraySvFiles.isEmpty()) {
-			avatarInfo.addProperty("objectId", dbArraySvFiles.get(0).getObjectId());
-			avatarInfo.addProperty("fileName", dbArraySvFiles.get(0).getAsString("file_name"));
-		}
-		} catch (SvException e) {
-			log4j.error("Error occurred while getting avatar file... {}", e);
+		try (SvFileStore svfs = new SvFileStore(svr)) {
+			if (SvCore.getLinkType("AVATAR", SvCore.getDbt(svCONST.OBJECT_TYPE_USER),
+					SvCore.getDbt(svCONST.OBJECT_TYPE_FILE)) != null) {
+				DbDataArray dbArraySvFiles = svfs.getFiles(dbo, "AVATAR", null);
+				if (!dbArraySvFiles.isEmpty()) {
+					avatarInfo.addProperty("objectId", dbArraySvFiles.get(0).getObjectId());
+					avatarInfo.addProperty("fileName", dbArraySvFiles.get(0).getAsString("file_name"));
+				}
+			}
 		}
 		return avatarInfo;
 	}
