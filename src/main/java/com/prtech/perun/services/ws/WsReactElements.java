@@ -1605,8 +1605,7 @@ public class WsReactElements {
 					String tmpField = typetoGet.getItems().get(i).getVal(Rc.FIELD_NAME).toString();
 					String fieldToRead = "";
 
-					if (tablesusedCount != 1
-							|| (mapFieldDenormalizedField != null && !mapFieldDenormalizedField.isEmpty()))
+					if (tablesusedCount != 1)
 						fieldToRead = "tbl" + k + "_";
 					fieldToRead = fieldToRead + tmpField;
 
@@ -1623,8 +1622,16 @@ public class WsReactElements {
 							DbDataObject denormalizedField = findField(
 									typetoGet.getItems().get(i).getVal(Rc.REFERENTIAL_TABLE).toString(),
 									fieldToRead.replaceFirst("tbl[0-9]_", ""), svr);
-							jData = addValueToJsonObject2(jData, obj1, denormalizedField, fieldToRead, readField,
-									doTranslate, svr);
+							DbDataObject denormalizedData = getDbDataObjectFromDenormalizedField(
+									typetoGet.getItems().get(i).getVal(Rc.REFERENTIAL_TABLE).toString(),
+									typetoGet.getItems().get(i).getVal(Rc.REFERENTIAL_FIELD).toString(),
+									obj1.getVal(tmpField), svr);
+							if (denormalizedField != null && denormalizedData != null) {
+								DbDataObject tempField = new DbDataObject();
+								tempField.fromSimpleJson(denormalizedField.toSimpleJson());
+								tempField.setVal(Rc.FIELD_NAME, readField);
+								jData = addValueToJsonObject1(jData, denormalizedData, tempField);
+							}
 						}
 					}
 
@@ -1635,8 +1642,33 @@ public class WsReactElements {
 
 	public static String prapareTableQueryData(DbDataArray vData, String[] tablesUsedArray, Boolean[] tableShowArray,
 			int tablesusedCount, Boolean doTranslate, SvReader svr) throws SvException {
+		Gson gson = new Gson();
+		HashMap<String, String> mapFieldDenormalizedField = new HashMap<String, String>();
+		for (int k = 0; k < tablesusedCount; k++) {
+			if (tableShowArray[k]) {
+				DbDataObject tableObject = SvCore.getDbtByName(tablesUsedArray[k]);
+				DbDataArray typetoGet = SvCore.getFields(tableObject.getObjectId());
 
-		return prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, doTranslate, null, svr);
+				for (int i = 0; i < typetoGet.getItems().size(); i++) {
+					String tmpField = typetoGet.getItems().get(i).getVal(Rc.FIELD_NAME).toString();
+
+					if (typetoGet.getItems().get(i).getVal(Rc.GUI_METADATA) != null) {
+						JsonObject guiMetadata = gson.fromJson(
+								typetoGet.getItems().get(i).getVal(Rc.GUI_METADATA).toString(), JsonObject.class);
+						if (guiMetadata != null && guiMetadata.has(Rc.REACT)) {
+							JsonObject jsonreactGUI = guiMetadata.get(Rc.REACT).getAsJsonObject();
+							if (jsonreactGUI != null && jsonreactGUI.has(Rc.DENORMALIZED_MNEMONIC)) {
+								mapFieldDenormalizedField.put(tmpField,
+										jsonreactGUI.get(Rc.DENORMALIZED_MNEMONIC).getAsString());
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return prapareTableQueryData(vData, tablesUsedArray, tableShowArray, tablesusedCount, doTranslate,
+				mapFieldDenormalizedField, svr);
 	}
 
 	/**
@@ -1813,7 +1845,8 @@ public class WsReactElements {
 	 * 
 	 * @return JSON String with data from oData Object
 	 */
-	public JsonObject addValueToJsonObject1(JsonObject jsonData, DbDataObject recordObject, DbDataObject tmpField) {
+	public static JsonObject addValueToJsonObject1(JsonObject jsonData, DbDataObject recordObject,
+			DbDataObject tmpField) {
 		/*
 		 * as input we get empty or json with some filled fields (svarog core) then we
 		 * save that object for future use ,and we try to process only the field that is
@@ -4733,6 +4766,7 @@ public class WsReactElements {
 								jLeaf.addProperty(Rc.TITLE,
 										I18n.getText(getLocaleId(svr), tableObject.getVal(Rc.LABEL_CODE).toString()
 												+ "." + denormalizedField.getVal(Rc.LABEL_CODE).toString()));
+								jLeaf = prepareFormJsonCodeList1(denormalizedField, jLeaf, svr);
 								jFields = prepareFormJsonGroup(tmpDenormalizedField, jFields, jLeaf);
 							}
 
@@ -4929,6 +4963,47 @@ public class WsReactElements {
 
 	private void fillTableUISchemaData(Gson gson, JsonObject jsonData, SvReader svr, JsonObject jsonreactGUI,
 			JsonObject jsonUISchema, DbDataObject tempDboField, String tmpField) throws SvException {
+		Boolean visible = false;
+		addUISchemaToGroupPath(jsonData, jsonreactGUI, jsonUISchema, tmpField);
+
+		if (tempDboField.getVal(Rc.REFERENTIAL_TABLE) != null && tempDboField.getVal(Rc.REFERENTIAL_FIELD) != null
+				&& jsonreactGUI != null && jsonreactGUI.has(Rc.DENORMALIZED_MNEMONIC)) {
+			DbDataObject denormalizedField = findField(tempDboField.getVal(Rc.REFERENTIAL_TABLE).toString(),
+					jsonreactGUI.get(Rc.DENORMALIZED_MNEMONIC).getAsString(), svr);
+
+			if (denormalizedField != null && !tempDboField.getVal(Rc.FIELD_NAME).toString()
+					.equals(denormalizedField.getVal(Rc.FIELD_NAME).toString())) {
+				JsonObject denormalizedJsonUiSchema = jsonUISchema.deepCopy();
+				if (!jsonreactGUI.has("denormalizeUiVisible")
+						|| jsonreactGUI.get("denormalizeUiVisible").getAsBoolean()) {
+					visible = true;
+				}
+				if (denormalizedField.getVal(Rc.GUI_METADATA) != null) {
+					JsonObject denormalizedGuiMetadata = gson
+							.fromJson(denormalizedField.getVal(Rc.GUI_METADATA).toString(), JsonObject.class);
+					if (denormalizedGuiMetadata.has(Rc.REACT)) {
+						JsonObject denormalizedJsonReactGui = denormalizedGuiMetadata.getAsJsonObject(Rc.REACT);
+
+						if (denormalizedJsonReactGui.has(Rc.UISCHEMA)) {
+							denormalizedJsonUiSchema = denormalizedJsonReactGui.getAsJsonObject(Rc.UISCHEMA);
+						}
+						if (visible && denormalizedJsonUiSchema.has("ui:widget")
+								&& denormalizedJsonUiSchema.get("ui:widget").getAsString().equals("hidden")) {
+							denormalizedJsonUiSchema.remove("ui:widget");
+						}
+						addUISchemaToGroupPath(jsonData, jsonreactGUI, denormalizedJsonUiSchema,
+								tempDboField.getVal(Rc.FIELD_NAME).toString() + '.'
+										+ denormalizedField.getVal(Rc.FIELD_NAME).toString());
+					}
+				}
+				jsonData.add(tempDboField.getVal(Rc.FIELD_NAME).toString() + '.'
+						+ denormalizedField.getVal(Rc.FIELD_NAME).toString(), denormalizedJsonUiSchema);
+			}
+		}
+	}
+
+	public void addUISchemaToGroupPath(JsonObject jsonData, JsonObject jsonreactGUI, JsonObject jsonUISchema,
+			String tmpField) {
 		String groupPath = null;
 		if (jsonreactGUI != null && jsonreactGUI.has(Rc.GROUPPATH)) {
 			groupPath = jsonreactGUI.get(Rc.GROUPPATH).getAsString();
@@ -4941,25 +5016,6 @@ public class WsReactElements {
 			jsonData.add(groupPath, groupValues);
 		} else
 			jsonData.add(tmpField, jsonUISchema);
-
-		if (tempDboField.getVal(Rc.REFERENTIAL_TABLE) != null && tempDboField.getVal(Rc.REFERENTIAL_FIELD) != null
-				&& jsonreactGUI != null && jsonreactGUI.has(Rc.DENORMALIZED_MNEMONIC)) {
-			DbDataObject denormalizedField = findField(tempDboField.getVal(Rc.REFERENTIAL_TABLE).toString(),
-					jsonreactGUI.get(Rc.DENORMALIZED_MNEMONIC).getAsString(), svr);
-
-			if (denormalizedField != null && !tempDboField.getVal(Rc.FIELD_NAME).toString()
-					.equals(denormalizedField.getVal(Rc.FIELD_NAME).toString())) {
-				JsonObject tmpJsonUISchema = gson.fromJson(jsonUISchema, JsonObject.class);
-				if (!jsonreactGUI.has("denormalizeUiVisible")
-						|| jsonreactGUI.get("denormalizeUiVisible").getAsBoolean()) {
-					if (tmpJsonUISchema.has("ui:widget")) {
-						tmpJsonUISchema.remove("ui:widget");
-					}
-				}
-				jsonData.add(tempDboField.getVal(Rc.FIELD_NAME).toString() + '.'
-						+ denormalizedField.getVal(Rc.FIELD_NAME).toString(), tmpJsonUISchema);
-			}
-		}
 	}
 
 	/**
@@ -5159,6 +5215,9 @@ public class WsReactElements {
 									tempField.fromSimpleJson(denormalizedField.toSimpleJson());
 									tempField.setVal(Rc.FIELD_NAME,
 											tmpField + "." + denormalizedField.getVal(Rc.FIELD_NAME).toString());
+									if (guiMetadata != null) {
+										tempField.setVal(Rc.GUI_METADATA, guiMetadata.toString());
+									}
 									jsonData = addValueToJsonObject1(jsonData, denormalizedData, tempField);
 								}
 							}
@@ -7782,8 +7841,8 @@ public class WsReactElements {
 		return dbField;
 	}
 
-	public DbDataObject getDbDataObjectFromDenormalizedField(String tableName, String fieldName, Object denormalizedId,
-			SvReader svr) throws SvException {
+	public static DbDataObject getDbDataObjectFromDenormalizedField(String tableName, String fieldName,
+			Object denormalizedId, SvReader svr) throws SvException {
 		DbDataObject dbo = null;
 
 		if (denormalizedId != null) {
