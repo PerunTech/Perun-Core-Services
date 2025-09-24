@@ -1,13 +1,17 @@
 package com.prtech.menu.manager;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
 import org.apache.logging.log4j.LogManager;
@@ -15,6 +19,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import com.prtech.menu.manager.MenuExceptions.MenuSaveError;
+import com.prtech.menu.manager.MenuExceptions.UserNotAuthorizedError;
 import com.prtech.perun.services.ws.DbReader;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvSecurity;
@@ -58,6 +64,45 @@ public class WsMenu {
 	}
 
 	/**
+	 * Web service for adding a new menu in the system
+	 * 
+	 * @param sessionId Session ID
+	 * @param formVals  form parameters map holding info about the new menu
+	 * @return JSON with info about the new menu object
+	 */
+	@POST
+	@Path("/add/{sid}")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response addMenu(@PathParam("sid") String sessionId, MultivaluedMap<String, String> formVals) {
+		DbDataObject menuDbo = null;
+		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
+			List<String> missing = MenuHelper.checkAndReturnMissingKeys(formVals, Arrays.asList(CC.OBJECT_ID));
+			if (!missing.isEmpty()) {
+				return Response.status(Response.Status.BAD_REQUEST)
+						.entity("Missing required keys in form data: " + missing.toString()).build();
+			}
+			menuDbo = MenuHelper.saveMenuHelper(formVals, svr);
+			if (menuDbo != null) {
+				svw.saveObject(menuDbo);
+				String responseObj = menuDbo.toSimpleJson().toString();
+				return Response.ok(responseObj, MediaType.APPLICATION_JSON).build();
+			} else {
+				return Response.ok("The item couldn't be saved", MediaType.APPLICATION_JSON).build();
+			}
+		} catch (UserNotAuthorizedError e) {
+			log4j.error("User is not authorized to save or edit the menu: ", e);
+			return Response.status(Response.Status.UNAUTHORIZED).entity(e.getMessage()).build();
+		} catch (MenuSaveError e) {
+			log4j.error("Error while adding menu: ", e);
+			return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+		} catch (Exception e) {
+			log4j.error("Error while adding menu: ", e);
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		}
+	}
+
+	/**
 	 * Web service for removing a menu from the system by it's menu code
 	 * 
 	 * @param sessionId    Session ID
@@ -74,7 +119,7 @@ public class WsMenu {
 			if (menuRoot == null) {
 				return Response.status(Response.Status.NOT_FOUND).entity("Menu not found").build();
 			}
-			if (!MenuHelper.checkUserHasPermission(menuRoot, svr)) {
+			if (!MenuHelper.checkUserHasPermission(menuRoot, Arrays.asList("FULL", "WRITE"), svr)) {
 				return Response.status(Response.Status.UNAUTHORIZED)
 						.entity("User does not have permission to delete this menu").build();
 			}
@@ -89,7 +134,7 @@ public class WsMenu {
 			svw.deleteObject(menuRoot);
 			return Response.ok(responseObj, MediaType.APPLICATION_JSON).build();
 		} catch (Exception e) {
-			log4j.error("Error generating menu: ", e);
+			log4j.error("Error removing menu: ", e);
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}

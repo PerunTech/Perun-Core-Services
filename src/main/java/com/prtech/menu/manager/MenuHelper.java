@@ -1,8 +1,11 @@
 package com.prtech.menu.manager;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+
+import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -12,6 +15,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.prtech.menu.manager.MenuExceptions.MenuSaveError;
+import com.prtech.menu.manager.MenuExceptions.UserNotAuthorizedError;
 import com.prtech.perun.services.ws.DbReader;
 import com.prtech.svarog.SvComplexCache;
 import com.prtech.svarog.SvCore;
@@ -168,8 +173,9 @@ final class MenuHelper {
 	}
 
 	/**
-	 * Create a database object of type PERUN_MENU
+	 * Set PERUN_MENU object values
 	 * 
+	 * @param perunMenuDbo    database object to set values to
 	 * @param menuCode        unique code for the menu
 	 * @param labelCode       label code of the menu
 	 * @param menuType        type of the menu (ex. menu, menu-component)
@@ -182,11 +188,10 @@ final class MenuHelper {
 	 * @return The new DbDataObject
 	 * @throws SvException
 	 */
-	static DbDataObject createPerunMenuObject(String menuCode, String labelCode, String menuType, String menuConf,
-			String parentTableName, String svarogCdlCat, String svarogAclLbl, String internalCat, Long version)
-			throws SvException {
-		DbDataObject perunMenuDbo = new DbDataObject();
-		perunMenuDbo.setObjectType(SvReader.getTypeIdByName(CC.PERUN_MENU));
+	static void setPerunMenuObjectValues(DbDataObject perunMenuDbo, Long parentId, String menuCode, String labelCode,
+			String menuType, String menuConf, String parentTableName, String svarogCdlCat, String svarogAclLbl,
+			String internalCat, Long version) throws SvException {
+		perunMenuDbo.setParentId(parentId);
 		perunMenuDbo.setVal(CC.MENU_CODE, menuCode);
 		perunMenuDbo.setVal(CC.LABEL_CODE, labelCode);
 		perunMenuDbo.setVal(CC.MENU_TYPE, menuType);
@@ -196,10 +201,42 @@ final class MenuHelper {
 		perunMenuDbo.setVal(CC.SVAROG_ACL_LBL, svarogAclLbl);
 		perunMenuDbo.setVal(CC.INTERNAL_CAT, internalCat);
 		perunMenuDbo.setVal(CC.VERSION, version);
-
-		return perunMenuDbo;
 	}
 
+	/**
+	 * Set PERUN_MENU object values from form data
+	 * 
+	 * @param perunMenuDbo database object to set values to
+	 * @param formVals     form data containing the database object data
+	 * @return
+	 * @throws SvException
+	 */
+	static void setPerunMenuObjectValues(DbDataObject perunMenuDbo, MultivaluedMap<String, String> formVals)
+			throws SvException {
+		String menuCode = formVals.getFirst(CC.MENU_CODE);
+		String labelCode = formVals.getFirst(CC.LABEL_CODE);
+		String menuType = formVals.getFirst(CC.MENU_TYPE);
+		String menuConf = formVals.getFirst(CC.MENU_CONF);
+		String parentTableName = formVals.getFirst(CC.PARENT_TABLE_NAME);
+		String svarogCdlCat = formVals.getFirst(CC.SVAROG_CDL_CAT);
+		String svarogAclLbl = formVals.getFirst(CC.SVAROG_ACL_LBL);
+		String internalCat = formVals.getFirst(CC.INTERNAL_CAT);
+		Long version = formVals.getFirst(CC.VERSION) != null ? Long.valueOf(formVals.getFirst(CC.VERSION)) : 1;
+		Long parentId = formVals.getFirst(CC.PARENT_ID) != null ? Long.valueOf(formVals.getFirst(CC.PARENT_ID)) : 0;
+
+		setPerunMenuObjectValues(perunMenuDbo, parentId, menuCode, labelCode, menuType, menuConf, parentTableName,
+				svarogCdlCat, svarogAclLbl, internalCat, version);
+	}
+
+	/**
+	 * Helper method for deleting a PERUN_MENU object. If the menu is referenced by
+	 * other menus it will block the deletion.
+	 * 
+	 * @param menuCode
+	 * @param svr
+	 * @return
+	 * @throws SvException
+	 */
 	static List<String> deleteMenuHelper(String menuCode, SvReader svr) throws SvException {
 		Gson gson = new Gson();
 		List<String> errors = new ArrayList<String>();
@@ -231,13 +268,100 @@ final class MenuHelper {
 		return errors;
 	}
 
-	static boolean checkUserHasPermission(DbDataObject menuDbo, SvReader svr) throws SvException {
+	/**
+	 * Check if the user has the appropriate svarog acl permission for the given
+	 * menu object.
+	 * 
+	 * @param menuDbo
+	 * @param accessType
+	 * @param svr
+	 * @return
+	 * @throws SvException
+	 */
+	static boolean checkUserHasPermission(DbDataObject menuDbo, List<String> accessType, SvReader svr)
+			throws SvException {
 		String aclLabelCode = menuDbo.getVal(CC.SVAROG_ACL_LBL) == null ? null
 				: menuDbo.getVal(CC.SVAROG_ACL_LBL).toString();
 		if (aclLabelCode == null) {
 			return true;
 		} else {
-			return new DbReader().canAccess(aclLabelCode, svr);
+			return new DbReader().canAccess(aclLabelCode, accessType, svr);
 		}
+	}
+
+	/**
+	 * Helper method for creating and validating a PERUN_MENU object for saving.
+	 * 
+	 * @param formVals
+	 * @param svr
+	 * @return
+	 * @throws SvException
+	 * @throws UserNotAuthorizedError
+	 * @throws MenuSaveError
+	 */
+	static DbDataObject saveMenuHelper(MultivaluedMap<String, String> formVals, SvReader svr)
+			throws SvException, UserNotAuthorizedError, MenuSaveError {
+		DbDataObject menuDbo;
+		Long objectId = Long.valueOf(formVals.getFirst(CC.OBJECT_ID));
+		if (objectId == 0) {
+			menuDbo = new DbDataObject();
+			menuDbo.setObjectType(SvReader.getTypeIdByName(CC.PERUN_MENU));
+		} else {
+			menuDbo = svr.getObjectById(objectId, SvReader.getTypeIdByName(CC.PERUN_MENU), null);
+			if (menuDbo == null) {
+				throw new MenuSaveError(String.format("The menu with object_id: %d was not found", objectId));
+			}
+
+			if (!checkUserHasPermission(menuDbo, Arrays.asList("FULL", "WRITE"), svr)) {
+				throw new UserNotAuthorizedError("User does not have permission to edit this menu");
+			}
+		}
+
+		setPerunMenuObjectValues(menuDbo, formVals);
+		String menuConfStr = (String) menuDbo.getVal(CC.MENU_CONF);
+		if (menuConfStr == null || menuConfStr.isBlank()) {
+			throw new MenuSaveError("The menu must have valid configuration");
+		}
+
+		JsonObject confJson = JsonParser.parseString(menuConfStr).getAsJsonObject();
+		if (!confJson.has("buttonArray")) {
+			throw new MenuSaveError("Menu configuration is missing required buttonArray key");
+		}
+
+		JsonArray btns = confJson.getAsJsonArray("buttonArray");
+		List<String> missingMenuCodes = new ArrayList<String>();
+		for (JsonElement btn : btns) {
+			if (btn.isJsonObject() && btn.getAsJsonObject().has(CC.IMPORT_MENU)) {
+				String importCode = btn.getAsJsonObject().get(CC.IMPORT_MENU).getAsString();
+				DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, "PM", svr);
+				if (importedMenu == null) {
+					missingMenuCodes.add(importCode);
+				}
+			}
+		}
+		if (!missingMenuCodes.isEmpty()) {
+			throw new MenuSaveError("The following imported menus are missing: " + missingMenuCodes.toString());
+		}
+
+		return menuDbo;
+	}
+
+	/**
+	 * Method that checks if form data has all required keys that are given as an
+	 * argument
+	 * 
+	 * @param formVals       Form data that will be checked
+	 * @param requiredFields List of all fields that need to be present in formVals
+	 * @return
+	 */
+	public static List<String> checkAndReturnMissingKeys(MultivaluedMap<String, String> formVals,
+			List<String> requiredFields) {
+		List<String> missing = new ArrayList<String>();
+		for (String field : requiredFields) {
+			if (!formVals.containsKey(field)) {
+				missing.add(field);
+			}
+		}
+		return missing;
 	}
 }
