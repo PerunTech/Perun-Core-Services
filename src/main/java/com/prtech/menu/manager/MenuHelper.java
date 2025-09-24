@@ -15,6 +15,11 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.prtech.menu.manager.MenuExceptions.ImportedMenuNotFoundError;
+import com.prtech.menu.manager.MenuExceptions.MenuDeleteConstraintError;
+import com.prtech.menu.manager.MenuExceptions.MenuError;
+import com.prtech.menu.manager.MenuExceptions.MenuInvalidConfigError;
+import com.prtech.menu.manager.MenuExceptions.MenuNotFoundError;
 import com.prtech.menu.manager.MenuExceptions.MenuSaveError;
 import com.prtech.menu.manager.MenuExceptions.UserNotAuthorizedError;
 import com.prtech.perun.services.ws.DbReader;
@@ -237,9 +242,8 @@ final class MenuHelper {
 	 * @return
 	 * @throws SvException
 	 */
-	static List<String> deleteMenuHelper(String menuCode, SvReader svr) throws SvException {
+	static void deleteMenuHelper(String menuCode, SvReader svr) throws SvException, MenuError {
 		Gson gson = new Gson();
-		List<String> errors = new ArrayList<String>();
 		List<String> usedBy = new ArrayList<String>();
 		DbDataArray allMenuItems = svr.getObjectsByTypeId(SvReader.getTypeIdByName(CC.PERUN_MENU), null, 0, 0);
 
@@ -262,10 +266,9 @@ final class MenuHelper {
 			}
 		}
 		if (!usedBy.isEmpty()) {
-			errors.add("Can't delete menu item because it's used by these items: " + usedBy.toString());
+			throw new MenuDeleteConstraintError(
+					"Can't delete menu item because it's used by these items: " + usedBy.toString(), usedBy);
 		}
-
-		return errors;
 	}
 
 	/**
@@ -300,7 +303,7 @@ final class MenuHelper {
 	 * @throws MenuSaveError
 	 */
 	static DbDataObject saveMenuHelper(MultivaluedMap<String, String> formVals, SvReader svr)
-			throws SvException, UserNotAuthorizedError, MenuSaveError {
+			throws SvException, UserNotAuthorizedError, MenuError {
 		DbDataObject menuDbo;
 		Long objectId = Long.valueOf(formVals.getFirst(CC.OBJECT_ID));
 		if (objectId == 0) {
@@ -309,7 +312,7 @@ final class MenuHelper {
 		} else {
 			menuDbo = svr.getObjectById(objectId, SvReader.getTypeIdByName(CC.PERUN_MENU), null);
 			if (menuDbo == null) {
-				throw new MenuSaveError(String.format("The menu with object_id: %d was not found", objectId));
+				throw new MenuNotFoundError(String.format("The menu with object_id: %d was not found", objectId));
 			}
 
 			if (!checkUserHasPermission(menuDbo, Arrays.asList("FULL", "WRITE"), svr)) {
@@ -320,12 +323,12 @@ final class MenuHelper {
 		setPerunMenuObjectValues(menuDbo, formVals);
 		String menuConfStr = (String) menuDbo.getVal(CC.MENU_CONF);
 		if (menuConfStr == null || menuConfStr.isBlank()) {
-			throw new MenuSaveError("The menu must have valid configuration");
+			throw new MenuInvalidConfigError("The menu must have valid configuration");
 		}
 
 		JsonObject confJson = JsonParser.parseString(menuConfStr).getAsJsonObject();
 		if (!confJson.has("buttonArray")) {
-			throw new MenuSaveError("Menu configuration is missing required buttonArray key");
+			throw new MenuInvalidConfigError("Menu configuration is missing required buttonArray key");
 		}
 
 		JsonArray btns = confJson.getAsJsonArray("buttonArray");
@@ -340,7 +343,8 @@ final class MenuHelper {
 			}
 		}
 		if (!missingMenuCodes.isEmpty()) {
-			throw new MenuSaveError("The following imported menus are missing: " + missingMenuCodes.toString());
+			throw new ImportedMenuNotFoundError(
+					"The following imported menus are missing: " + missingMenuCodes.toString(), missingMenuCodes);
 		}
 
 		return menuDbo;
