@@ -3,6 +3,7 @@ package com.prtech.perun.services.ws;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
@@ -214,13 +215,13 @@ public class DbReader {
 		return permDbo;
 	}
 
-	public boolean canAccess(String permissionCode, SvReader svr) throws SvException {
+	public boolean canAccess(String permissionCode, List<String> accessTypes, SvReader svr) throws SvException {
 		Boolean access = true;
 		if (!svr.isAdmin()) {
 			try (SvSecurity svs = new SvSecurity(svr)) {
 				DbDataArray dbArrayACLPermissions = svs.getPermissions(svr.getInstanceUser(), svr);
 				DbDataObject permDbo = getPermissionFromDbArray(dbArrayACLPermissions, permissionCode);
-				if (permDbo != null && !permDbo.getVal("ACCESS_TYPE").equals("NONE")) {
+				if (permDbo != null && accessTypes.contains(permDbo.getVal("ACCESS_TYPE").toString())) {
 					access = true;
 				} else {
 					access = false;
