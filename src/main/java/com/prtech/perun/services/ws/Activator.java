@@ -23,7 +23,7 @@ import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 
-import com.prtech.menu.manager.MenuBuilder;
+import com.prtech.menu.manager.WsMenu;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog_interfaces.ISvExecutorGroup;
 
@@ -77,7 +77,7 @@ public class Activator implements BundleActivator {
 		list.add(AdminConsole.class);
 		list.add(PublicWs.class);
 		list.add(WsReporting.class);
-		list.add(MenuBuilder.class);
+		list.add(WsMenu.class);
 		return list;
 
 	}
