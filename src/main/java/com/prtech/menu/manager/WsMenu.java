@@ -17,14 +17,11 @@ import javax.ws.rs.core.Response;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
-import com.prtech.menu.manager.MenuExceptions.MenuSaveError;
+import com.prtech.menu.manager.MenuExceptions.MenuError;
 import com.prtech.menu.manager.MenuExceptions.UserNotAuthorizedError;
 import com.prtech.perun.services.ws.DbReader;
 import com.prtech.svarog.SvReader;
-import com.prtech.svarog.SvSecurity;
-import com.prtech.svarog.SvUtil;
 import com.prtech.svarog.SvWriter;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
@@ -93,7 +90,7 @@ public class WsMenu {
 		} catch (UserNotAuthorizedError e) {
 			log4j.error("User is not authorized to save or edit the menu: ", e);
 			return Response.status(Response.Status.UNAUTHORIZED).entity(e.getMessage()).build();
-		} catch (MenuSaveError e) {
+		} catch (MenuError e) {
 			log4j.error("Error while adding menu: ", e);
 			return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
 		} catch (Exception e) {
@@ -123,52 +120,16 @@ public class WsMenu {
 				return Response.status(Response.Status.UNAUTHORIZED)
 						.entity("User does not have permission to delete this menu").build();
 			}
-			List<String> deleteErrors = MenuHelper.deleteMenuHelper(rootMenuCode, svr);
-			if (!deleteErrors.isEmpty()) {
-				return Response.status(Response.Status.NOT_FOUND)
-						.entity("The item couldn't be deleted. Please check the list below for details. "
-								+ deleteErrors.toString())
-						.build();
-			}
+			MenuHelper.deleteMenuHelper(rootMenuCode, svr);
 			String responseObj = menuRoot.toSimpleJson().toString();
 			svw.deleteObject(menuRoot);
 			return Response.ok(responseObj, MediaType.APPLICATION_JSON).build();
+		} catch (MenuError e) {
+			log4j.error("Error while removing menu: ", e);
+			return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
 		} catch (Exception e) {
 			log4j.error("Error removing menu: ", e);
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-		}
-	}
-
-	/**
-	 * Console test for merging a full menu tree from a given menu code.
-	 */
-	public static void main(String[] args) {
-		String sid = null;
-		try (SvSecurity svc = new SvSecurity()) {
-			sid = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
-			log4j.info("Logged in with session ID: " + sid);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return;
-		}
-
-		if (sid == null)
-			return;
-
-		String targetMenuCode = "pharmacies_registry_menu_tt";
-
-		try (SvReader svr = new SvReader(sid)) {
-			DbDataObject targetMenu = MenuHelper.findMenuByCode(targetMenuCode, svr);
-			if (targetMenu == null) {
-				log4j.info("Menu not found: " + targetMenuCode);
-				return;
-			}
-
-			JsonObject fullHierarchyJson = MenuHelper.buildFullHierarchy(targetMenu, svr, new HashSet<>());
-			log4j.info("!!! Full merged menu in JSON: !!!");
-			System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(fullHierarchyJson));
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
 	}
 }
