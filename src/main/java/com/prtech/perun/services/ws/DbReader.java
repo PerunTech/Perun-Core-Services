@@ -203,6 +203,33 @@ public class DbReader {
 		return result;
 	}
 
+	public static DbDataObject getPermissionFromDbArray(DbDataArray dbArrayPermissions, String permission) {
+		DbDataObject permDbo = null;
+		for (DbDataObject dbo : dbArrayPermissions.getItems()) {
+			if (dbo.getVal(Rc.LABEL_CODE).equals(permission)) {
+				permDbo = dbo;
+				break;
+			}
+		}
+		return permDbo;
+	}
+
+	public boolean canAccess(String permissionCode, SvReader svr) throws SvException {
+		Boolean access = true;
+		if (!svr.isAdmin()) {
+			try (SvSecurity svs = new SvSecurity(svr)) {
+				DbDataArray dbArrayACLPermissions = svs.getPermissions(svr.getInstanceUser(), svr);
+				DbDataObject permDbo = getPermissionFromDbArray(dbArrayACLPermissions, permissionCode);
+				if (permDbo != null && !permDbo.getVal("ACCESS_TYPE").equals("NONE")) {
+					access = true;
+				} else {
+					access = false;
+				}
+			}
+		}
+		return access;
+	}
+
 	public boolean canAccess(DbDataObject dboUserGroup, String permissionCode, SvReader svr) throws SvException {
 		Boolean access = false;
 		DbDataObject dboAcl = getPermissionPerUserOrUserGroup(dboUserGroup, permissionCode, svr);
