@@ -242,9 +242,8 @@ final class MenuHelper {
 	 * @return
 	 * @throws SvException
 	 */
-	static List<String> deleteMenuHelper(String menuCode, SvReader svr) throws SvException, MenuError {
+	static void deleteMenuHelper(String menuCode, SvReader svr) throws SvException, MenuError {
 		Gson gson = new Gson();
-		List<String> errors = new ArrayList<String>();
 		List<String> usedBy = new ArrayList<String>();
 		DbDataArray allMenuItems = svr.getObjectsByTypeId(SvReader.getTypeIdByName(CC.PERUN_MENU), null, 0, 0);
 
@@ -270,8 +269,6 @@ final class MenuHelper {
 			throw new MenuDeleteConstraintError(
 					"Can't delete menu item because it's used by these items: " + usedBy.toString(), usedBy);
 		}
-
-		return errors;
 	}
 
 	/**
