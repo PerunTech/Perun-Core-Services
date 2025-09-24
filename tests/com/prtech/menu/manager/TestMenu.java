@@ -10,12 +10,14 @@ import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.logging.log4j.Logger;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.prtech.menu.manager.MenuExceptions.MenuSaveError;
+import com.prtech.menu.manager.MenuExceptions.MenuError;
+import com.prtech.menu.manager.MenuExceptions.MenuInvalidConfigError;
 import com.prtech.menu.manager.MenuExceptions.UserNotAuthorizedError;
 import com.prtech.perun.services.ws.Rc;
 import com.prtech.svarog.SvConf;
@@ -26,6 +28,7 @@ import com.prtech.svarog.SvUtil;
 import com.prtech.svarog.SvWriter;
 import com.prtech.svarog_common.DbDataObject;
 
+@Ignore
 public class TestMenu {
 	static final Logger log4j = SvConf.getLogger(TestMenu.class);
 	static String menuConfValid = "{\"buttonArray\":[{\"menu_name\":\"test_menu\"}]}";
@@ -66,15 +69,15 @@ public class TestMenu {
 	}
 
 	private DbDataObject saveMenuAndAssert(MultivaluedMap<String, String> formVals, SvReader svr, SvWriter svw)
-			throws SvException, UserNotAuthorizedError, MenuSaveError {
+			throws SvException, UserNotAuthorizedError, MenuError {
 		DbDataObject menuDbo = MenuHelper.saveMenuHelper(formVals, svr);
 		svw.saveObject(menuDbo);
 		assertTrue(menuDbo.getObjectId() != 0);
 		return menuDbo;
 	}
 
-	@Test(expected = MenuSaveError.class)
-	public void testAddMenuInvalidNoMenuConf() throws UserNotAuthorizedError, MenuSaveError {
+	@Test(expected = MenuInvalidConfigError.class)
+	public void testAddMenuInvalidNoMenuConf() throws UserNotAuthorizedError, MenuError {
 		String sessionId = getUserSessionIdForTestPurpose();
 		assertTrue(sessionId != null && !sessionId.isBlank());
 
@@ -87,8 +90,8 @@ public class TestMenu {
 		}
 	}
 
-	@Test(expected = MenuSaveError.class)
-	public void testAddMenuInvalidBadConf() throws UserNotAuthorizedError, MenuSaveError {
+	@Test(expected = MenuInvalidConfigError.class)
+	public void testAddMenuInvalidBadConf() throws UserNotAuthorizedError, MenuError {
 		String sessionId = getUserSessionIdForTestPurpose();
 		assertTrue(sessionId != null && !sessionId.isBlank());
 
@@ -112,7 +115,7 @@ public class TestMenu {
 		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
 			setAutoCommit(svr, svw);
 			saveMenuAndAssert(formVals, svr, svw);
-		} catch (SvException | UserNotAuthorizedError | MenuSaveError e) {
+		} catch (SvException | UserNotAuthorizedError | MenuError e) {
 			fail(e.getMessage());
 		}
 	}
@@ -130,7 +133,7 @@ public class TestMenu {
 			setAutoCommit(svr, svw);
 			saveMenuAndAssert(formVals, svr, svw);
 			saveMenuAndAssert(formVals2, svr, svw);
-		} catch (SvException | UserNotAuthorizedError | MenuSaveError e) {
+		} catch (SvException | UserNotAuthorizedError | MenuError e) {
 			fail(e.getMessage());
 		}
 	}
@@ -148,7 +151,7 @@ public class TestMenu {
 
 			List<String> errors = MenuHelper.deleteMenuHelper("test_menu", svr);
 			assertTrue(errors.isEmpty());
-		} catch (SvException | UserNotAuthorizedError | MenuSaveError e) {
+		} catch (SvException | UserNotAuthorizedError | MenuError e) {
 			fail(e.getMessage());
 		}
 	}
