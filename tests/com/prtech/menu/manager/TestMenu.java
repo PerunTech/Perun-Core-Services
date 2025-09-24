@@ -31,7 +31,7 @@ import com.prtech.svarog_common.DbDataObject;
 public class TestMenu {
 	static final Logger log4j = SvConf.getLogger(TestMenu.class);
 	static String menuConfValid = "{\"buttonArray\":[{\"menu_name\":\"test_menu\"}]}";
-	static String menuConfValidImport = "{\"buttonArray\":[{\"menu_name\":\"test_menu\"}]}";
+	static String menuConfValidImport = "{\"buttonArray\":[{\"IMPORT_MENU\":\"test_menu\"},{\"menu_name\":\"test_menu2\"}]}";
 
 	static String getUserSessionIdForTestPurpose() {
 		String sessionId = "";
