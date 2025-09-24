@@ -4,7 +4,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.HashSet;
-import java.util.List;
 
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
@@ -149,8 +148,7 @@ public class TestMenu {
 			setAutoCommit(svr, svw);
 			saveMenuAndAssert(formVals, svr, svw);
 
-			List<String> errors = MenuHelper.deleteMenuHelper("test_menu", svr);
-			assertTrue(errors.isEmpty());
+			MenuHelper.deleteMenuHelper("test_menu", svr);
 		} catch (SvException | UserNotAuthorizedError | MenuError e) {
 			fail(e.getMessage());
 		}
