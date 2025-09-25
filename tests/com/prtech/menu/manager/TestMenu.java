@@ -5,9 +5,6 @@ import static org.junit.Assert.fail;
 
 import java.util.HashSet;
 
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-
 import org.apache.logging.log4j.Logger;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -46,18 +43,17 @@ public class TestMenu {
 		return sessionId;
 	}
 
-	private MultivaluedMap<String, String> createBasicMenuFormValues(String menuCode, String labelCode,
-			String menuConf) {
-		MultivaluedMap<String, String> formVals = new MultivaluedHashMap<>();
-		formVals.add(Rc.OBJECT_ID, "0");
-		formVals.add("MENU_CODE", menuCode);
-		formVals.add("LABEL_CODE", labelCode);
-		formVals.add("MENU_TYPE", "menu");
-		formVals.add("VERSION", "1");
+	private JsonObject createBasicMenuFormValues(String menuCode, String labelCode, String menuConf) {
+		JsonObject data = new JsonObject();
+		data.addProperty(Rc.OBJECT_ID, 0l);
+		data.addProperty("MENU_CODE", menuCode);
+		data.addProperty("LABEL_CODE", labelCode);
+		data.addProperty("MENU_TYPE", "menu");
+		data.addProperty("VERSION", 1);
 		if (menuConf != null) {
-			formVals.add("MENU_CONF", menuConf);
+			data.addProperty("MENU_CONF", menuConf);
 		}
-		return formVals;
+		return data;
 	}
 
 	private void setAutoCommit(SvReader svr, SvWriter svw) throws SvException {
@@ -67,9 +63,9 @@ public class TestMenu {
 		svw.dbSetAutoCommit(false);
 	}
 
-	private DbDataObject saveMenuAndAssert(MultivaluedMap<String, String> formVals, SvReader svr, SvWriter svw)
+	private DbDataObject saveMenuAndAssert(JsonObject data, SvReader svr, SvWriter svw)
 			throws SvException, UserNotAuthorizedError, MenuError {
-		DbDataObject menuDbo = MenuHelper.saveMenuHelper(formVals, svr);
+		DbDataObject menuDbo = MenuHelper.saveMenuHelper(data, svr);
 		svw.saveObject(menuDbo);
 		assertTrue(menuDbo.getObjectId() != 0);
 		return menuDbo;
@@ -80,10 +76,10 @@ public class TestMenu {
 		String sessionId = getUserSessionIdForTestPurpose();
 		assertTrue(sessionId != null && !sessionId.isBlank());
 
-		MultivaluedMap<String, String> formVals = createBasicMenuFormValues("test_menu", "test_menu", null);
+		JsonObject data = createBasicMenuFormValues("test_menu", "test_menu", null);
 
 		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
-			MenuHelper.saveMenuHelper(formVals, svr);
+			MenuHelper.saveMenuHelper(data, svr);
 		} catch (SvException e) {
 			fail(e.getMessage());
 		}
@@ -94,11 +90,10 @@ public class TestMenu {
 		String sessionId = getUserSessionIdForTestPurpose();
 		assertTrue(sessionId != null && !sessionId.isBlank());
 
-		MultivaluedMap<String, String> formVals = createBasicMenuFormValues("test_menu", "test_menu",
-				"{\"menu_name\": \"test_menu\"}");
+		JsonObject data = createBasicMenuFormValues("test_menu", "test_menu", "{\"menu_name\": \"test_menu\"}");
 
 		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
-			MenuHelper.saveMenuHelper(formVals, svr);
+			MenuHelper.saveMenuHelper(data, svr);
 		} catch (SvException e) {
 			fail(e.getMessage());
 		}
@@ -109,11 +104,11 @@ public class TestMenu {
 		String sessionId = getUserSessionIdForTestPurpose();
 		assertTrue(sessionId != null && !sessionId.isBlank());
 
-		MultivaluedMap<String, String> formVals = createBasicMenuFormValues("test_menu", "test_menu", menuConfValid);
+		JsonObject data = createBasicMenuFormValues("test_menu", "test_menu", menuConfValid);
 
 		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
 			setAutoCommit(svr, svw);
-			saveMenuAndAssert(formVals, svr, svw);
+			saveMenuAndAssert(data, svr, svw);
 		} catch (SvException | UserNotAuthorizedError | MenuError e) {
 			fail(e.getMessage());
 		}
@@ -124,14 +119,13 @@ public class TestMenu {
 		String sessionId = getUserSessionIdForTestPurpose();
 		assertTrue(sessionId != null && !sessionId.isBlank());
 
-		MultivaluedMap<String, String> formVals = createBasicMenuFormValues("test_menu", "test_menu", menuConfValid);
-		MultivaluedMap<String, String> formVals2 = createBasicMenuFormValues("test_menu2", "test_menu2",
-				menuConfValidImport);
+		JsonObject data = createBasicMenuFormValues("test_menu", "test_menu", menuConfValid);
+		JsonObject data2 = createBasicMenuFormValues("test_menu2", "test_menu2", menuConfValidImport);
 
 		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
 			setAutoCommit(svr, svw);
-			saveMenuAndAssert(formVals, svr, svw);
-			saveMenuAndAssert(formVals2, svr, svw);
+			saveMenuAndAssert(data, svr, svw);
+			saveMenuAndAssert(data2, svr, svw);
 		} catch (SvException | UserNotAuthorizedError | MenuError e) {
 			fail(e.getMessage());
 		}
@@ -142,11 +136,11 @@ public class TestMenu {
 		String sessionId = getUserSessionIdForTestPurpose();
 		assertTrue(sessionId != null && !sessionId.isBlank());
 
-		MultivaluedMap<String, String> formVals = createBasicMenuFormValues("test_menu", "test_menu", menuConfValid);
+		JsonObject data = createBasicMenuFormValues("test_menu", "test_menu", menuConfValid);
 
 		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
 			setAutoCommit(svr, svw);
-			saveMenuAndAssert(formVals, svr, svw);
+			saveMenuAndAssert(data, svr, svw);
 
 			MenuHelper.deleteMenuHelper("test_menu", svr);
 		} catch (SvException | UserNotAuthorizedError | MenuError e) {
@@ -159,14 +153,13 @@ public class TestMenu {
 		String sessionId = getUserSessionIdForTestPurpose();
 		assertTrue(sessionId != null && !sessionId.isBlank());
 
-		MultivaluedMap<String, String> formVals = createBasicMenuFormValues("test_menu", "test_menu", menuConfValid);
-		MultivaluedMap<String, String> formVals2 = createBasicMenuFormValues("test_menu2", "test_menu2",
-				menuConfValidImport);
+		JsonObject data = createBasicMenuFormValues("test_menu", "test_menu", menuConfValid);
+		JsonObject data2 = createBasicMenuFormValues("test_menu2", "test_menu2", menuConfValidImport);
 
 		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
 			setAutoCommit(svr, svw);
-			saveMenuAndAssert(formVals, svr, svw);
-			DbDataObject menuDbo2 = saveMenuAndAssert(formVals2, svr, svw);
+			saveMenuAndAssert(data, svr, svw);
+			DbDataObject menuDbo2 = saveMenuAndAssert(data2, svr, svw);
 
 			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuDbo2, svr, new HashSet<>());
 			assertTrue(resultJson != null);

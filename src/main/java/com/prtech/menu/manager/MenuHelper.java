@@ -5,8 +5,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import javax.ws.rs.core.MultivaluedMap;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -209,25 +207,28 @@ final class MenuHelper {
 	}
 
 	/**
-	 * Set PERUN_MENU object values from form data
+	 * Set PERUN_MENU object values from the JSON data
 	 * 
 	 * @param perunMenuDbo database object to set values to
-	 * @param formVals     form data containing the database object data
+	 * @param requestData  JSON object containing the database object data
 	 * @return
 	 * @throws SvException
 	 */
-	static void setPerunMenuObjectValues(DbDataObject perunMenuDbo, MultivaluedMap<String, String> formVals)
-			throws SvException {
-		String menuCode = formVals.getFirst(CC.MENU_CODE);
-		String labelCode = formVals.getFirst(CC.LABEL_CODE);
-		String menuType = formVals.getFirst(CC.MENU_TYPE);
-		String menuConf = formVals.getFirst(CC.MENU_CONF);
-		String parentTableName = formVals.getFirst(CC.PARENT_TABLE_NAME);
-		String svarogCdlCat = formVals.getFirst(CC.SVAROG_CDL_CAT);
-		String svarogAclLbl = formVals.getFirst(CC.SVAROG_ACL_LBL);
-		String internalCat = formVals.getFirst(CC.INTERNAL_CAT);
-		Long version = formVals.getFirst(CC.VERSION) != null ? Long.valueOf(formVals.getFirst(CC.VERSION)) : 1;
-		Long parentId = formVals.getFirst(CC.PARENT_ID) != null ? Long.valueOf(formVals.getFirst(CC.PARENT_ID)) : 0;
+	static void setPerunMenuObjectValues(DbDataObject perunMenuDbo, JsonObject requestData) throws SvException {
+		String menuCode = requestData.has(CC.MENU_CODE) ? requestData.get(CC.MENU_CODE).getAsString() : null;
+		String labelCode = requestData.has(CC.LABEL_CODE) ? requestData.get(CC.LABEL_CODE).getAsString() : null;
+		String menuType = requestData.has(CC.MENU_TYPE) ? requestData.get(CC.MENU_TYPE).getAsString() : null;
+		String menuConf = requestData.has(CC.MENU_CONF) ? requestData.get(CC.MENU_CONF).getAsString() : null;
+		String parentTableName = requestData.has(CC.PARENT_TABLE_NAME)
+				? requestData.get(CC.PARENT_TABLE_NAME).getAsString()
+				: null;
+		String svarogCdlCat = requestData.has(CC.SVAROG_CDL_CAT) ? requestData.get(CC.SVAROG_CDL_CAT).getAsString()
+				: null;
+		String svarogAclLbl = requestData.has(CC.SVAROG_ACL_LBL) ? requestData.get(CC.SVAROG_ACL_LBL).getAsString()
+				: null;
+		String internalCat = requestData.has(CC.INTERNAL_CAT) ? requestData.get(CC.INTERNAL_CAT).getAsString() : null;
+		Long version = requestData.has(CC.VERSION) ? requestData.get(CC.VERSION).getAsLong() : 1;
+		Long parentId = requestData.has(CC.PARENT_ID) ? requestData.get(CC.PARENT_ID).getAsLong() : 0;
 
 		setPerunMenuObjectValues(perunMenuDbo, parentId, menuCode, labelCode, menuType, menuConf, parentTableName,
 				svarogCdlCat, svarogAclLbl, internalCat, version);
@@ -295,17 +296,17 @@ final class MenuHelper {
 	/**
 	 * Helper method for creating and validating a PERUN_MENU object for saving.
 	 * 
-	 * @param formVals
+	 * @param requestData
 	 * @param svr
 	 * @return
 	 * @throws SvException
 	 * @throws UserNotAuthorizedError
 	 * @throws MenuSaveError
 	 */
-	static DbDataObject saveMenuHelper(MultivaluedMap<String, String> formVals, SvReader svr)
+	static DbDataObject saveMenuHelper(JsonObject requestData, SvReader svr)
 			throws SvException, UserNotAuthorizedError, MenuError {
 		DbDataObject menuDbo;
-		Long objectId = Long.valueOf(formVals.getFirst(CC.OBJECT_ID));
+		Long objectId = requestData.get(CC.OBJECT_ID).getAsLong();
 		if (objectId == 0) {
 			menuDbo = new DbDataObject();
 			menuDbo.setObjectType(SvReader.getTypeIdByName(CC.PERUN_MENU));
@@ -320,7 +321,7 @@ final class MenuHelper {
 			}
 		}
 
-		setPerunMenuObjectValues(menuDbo, formVals);
+		setPerunMenuObjectValues(menuDbo, requestData);
 		String menuConfStr = (String) menuDbo.getVal(CC.MENU_CONF);
 		if (menuConfStr == null || menuConfStr.isBlank()) {
 			throw new MenuInvalidConfigError("The menu must have valid configuration");
@@ -351,18 +352,18 @@ final class MenuHelper {
 	}
 
 	/**
-	 * Method that checks if form data has all required keys that are given as an
+	 * Method that checks if JSON data has all required keys that are given as an
 	 * argument
 	 * 
-	 * @param formVals       Form data that will be checked
-	 * @param requiredFields List of all fields that need to be present in formVals
+	 * @param requestData    JSON data that will be checked
+	 * @param requiredFields List of all fields that need to be present in the JSON
+	 *                       data
 	 * @return
 	 */
-	public static List<String> checkAndReturnMissingKeys(MultivaluedMap<String, String> formVals,
-			List<String> requiredFields) {
+	public static List<String> checkAndReturnMissingKeys(JsonObject requestData, List<String> requiredFields) {
 		List<String> missing = new ArrayList<String>();
 		for (String field : requiredFields) {
-			if (!formVals.containsKey(field)) {
+			if (!requestData.has(field)) {
 				missing.add(field);
 			}
 		}
