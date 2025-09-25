@@ -11,12 +11,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.prtech.menu.manager.MenuExceptions.MenuError;
 import com.prtech.menu.manager.MenuExceptions.UserNotAuthorizedError;
@@ -69,17 +69,23 @@ public class WsMenu {
 	 */
 	@POST
 	@Path("/add/{sid}")
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response addMenu(@PathParam("sid") String sessionId, MultivaluedMap<String, String> formVals) {
+	public Response addMenu(@PathParam("sid") String sessionId, String entity) {
+		JsonObject requestData = new JsonObject();
 		DbDataObject menuDbo = null;
 		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
-			List<String> missing = MenuHelper.checkAndReturnMissingKeys(formVals, Arrays.asList(CC.OBJECT_ID));
+			try {
+				requestData = new Gson().fromJson(entity, JsonObject.class);
+			} catch (Exception e) {
+				return Response.status(Response.Status.BAD_REQUEST).entity("Request body has bad format").build();
+			}
+			List<String> missing = MenuHelper.checkAndReturnMissingKeys(requestData, Arrays.asList(CC.OBJECT_ID));
 			if (!missing.isEmpty()) {
 				return Response.status(Response.Status.BAD_REQUEST)
-						.entity("Missing required keys in form data: " + missing.toString()).build();
+						.entity("Missing required keys in request data: " + missing.toString()).build();
 			}
-			menuDbo = MenuHelper.saveMenuHelper(formVals, svr);
+			menuDbo = MenuHelper.saveMenuHelper(requestData, svr);
 			if (menuDbo != null) {
 				svw.saveObject(menuDbo);
 				String responseObj = menuDbo.toSimpleJson().toString();
