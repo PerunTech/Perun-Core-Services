@@ -218,7 +218,9 @@ final class MenuHelper {
 		String menuCode = requestData.has(CC.MENU_CODE) ? requestData.get(CC.MENU_CODE).getAsString() : null;
 		String labelCode = requestData.has(CC.LABEL_CODE) ? requestData.get(CC.LABEL_CODE).getAsString() : null;
 		String menuType = requestData.has(CC.MENU_TYPE) ? requestData.get(CC.MENU_TYPE).getAsString() : null;
-		String menuConf = requestData.has(CC.MENU_CONF) ? requestData.get(CC.MENU_CONF).getAsString() : null;
+		String menuConf = requestData.has(CC.MENU_CONF) && requestData.get(CC.MENU_CONF).isJsonObject()
+				? requestData.getAsJsonObject(CC.MENU_CONF).toString()
+				: null;
 		String parentTableName = requestData.has(CC.PARENT_TABLE_NAME)
 				? requestData.get(CC.PARENT_TABLE_NAME).getAsString()
 				: null;
