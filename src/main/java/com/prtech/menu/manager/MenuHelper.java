@@ -170,7 +170,7 @@ final class MenuHelper {
 			return null;
 	}
 
-	static DbDataObject findMenuByCode(String menuCode, SvReader svr) throws Exception {
+	static DbDataObject findMenuByCode(String menuCode, SvReader svr) throws SvException {
 		DbSearchCriterion filter = new DbSearchCriterion(CC.MENU_CODE, DbCompareOperand.EQUAL, menuCode);
 		DbDataArray result = svr.getObjects(filter, SvReader.getTypeIdByName(CC.PERUN_MENU), null, 0, 0);
 		return result != null && !result.getItems().isEmpty() ? result.get(0) : null;
@@ -303,22 +303,40 @@ final class MenuHelper {
 	 * @param svr
 	 * @return
 	 * @throws SvException
+	 * @throws MenuError
 	 * @throws UserNotAuthorizedError
-	 * @throws MenuSaveError
+	 * @throws Exception
 	 */
 	static DbDataObject saveMenuHelper(JsonObject requestData, SvReader svr)
-			throws SvException, UserNotAuthorizedError, MenuError {
+			throws SvException, MenuError, UserNotAuthorizedError {
 		DbDataObject menuDbo;
-		Long objectId = requestData.get(CC.OBJECT_ID).getAsLong();
+		Long objectId = -1l;
+
+		String menuCodeStr = requestData.has(CC.MENU_CODE) ? requestData.get(CC.MENU_CODE).getAsString() : null;
+		if (menuCodeStr == null || menuCodeStr.isBlank()) {
+			throw new MenuSaveError("Missing required key MENU_CODE");
+		}
+
+		if (requestData.has(CC.OBJECT_ID)) {
+			objectId = requestData.get(CC.OBJECT_ID).getAsLong();
+		}
 		if (objectId == 0) {
 			menuDbo = new DbDataObject();
 			menuDbo.setObjectType(SvReader.getTypeIdByName(CC.PERUN_MENU));
-		} else {
+		} else if (objectId > 0) {
 			menuDbo = svr.getObjectById(objectId, SvReader.getTypeIdByName(CC.PERUN_MENU), null);
 			if (menuDbo == null) {
 				throw new MenuNotFoundError(String.format("The menu with object_id: %d was not found", objectId));
 			}
+		} else {
+			menuDbo = findMenuByCode(requestData.get(CC.MENU_CODE).getAsString(), svr);
+			if (menuDbo == null) {
+				menuDbo = new DbDataObject();
+				menuDbo.setObjectType(SvReader.getTypeIdByName(CC.PERUN_MENU));
+			}
+		}
 
+		if (menuDbo != null && menuDbo.getObjectId() > 0) {
 			if (!checkUserHasPermission(menuDbo, Arrays.asList("FULL", "WRITE"), svr)) {
 				throw new UserNotAuthorizedError("User does not have permission to edit this menu");
 			}
