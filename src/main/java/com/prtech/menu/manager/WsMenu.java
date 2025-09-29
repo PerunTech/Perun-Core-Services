@@ -244,7 +244,6 @@ public class WsMenu {
 				}
 			}
 			if (menuJson != null && menuJson.size() != 0) {
-				menuJson.addProperty(CC.OBJECT_ID, 0);
 				menuDbo = MenuHelper.saveMenuHelper(menuJson, svr);
 				if (menuDbo != null) {
 					svw.saveObject(menuDbo);
