@@ -148,11 +148,15 @@ public class WsMenu {
 	}
 
 	/**
-	 * Web service for downloading a menu as a JSON file
+	 * This endpoint retrieves a menu configuration by its root menu code and
+	 * exports it as a downloadable JSON file
 	 * 
-	 * @param sessionId    Session ID
-	 * @param rootMenuCode Root menu code
-	 * @return
+	 * @param sessionId      Session ID
+	 * @param rootMenuCode   the unique code identifying the menu to download
+	 * @param resolveImports whether to include imported menu references in the
+	 *                       export
+	 * @return Response containing the menu JSON as an octet-stream attachment, or
+	 *         error message on failure
 	 */
 	@GET
 	@Path("/download/{sid}/{rootMenuCode}/{resolveImports}")
@@ -190,11 +194,18 @@ public class WsMenu {
 	}
 
 	/**
-	 * Web service for downloading a menu as a JSON file
+	 * Uploads a menu configuration file to the system.
 	 * 
-	 * @param sessionId    Session ID
-	 * @param rootMenuCode Root menu code
-	 * @return
+	 * The uploaded file must be in UTF-8 format, contain valid JSON, and not exceed
+	 * 5MB in size.
+	 * </p>
+	 * 
+	 * @param sessionId  Session ID
+	 * @param fileInput  the input stream of the uploaded file containing menu JSON
+	 *                   data
+	 * @param fileDetail metadata about the uploaded file
+	 * @return Response containing the saved menu object as JSON on success, or
+	 *         error message on failure
 	 */
 	@POST
 	@Path("/upload/{sid}")
