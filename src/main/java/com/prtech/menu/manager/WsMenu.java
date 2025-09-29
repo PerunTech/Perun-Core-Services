@@ -198,7 +198,6 @@ public class WsMenu {
 	 * 
 	 * The uploaded file must be in UTF-8 format, contain valid JSON, and not exceed
 	 * 5MB in size.
-	 * </p>
 	 * 
 	 * @param sessionId  Session ID
 	 * @param fileInput  the input stream of the uploaded file containing menu JSON
