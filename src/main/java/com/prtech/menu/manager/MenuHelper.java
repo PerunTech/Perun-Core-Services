@@ -2,6 +2,7 @@ package com.prtech.menu.manager;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -370,5 +371,25 @@ final class MenuHelper {
 			}
 		}
 		return missing;
+	}
+
+	public static JsonObject prepareMenuJsonForDownload(DbDataObject menuDbo, Boolean resolveImports, SvReader svr)
+			throws Exception {
+		JsonObject menuConf;
+		JsonObject menuJson = menuDbo.toSimpleJson();
+
+		if (resolveImports) {
+			menuConf = buildFullHierarchy(menuDbo, svr, new HashSet<Long>());
+		} else {
+			menuConf = new Gson().fromJson(menuDbo.getVal(CC.MENU_CONF).toString(), JsonObject.class);
+		}
+		menuJson.add(CC.MENU_CONF, menuConf);
+
+		for (char[] repoField : DbDataObject.repoFieldNames) {
+			String repoFieldStr = new String(repoField);
+			menuJson.remove(repoFieldStr.toLowerCase());
+		}
+
+		return menuJson;
 	}
 }
