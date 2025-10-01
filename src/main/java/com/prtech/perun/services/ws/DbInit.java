@@ -252,6 +252,82 @@ public class DbInit implements IDbInit {
 		return dbe;
 	}
 
+	private static DbDataTable createPerunMenuConfTable() {
+		DbDataTable dbe = new DbDataTable();
+		dbe.setDbTableName(CC.PERUN_MENU_CONF);
+		dbe.setDbRepoName("{MASTER_REPO}");
+		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setIsSystemTable(false);
+		dbe.setIsRepoTable(false);
+		dbe.setLabel_code("perun_menu_conf");
+		dbe.setUse_cache(false);
+		dbe.setIsConfigTable(true);
+		dbe.setConfigColumnName(CC.MENU_CODE);
+
+		DbDataField dbf1 = new DbDataField();
+		dbf1.setDbFieldName("PKID");
+		dbf1.setIsPrimaryKey(true);
+		dbf1.setDbFieldType(DbFieldType.NUMERIC);
+		dbf1.setDbFieldSize(18);
+		dbf1.setDbFieldScale(0);
+		dbf1.setIsNull(false);
+		dbf1.setLabel_code("perun_menu.pkid");
+
+		DbDataField dbf2 = new DbDataField();
+		dbf2.setDbFieldName(CC.TABLE_OBJ_ID);
+		dbf2.setDbFieldType(DbFieldType.NUMERIC);
+		dbf2.setDbFieldSize(18);
+		dbf2.setDbFieldScale(0);
+		dbf2.setIsNull(false);
+		dbf2.setLabel_code("perun_menu_conf.table_obj_id");
+
+		DbDataField dbf3 = new DbDataField();
+		dbf3.setDbFieldName(CC.TABLE_NAME);
+		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf3.setDbFieldSize(50);
+		dbf3.setIsNull(false);
+		dbf3.setLabel_code("perun_menu_conf.table_name");
+
+		DbDataField dbf4 = new DbDataField();
+		dbf4.setDbFieldName(CC.FIELD_NAME);
+		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf4.setDbFieldSize(50);
+		dbf4.setIsNull(false);
+		dbf4.setLabel_code("perun_menu_conf.field_name");
+
+		DbDataField dbf5 = new DbDataField();
+		dbf5.setDbFieldName(CC.CDL_NAME);
+		dbf5.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf5.setDbFieldSize(50);
+		dbf5.setIsNull(true);
+		dbf5.setLabel_code("perun_menu_conf.cdl_name");
+
+		DbDataField dbf6 = new DbDataField();
+		dbf6.setDbFieldName(CC.CDL_ITEM_NAME);
+		dbf6.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf6.setDbFieldSize(50);
+		dbf6.setIsNull(false);
+		dbf6.setLabel_code("perun_menu_conf.cdl_item_name");
+
+		DbDataField dbf7 = new DbDataField();
+		dbf7.setDbFieldName(CC.MENU_CODE);
+		dbf7.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf7.setDbFieldSize(50);
+		dbf6.setIsNull(true);
+		dbf7.setLabel_code("perun_menu_conf.menu_code");
+
+		DbDataField[] dbTableFields = new DbDataField[7];
+		dbTableFields[0] = dbf1;
+		dbTableFields[1] = dbf2;
+		dbTableFields[2] = dbf3;
+		dbTableFields[3] = dbf4;
+		dbTableFields[4] = dbf5;
+		dbTableFields[5] = dbf6;
+		dbTableFields[6] = dbf7;
+		dbe.setDbTableFields(dbTableFields);
+		return dbe;
+	}
+
 	@Override
 	public ArrayList<DbDataTable> getCustomObjectTypes() {
 		DbDataTable dbtt = null;
@@ -261,6 +337,8 @@ public class DbInit implements IDbInit {
 		dbtt = DbInit.cardConf();
 		dbtList.add(addSortOrder(dbtt));
 		dbtt = DbInit.createPerunMenuTable();
+		dbtList.add(addSortOrder(dbtt));
+		dbtt = DbInit.createPerunMenuConfTable();
 		dbtList.add(addSortOrder(dbtt));
 		return dbtList;
 	}
