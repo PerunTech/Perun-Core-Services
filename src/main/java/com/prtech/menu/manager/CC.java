@@ -22,6 +22,8 @@ public class CC {
 	public static final String TABLE_OBJ_ID = "TABLE_OBJ_ID";
 	public static final String TABLE_NAME = "TABLE_NAME";
 	public static final String FIELD_NAME = "FIELD_NAME";
+	public static final String REF_TABLE_NAME = "REF_TABLE_NAME";
+	public static final String REF_FIELD_NAME = "REF_TABLE_NAME";
 	public static final String CDL_NAME = "CDL_NAME";
 	public static final String CDL_ITEM_NAME = "CDL_ITEM_NAME";
 
