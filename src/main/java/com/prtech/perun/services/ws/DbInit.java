@@ -262,7 +262,6 @@ public class DbInit implements IDbInit {
 		dbe.setLabel_code("perun_menu_conf");
 		dbe.setUse_cache(false);
 		dbe.setIsConfigTable(true);
-		dbe.setConfigColumnName(CC.MENU_CODE);
 
 		DbDataField dbf1 = new DbDataField();
 		dbf1.setDbFieldName("PKID");
