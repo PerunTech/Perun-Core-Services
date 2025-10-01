@@ -274,49 +274,55 @@ public class DbInit implements IDbInit {
 		dbf1.setLabel_code("perun_menu.pkid");
 
 		DbDataField dbf2 = new DbDataField();
-		dbf2.setDbFieldName(CC.TABLE_OBJ_ID);
-		dbf2.setDbFieldType(DbFieldType.NUMERIC);
-		dbf2.setDbFieldSize(18);
-		dbf2.setDbFieldScale(0);
+		dbf2.setDbFieldName(CC.TABLE_NAME);
+		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf2.setDbFieldSize(50);
 		dbf2.setIsNull(false);
-		dbf2.setLabel_code("perun_menu_conf.table_obj_id");
+		dbf2.setLabel_code("perun_menu_conf.table_name");
 
 		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName(CC.TABLE_NAME);
+		dbf3.setDbFieldName(CC.FIELD_NAME);
 		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf3.setDbFieldSize(50);
 		dbf3.setIsNull(false);
-		dbf3.setLabel_code("perun_menu_conf.table_name");
+		dbf3.setLabel_code("perun_menu_conf.field_name");
 
 		DbDataField dbf4 = new DbDataField();
-		dbf4.setDbFieldName(CC.FIELD_NAME);
+		dbf4.setDbFieldName(CC.REF_TABLE_NAME);
 		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf4.setDbFieldSize(50);
-		dbf4.setIsNull(false);
-		dbf4.setLabel_code("perun_menu_conf.field_name");
+		dbf4.setIsNull(true);
+		dbf4.setLabel_code("perun_menu_conf.ref_table_name");
 
 		DbDataField dbf5 = new DbDataField();
-		dbf5.setDbFieldName(CC.CDL_NAME);
+		dbf5.setDbFieldName(CC.REF_FIELD_NAME);
 		dbf5.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf5.setDbFieldSize(50);
 		dbf5.setIsNull(true);
-		dbf5.setLabel_code("perun_menu_conf.cdl_name");
+		dbf5.setLabel_code("perun_menu_conf.ref_field_name");
 
 		DbDataField dbf6 = new DbDataField();
-		dbf6.setDbFieldName(CC.CDL_ITEM_NAME);
+		dbf6.setDbFieldName(CC.CDL_NAME);
 		dbf6.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf6.setDbFieldSize(50);
-		dbf6.setIsNull(false);
-		dbf6.setLabel_code("perun_menu_conf.cdl_item_name");
+		dbf6.setIsNull(true);
+		dbf6.setLabel_code("perun_menu_conf.cdl_name");
 
 		DbDataField dbf7 = new DbDataField();
-		dbf7.setDbFieldName(CC.MENU_CODE);
+		dbf7.setDbFieldName(CC.CDL_ITEM_NAME);
 		dbf7.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf7.setDbFieldSize(50);
-		dbf6.setIsNull(true);
-		dbf7.setLabel_code("perun_menu_conf.menu_code");
+		dbf7.setIsNull(false);
+		dbf7.setLabel_code("perun_menu_conf.cdl_item_name");
 
-		DbDataField[] dbTableFields = new DbDataField[7];
+		DbDataField dbf8 = new DbDataField();
+		dbf8.setDbFieldName(CC.MENU_CODE);
+		dbf8.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf8.setDbFieldSize(50);
+		dbf8.setIsNull(true);
+		dbf8.setLabel_code("perun_menu_conf.menu_code");
+
+		DbDataField[] dbTableFields = new DbDataField[8];
 		dbTableFields[0] = dbf1;
 		dbTableFields[1] = dbf2;
 		dbTableFields[2] = dbf3;
@@ -324,6 +330,7 @@ public class DbInit implements IDbInit {
 		dbTableFields[4] = dbf5;
 		dbTableFields[5] = dbf6;
 		dbTableFields[6] = dbf7;
+		dbTableFields[7] = dbf8;
 		dbe.setDbTableFields(dbTableFields);
 		return dbe;
 	}
