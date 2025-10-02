@@ -34,4 +34,5 @@ public class CC {
 	public static final String VALID = "VALID";
 
 	public static final String EMPTY_STRING = "";
+	public static final String PM = "PM";
 }
