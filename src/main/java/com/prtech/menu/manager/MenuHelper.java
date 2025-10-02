@@ -27,6 +27,7 @@ import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvRelationCache;
+import com.prtech.svarog.svCONST;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbSearchCriterion;
@@ -237,6 +238,23 @@ final class MenuHelper {
 				svarogCdlCat, svarogAclLbl, internalCat, version);
 	}
 
+	public static DbDataObject createPerunMenuConfObj(Long parentId, String tableName, String fieldName,
+			String refTableName, String regFieldName, String cdlName, String cdlItemName, String menuCode)
+			throws SvException {
+		DbDataObject perunMenuConfDbo = new DbDataObject();
+		perunMenuConfDbo.setObjectType(SvReader.getTypeIdByName(CC.PERUN_MENU_CONF));
+		perunMenuConfDbo.setParentId(parentId);
+		perunMenuConfDbo.setVal(CC.TABLE_NAME, tableName);
+		perunMenuConfDbo.setVal(CC.FIELD_NAME, fieldName);
+		perunMenuConfDbo.setVal(CC.REF_TABLE_NAME, refTableName);
+		perunMenuConfDbo.setVal(CC.REF_FIELD_NAME, regFieldName);
+		perunMenuConfDbo.setVal(CC.CDL_NAME, cdlName);
+		perunMenuConfDbo.setVal(CC.CDL_ITEM_NAME, cdlItemName);
+		perunMenuConfDbo.setVal(CC.MENU_CODE, menuCode);
+
+		return perunMenuConfDbo;
+	}
+
 	/**
 	 * Helper method for deleting a PERUN_MENU object. If the menu is referenced by
 	 * other menus it will block the deletion.
@@ -409,5 +427,93 @@ final class MenuHelper {
 		}
 
 		return menuJson;
+	}
+
+	/**
+	 * Find the appropriate perun_menu object by the object in the JSON request data
+	 * 
+	 * @param requestData - JSON object containing information about the object
+	 * @param svr         - SvReader instance for database operations
+	 * @return DbDataObject of type perun_menu that hold information about what menu
+	 *         to generate
+	 * @throws SvException
+	 */
+	public static DbDataObject findMenuCodeForObject(JsonObject requestData, SvReader svr) throws SvException {
+		DbDataObject result = null;
+		DbDataObject perunMenuConfDbo = null;
+		DbDataArray perunMenuConfArr = new DbDataArray();
+		String tableName = CC.EMPTY_STRING;
+		Long objectType = 0l;
+		String menuCode = CC.EMPTY_STRING;
+		for (String key : requestData.keySet()) {
+			if (key.contains(CC.OBJECT_TYPE)) {
+				objectType = requestData.get(key).getAsLong();
+			}
+		}
+
+		if (objectType != 0l) {
+			DbDataObject tableDbo = svr.getObjectById(objectType, svCONST.OBJECT_TYPE_TABLE, null);
+			tableName = tableDbo.getAsString(CC.TABLE_NAME);
+		}
+
+		if (!tableName.equals(CC.EMPTY_STRING)) {
+			DbSearchCriterion dbc = new DbSearchCriterion(CC.TABLE_NAME, DbCompareOperand.EQUAL, tableName);
+			perunMenuConfArr = svr.getObjects(dbc, SvReader.getTypeIdByName(CC.PERUN_MENU_CONF), null, 0, 0);
+		}
+
+		for (DbDataObject dbo : perunMenuConfArr.getItems()) {
+			if ((dbo.getVal(CC.CDL_NAME) != null && checkObjectByCdlItemName(requestData, dbo))
+					|| (dbo.getVal(CC.REF_TABLE_NAME) != null && checkObjectByRefField(requestData, dbo, svr))) {
+				perunMenuConfDbo = dbo;
+				break;
+			}
+		}
+
+		if (perunMenuConfDbo != null) {
+			menuCode = perunMenuConfDbo.getAsString(CC.MENU_CODE);
+		}
+
+		if (!menuCode.equals(CC.EMPTY_STRING)) {
+			result = findMenuByCode(menuCode, svr);
+		}
+
+		return result;
+	}
+
+	private static String getValueFromRequestData(JsonObject requestData, DbDataObject dbo) {
+		String fieldNamePerunMenuConf = dbo.getAsString(CC.FIELD_NAME);
+		String value = CC.EMPTY_STRING;
+		for (String key : requestData.keySet()) {
+			if (key.contains(fieldNamePerunMenuConf)) {
+				value = requestData.get(key).getAsString();
+			}
+		}
+		return value;
+	}
+
+	private static boolean checkObjectByCdlItemName(JsonObject requestData, DbDataObject dbo) {
+		String value = getValueFromRequestData(requestData, dbo);
+		if (!value.equals(CC.EMPTY_STRING) && dbo.getVal(CC.CDL_ITEM_NAME) != null
+				&& dbo.getVal(CC.CDL_ITEM_NAME).toString().equals(value)) {
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean checkObjectByRefField(JsonObject requestData, DbDataObject dbo, SvReader svr)
+			throws SvException {
+		String value = getValueFromRequestData(requestData, dbo);
+		String refTableName = dbo.getAsString(CC.REF_TABLE_NAME);
+		String refFieldName = dbo.getAsString(CC.REF_FIELD_NAME);
+
+		DbDataObject dboRef = svr.getObjectById(Long.valueOf(value), SvReader.getTypeIdByName(refTableName), null);
+
+		if (dboRef != null && dbo.getVal(CC.CDL_ITEM_NAME) != null && dbo.getVal(CC.CDL_ITEM_NAME) != null
+				&& dboRef.getVal(refFieldName) != null
+				&& dbo.getVal(CC.CDL_ITEM_NAME).equals(dboRef.getVal(refFieldName).toString())) {
+			return true;
+		}
+
+		return false;
 	}
 }

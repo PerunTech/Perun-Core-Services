@@ -69,6 +69,39 @@ public class WsMenu {
 	}
 
 	/**
+	 * Return full menu config for the object that is sent in the request
+	 * 
+	 * @param sessionId Session ID
+	 * @param entity    JSON object containing the whole DB object
+	 * @return
+	 */
+	@POST
+	@Path("/getMenu/{sid}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getMenu(@PathParam("sid") String sessionId, String entity) {
+		JsonObject requestData = new JsonObject();
+		DbDataObject menuRoot = null;
+		try (SvReader svr = new SvReader(sessionId)) {
+			try {
+				requestData = new Gson().fromJson(entity, JsonObject.class);
+			} catch (Exception e) {
+				return Response.status(Response.Status.BAD_REQUEST).entity("Request body has bad format").build();
+			}
+			menuRoot = MenuHelper.findMenuCodeForObject(requestData, svr);
+			if (menuRoot == null) {
+				return Response.status(Response.Status.BAD_REQUEST).entity("Menu for this type of object was not found")
+						.build();
+			}
+			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>());
+			return Response.ok(resultJson.toString(), MediaType.APPLICATION_JSON).build();
+		} catch (Exception e) {
+			log4j.error("Error generating menu: ", e);
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		}
+	}
+
+	/**
 	 * Web service for adding a new menu in the system
 	 * 
 	 * @param sessionId Session ID
