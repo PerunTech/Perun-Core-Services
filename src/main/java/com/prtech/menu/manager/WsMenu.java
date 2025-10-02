@@ -68,6 +68,13 @@ public class WsMenu {
 		}
 	}
 
+	/**
+	 * Return full menu config for the object that is sent in the request
+	 * 
+	 * @param sessionId Session ID
+	 * @param entity    JSON object containing the whole DB object
+	 * @return
+	 */
 	@POST
 	@Path("/getMenu/{sid}")
 	@Consumes(MediaType.APPLICATION_JSON)
