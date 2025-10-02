@@ -7,6 +7,7 @@ package com.prtech.menu.manager;
 public class CC {
 
 	public static final String OBJECT_ID = "OBJECT_ID";
+	public static final String OBJECT_TYPE = "OBJECT_TYPE";
 	public static final String PARENT_ID = "PARENT_ID";
 	public static final String PERUN_MENU = "PERUN_MENU";
 	public static final String MENU_CODE = "MENU_CODE";
@@ -32,4 +33,5 @@ public class CC {
 	public static final String STATUS = "STATUS";
 	public static final String VALID = "VALID";
 
+	public static final String EMPTY_STRING = "";
 }
