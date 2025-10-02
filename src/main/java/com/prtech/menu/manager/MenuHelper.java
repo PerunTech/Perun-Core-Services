@@ -98,7 +98,7 @@ final class MenuHelper {
 		for (JsonElement btn : btns) {
 			if (btn.isJsonObject() && btn.getAsJsonObject().has(CC.IMPORT_MENU)) {
 				String importCode = btn.getAsJsonObject().get(CC.IMPORT_MENU).getAsString();
-				DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, "PM", svr);
+				DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, CC.PM, svr);
 				if (importedMenu != null) {
 					buildRecursiveWithSvCache(importedMenu, svr, visited, mergedButtons);
 				} else {
@@ -136,11 +136,15 @@ final class MenuHelper {
 		if (result != null) {
 			return result;
 		}
+		updateCache(tableName, cacheAlias, uniqueCacheId);
+		return SvComplexCache.getData(uniqueCacheId, svr);
+	}
+
+	static void updateCache(String tableName, String cacheAlias, String uniqueCacheId) throws SvException {
 		DbSearchCriterion search = new DbSearchCriterion(CC.STATUS, DbCompareOperand.EQUAL, CC.VALID);
 		SvRelationCache src = new SvRelationCache(SvCore.getDbtByName(tableName), search, cacheAlias, null, null, null,
 				null);
-		SvComplexCache.addRelationCache(uniqueCacheId, src, false);
-		return SvComplexCache.getData(uniqueCacheId, svr);
+		SvComplexCache.addRelationCache(uniqueCacheId, src, true);
 	}
 
 	/**
@@ -376,7 +380,7 @@ final class MenuHelper {
 		for (JsonElement btn : btns) {
 			if (btn.isJsonObject() && btn.getAsJsonObject().has(CC.IMPORT_MENU)) {
 				String importCode = btn.getAsJsonObject().get(CC.IMPORT_MENU).getAsString();
-				DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, "PM", svr);
+				DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, CC.PM, svr);
 				if (importedMenu == null) {
 					missingMenuCodes.add(importCode);
 				}
