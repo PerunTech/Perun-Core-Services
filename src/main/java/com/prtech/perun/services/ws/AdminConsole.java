@@ -295,7 +295,7 @@ public class AdminConsole {
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
 	
-	@Path("/getUsersTableUiSchema/{session_id}")
+	@Path("/getUsersTableUISchema/{session_id}")
 	@GET
 	@Produces("application/json")
 	public Response getUsersTableUISchema(@PathParam("session_id") String session,
