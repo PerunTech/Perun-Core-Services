@@ -60,54 +60,110 @@ final class MenuHelper {
 			throws Exception {
 		if (menuDbo == null || !visited.add(menuDbo.getObjectId()))
 			return;
+
 		String menuConfStr = (String) menuDbo.getVal(CC.MENU_CONF);
 		if (menuConfStr == null)
 			return;
+
 		JsonObject confJson = JsonParser.parseString(menuConfStr).getAsJsonObject();
 		if (!confJson.has("buttonArray"))
 			return;
+
 		JsonArray btns = confJson.getAsJsonArray("buttonArray");
 		for (JsonElement btn : btns) {
-			if (btn.isJsonObject() && btn.getAsJsonObject().has(CC.IMPORT_MENU)) {
-				String importCode = btn.getAsJsonObject().get(CC.IMPORT_MENU).getAsString();
-				DbDataObject importedMenu = new DbReader().searchDbObjectBySingleFilter(DbCompareOperand.EQUAL,
-						SvReader.getTypeIdByName(CC.PERUN_MENU), CC.MENU_CODE, importCode, svr);
-				if (importedMenu != null) {
-					buildRecursive(importedMenu, svr, visited, mergedButtons);
-				} else {
-					log4j.warn("IMPORT_MENU: Menu code not found: " + importCode);
-				}
-			} else {
-				mergedButtons.add(btn.deepCopy());
-			}
+			processMenuItem(btn, svr, visited, mergedButtons);
 		}
+	}
+
+	static void buildRecursive(JsonObject obj, SvReader svr, Set<Long> visited, JsonArray mergedButtons)
+			throws Exception {
+		processMenuItem(obj, svr, visited, mergedButtons);
+	}
+
+	private static void processMenuItem(JsonElement item, SvReader svr, Set<Long> visited, JsonArray mergedButtons)
+			throws Exception {
+		if (!item.isJsonObject())
+			return;
+
+		JsonObject obj = item.getAsJsonObject();
+
+		if (obj.has(CC.IMPORT_MENU)) {
+			String importCode = obj.get(CC.IMPORT_MENU).getAsString();
+			DbDataObject importedMenu = new DbReader().searchDbObjectBySingleFilter(DbCompareOperand.EQUAL,
+					SvReader.getTypeIdByName(CC.PERUN_MENU), CC.MENU_CODE, importCode, svr);
+
+			if (importedMenu != null) {
+				buildRecursive(importedMenu, svr, visited, mergedButtons);
+			} else {
+				log4j.warn("IMPORT_MENU: Menu code not found: " + importCode);
+			}
+			return;
+		}
+
+		if (obj.has(CC.DATA) && obj.get(CC.DATA).isJsonArray()) {
+			JsonArray dataArray = new JsonArray();
+			for (JsonElement dataElem : obj.getAsJsonArray(CC.DATA)) {
+				processMenuItem(dataElem, svr, visited, dataArray);
+			}
+			obj.add(CC.DATA, dataArray);
+		}
+
+		mergedButtons.add(obj.deepCopy());
 	}
 
 	static void buildRecursiveWithSvCache(DbDataObject menuDbo, SvReader svr, Set<Long> visited,
 			JsonArray mergedButtons) throws Exception {
 		if (menuDbo == null || visited.contains(menuDbo.getObjectId()))
 			return;
+
 		visited.add(menuDbo.getObjectId());
 		String menuConfStr = (String) menuDbo.getVal(CC.MENU_CONF);
 		if (menuConfStr == null)
 			return;
+
 		JsonObject confJson = JsonParser.parseString(menuConfStr).getAsJsonObject();
 		if (!confJson.has("buttonArray"))
 			return;
+
 		JsonArray btns = confJson.getAsJsonArray("buttonArray");
 		for (JsonElement btn : btns) {
-			if (btn.isJsonObject() && btn.getAsJsonObject().has(CC.IMPORT_MENU)) {
-				String importCode = btn.getAsJsonObject().get(CC.IMPORT_MENU).getAsString();
-				DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, "PM", svr);
-				if (importedMenu != null) {
-					buildRecursiveWithSvCache(importedMenu, svr, visited, mergedButtons);
-				} else {
-					log4j.warn("IMPORT_MENU: Menu code not found: " + importCode);
-				}
-			} else {
-				mergedButtons.add(btn.deepCopy());
-			}
+			processMenuItemWithSvCache(btn, svr, visited, mergedButtons);
 		}
+	}
+
+	static void buildRecursiveWithSvCache(JsonObject obj, SvReader svr, Set<Long> visited, JsonArray mergedButtons)
+			throws Exception {
+		processMenuItemWithSvCache(obj, svr, visited, mergedButtons);
+	}
+
+	private static void processMenuItemWithSvCache(JsonElement item, SvReader svr, Set<Long> visited,
+			JsonArray mergedButtons) throws Exception {
+		if (!item.isJsonObject())
+			return;
+
+		JsonObject obj = item.getAsJsonObject();
+
+		if (obj.has(CC.IMPORT_MENU)) {
+			String importCode = obj.get(CC.IMPORT_MENU).getAsString();
+			DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, CC.PM, svr);
+
+			if (importedMenu != null) {
+				buildRecursiveWithSvCache(importedMenu, svr, visited, mergedButtons);
+			} else {
+				log4j.warn("IMPORT_MENU: Menu code not found: " + importCode);
+			}
+			return;
+		}
+
+		if (obj.has(CC.DATA) && obj.get(CC.DATA).isJsonArray()) {
+			JsonArray dataArray = new JsonArray();
+			for (JsonElement dataElem : obj.getAsJsonArray(CC.DATA)) {
+				processMenuItemWithSvCache(dataElem, svr, visited, dataArray);
+			}
+			obj.add(CC.DATA, dataArray);
+		}
+
+		mergedButtons.add(obj.deepCopy());
 	}
 
 	/**
@@ -136,11 +192,15 @@ final class MenuHelper {
 		if (result != null) {
 			return result;
 		}
+		updateCache(tableName, cacheAlias, uniqueCacheId);
+		return SvComplexCache.getData(uniqueCacheId, svr);
+	}
+
+	static void updateCache(String tableName, String cacheAlias, String uniqueCacheId) throws SvException {
 		DbSearchCriterion search = new DbSearchCriterion(CC.STATUS, DbCompareOperand.EQUAL, CC.VALID);
 		SvRelationCache src = new SvRelationCache(SvCore.getDbtByName(tableName), search, cacheAlias, null, null, null,
 				null);
-		SvComplexCache.addRelationCache(uniqueCacheId, src, false);
-		return SvComplexCache.getData(uniqueCacheId, svr);
+		SvComplexCache.addRelationCache(uniqueCacheId, src, true);
 	}
 
 	/**
@@ -376,7 +436,7 @@ final class MenuHelper {
 		for (JsonElement btn : btns) {
 			if (btn.isJsonObject() && btn.getAsJsonObject().has(CC.IMPORT_MENU)) {
 				String importCode = btn.getAsJsonObject().get(CC.IMPORT_MENU).getAsString();
-				DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, "PM", svr);
+				DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, CC.PM, svr);
 				if (importedMenu == null) {
 					missingMenuCodes.add(importCode);
 				}
