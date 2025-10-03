@@ -36,4 +36,6 @@ public class CC {
 	public static final String EMPTY_STRING = "";
 	public static final String PM = "PM";
 	public static final String DATA = "data";
+	public static final String LABEL = "LABEL";
+	public static final String INSERT = "insert";
 }
