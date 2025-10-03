@@ -4,10 +4,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.joda.time.DateTime;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -22,6 +26,7 @@ import com.prtech.menu.manager.MenuExceptions.MenuNotFoundError;
 import com.prtech.menu.manager.MenuExceptions.MenuSaveError;
 import com.prtech.menu.manager.MenuExceptions.UserNotAuthorizedError;
 import com.prtech.perun.services.ws.DbReader;
+import com.prtech.svarog.I18n;
 import com.prtech.svarog.SvComplexCache;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
@@ -50,14 +55,32 @@ final class MenuHelper {
 	 */
 	static JsonObject buildFullHierarchy(DbDataObject menuDbo, SvReader svr, Set<Long> visited) throws Exception {
 		JsonArray mergedButtons = new JsonArray();
-		buildRecursiveWithSvCache(menuDbo, svr, visited, mergedButtons);
+		buildRecursiveWithSvCache(menuDbo, svr, visited, mergedButtons, null);
 		JsonObject result = new JsonObject();
-		result.add("buttonArray", mergedButtons);
+
+		String year = String.valueOf(new DateTime().year().get());
+		String mergedButtonsStr = mergedButtons.toString();
+		mergedButtonsStr = mergedButtonsStr.replaceAll("%TOKEN%", svr.getSessionId());
+		mergedButtonsStr = mergedButtonsStr.replaceAll("\"true\"", "true");
+		mergedButtonsStr = mergedButtonsStr.replaceAll("\"false\"", "false");
+		mergedButtonsStr = mergedButtonsStr.replaceAll("%CURRENT_YEAR%", year);
+		Pattern pattern = Pattern.compile("%REPO_ID_(\\w+)%");
+		Matcher matcher = pattern.matcher(mergedButtonsStr);
+
+		while (matcher.find()) {
+			String tableName = matcher.group(1).toUpperCase();
+			String placeholder = matcher.group(0);
+			String replacement = SvCore.getTypeIdByName(tableName).toString();
+			mergedButtonsStr = mergedButtonsStr.replace(placeholder, replacement);
+		}
+
+		JsonArray buttonArray = new Gson().fromJson(mergedButtonsStr, JsonArray.class);
+		result.add("buttonArray", buttonArray);
 		return result;
 	}
 
-	static void buildRecursive(DbDataObject menuDbo, SvReader svr, Set<Long> visited, JsonArray mergedButtons)
-			throws Exception {
+	static void buildRecursive(DbDataObject menuDbo, SvReader svr, Set<Long> visited, JsonArray mergedButtons,
+			JsonObject configData) throws Exception {
 		if (menuDbo == null || !visited.add(menuDbo.getObjectId()))
 			return;
 
@@ -71,21 +94,22 @@ final class MenuHelper {
 
 		JsonArray btns = confJson.getAsJsonArray("buttonArray");
 		for (JsonElement btn : btns) {
-			processMenuItem(btn, svr, visited, mergedButtons);
+			processMenuItem(btn, svr, visited, mergedButtons, configData);
 		}
 	}
 
-	static void buildRecursive(JsonObject obj, SvReader svr, Set<Long> visited, JsonArray mergedButtons)
-			throws Exception {
-		processMenuItem(obj, svr, visited, mergedButtons);
+	static void buildRecursive(JsonObject obj, SvReader svr, Set<Long> visited, JsonArray mergedButtons,
+			JsonObject configData) throws Exception {
+		processMenuItem(obj, svr, visited, mergedButtons, configData);
 	}
 
-	private static void processMenuItem(JsonElement item, SvReader svr, Set<Long> visited, JsonArray mergedButtons)
-			throws Exception {
+	private static void processMenuItem(JsonElement item, SvReader svr, Set<Long> visited, JsonArray mergedButtons,
+			JsonObject configData) throws Exception {
 		if (!item.isJsonObject())
 			return;
 
 		JsonObject obj = item.getAsJsonObject();
+		String localeId = svr.getUserLocaleId(svr.getInstanceUser());
 
 		if (obj.has(CC.IMPORT_MENU)) {
 			String importCode = obj.get(CC.IMPORT_MENU).getAsString();
@@ -93,7 +117,7 @@ final class MenuHelper {
 					SvReader.getTypeIdByName(CC.PERUN_MENU), CC.MENU_CODE, importCode, svr);
 
 			if (importedMenu != null) {
-				buildRecursive(importedMenu, svr, visited, mergedButtons);
+				buildRecursive(importedMenu, svr, visited, mergedButtons, obj);
 			} else {
 				log4j.warn("IMPORT_MENU: Menu code not found: " + importCode);
 			}
@@ -103,16 +127,51 @@ final class MenuHelper {
 		if (obj.has(CC.DATA) && obj.get(CC.DATA).isJsonArray()) {
 			JsonArray dataArray = new JsonArray();
 			for (JsonElement dataElem : obj.getAsJsonArray(CC.DATA)) {
-				processMenuItem(dataElem, svr, visited, dataArray);
+				processMenuItem(dataElem, svr, visited, dataArray, configData);
 			}
 			obj.add(CC.DATA, dataArray);
+		}
+
+		if (obj.has(CC.LABEL)) {
+			String labelCode = obj.get(CC.LABEL).getAsString();
+			String labelText = I18n.getText(localeId, labelCode);
+			obj.addProperty(CC.LABEL, labelText);
+		}
+
+		if (configData != null) {
+			String menuStr = obj.toString();
+			DbDataObject dboTable = null;
+			if (configData.has(CC.TABLE_NAME)) {
+				dboTable = SvReader.getDbtByName(configData.get(CC.TABLE_NAME).getAsString());
+			}
+
+			menuStr = menuStr.replaceAll("%PARENT_OBJECT_ID%", "0");
+			if (menuStr.contains("%CHILD_ID_OF%")) {
+				String recordIdStr = "0";
+				DbDataArray recordArray = svr.getObjectsByParentId(0l, dboTable.getObjectId(), null);
+				if (null != recordArray && !recordArray.isEmpty()) {
+					recordIdStr = recordArray.get(0).getObjectId().toString();
+				}
+				menuStr = menuStr.replaceAll("%CHILD_ID_OF%", recordIdStr);
+			}
+
+			if (dboTable != null) {
+				menuStr = menuStr.replaceAll("%TABLE_NAME%", dboTable.getVal("TABLE_NAME").toString());
+				menuStr = menuStr.replaceAll("%TABLE_NAME_LABEL_CODE%", dboTable.getVal("LABEL_CODE").toString());
+				menuStr = menuStr.replaceAll("%TABLE_NAME_OBJECT_ID%", dboTable.getObjectId().toString());
+			}
+
+			obj = new Gson().fromJson(menuStr, JsonObject.class);
+			if (configData.has(CC.INSERT) && configData.get(CC.INSERT).isJsonObject()) {
+				deepMerge(configData.getAsJsonObject(CC.INSERT), obj);
+			}
 		}
 
 		mergedButtons.add(obj.deepCopy());
 	}
 
 	static void buildRecursiveWithSvCache(DbDataObject menuDbo, SvReader svr, Set<Long> visited,
-			JsonArray mergedButtons) throws Exception {
+			JsonArray mergedButtons, JsonObject configData) throws Exception {
 		if (menuDbo == null || visited.contains(menuDbo.getObjectId()))
 			return;
 
@@ -127,28 +186,29 @@ final class MenuHelper {
 
 		JsonArray btns = confJson.getAsJsonArray("buttonArray");
 		for (JsonElement btn : btns) {
-			processMenuItemWithSvCache(btn, svr, visited, mergedButtons);
+			processMenuItemWithSvCache(btn, svr, visited, mergedButtons, configData);
 		}
 	}
 
-	static void buildRecursiveWithSvCache(JsonObject obj, SvReader svr, Set<Long> visited, JsonArray mergedButtons)
-			throws Exception {
-		processMenuItemWithSvCache(obj, svr, visited, mergedButtons);
+	static void buildRecursiveWithSvCache(JsonObject obj, SvReader svr, Set<Long> visited, JsonArray mergedButtons,
+			JsonObject configData) throws Exception {
+		processMenuItemWithSvCache(obj, svr, visited, mergedButtons, configData);
 	}
 
 	private static void processMenuItemWithSvCache(JsonElement item, SvReader svr, Set<Long> visited,
-			JsonArray mergedButtons) throws Exception {
+			JsonArray mergedButtons, JsonObject configData) throws Exception {
 		if (!item.isJsonObject())
 			return;
 
 		JsonObject obj = item.getAsJsonObject();
+		String localeId = svr.getUserLocaleId(svr.getInstanceUser());
 
 		if (obj.has(CC.IMPORT_MENU)) {
 			String importCode = obj.get(CC.IMPORT_MENU).getAsString();
 			DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, CC.PM, svr);
 
 			if (importedMenu != null) {
-				buildRecursiveWithSvCache(importedMenu, svr, visited, mergedButtons);
+				buildRecursiveWithSvCache(importedMenu, svr, visited, mergedButtons, configData);
 			} else {
 				log4j.warn("IMPORT_MENU: Menu code not found: " + importCode);
 			}
@@ -158,12 +218,68 @@ final class MenuHelper {
 		if (obj.has(CC.DATA) && obj.get(CC.DATA).isJsonArray()) {
 			JsonArray dataArray = new JsonArray();
 			for (JsonElement dataElem : obj.getAsJsonArray(CC.DATA)) {
-				processMenuItemWithSvCache(dataElem, svr, visited, dataArray);
+				processMenuItemWithSvCache(dataElem, svr, visited, dataArray, configData);
 			}
 			obj.add(CC.DATA, dataArray);
 		}
 
+		if (obj.has(CC.LABEL)) {
+			String labelCode = obj.get(CC.LABEL).getAsString();
+			String labelText = I18n.getText(localeId, labelCode);
+			obj.addProperty(CC.LABEL, labelText);
+		}
+
+		if (configData != null) {
+			String menuStr = obj.toString();
+			DbDataObject dboTable = null;
+			if (configData.has(CC.TABLE_NAME)) {
+				dboTable = SvReader.getDbtByName(configData.get(CC.TABLE_NAME).getAsString());
+			}
+
+			menuStr = menuStr.replaceAll("%PARENT_OBJECT_ID%", "0");
+			if (menuStr.contains("%CHILD_ID_OF%")) {
+				String recordIdStr = "0";
+				DbDataArray recordArray = svr.getObjectsByParentId(0l, dboTable.getObjectId(), null);
+				if (null != recordArray && !recordArray.isEmpty()) {
+					recordIdStr = recordArray.get(0).getObjectId().toString();
+				}
+				menuStr = menuStr.replaceAll("%CHILD_ID_OF%", recordIdStr);
+			}
+
+			if (dboTable != null) {
+				menuStr = menuStr.replaceAll("%TABLE_NAME%", dboTable.getVal("TABLE_NAME").toString());
+				menuStr = menuStr.replaceAll("%TABLE_NAME_LABEL_CODE%", dboTable.getVal("LABEL_CODE").toString());
+				menuStr = menuStr.replaceAll("%TABLE_NAME_OBJECT_ID%", dboTable.getObjectId().toString());
+			}
+
+			obj = new Gson().fromJson(menuStr, JsonObject.class);
+			if (configData.has(CC.INSERT) && configData.get(CC.INSERT).isJsonObject()) {
+				deepMerge(configData.getAsJsonObject(CC.INSERT), obj);
+			}
+		}
+
 		mergedButtons.add(obj.deepCopy());
+	}
+
+	private static JsonObject deepMerge(JsonObject source, JsonObject target) {
+		for (Map.Entry<String, JsonElement> sourceEntry : source.entrySet()) {
+			String key = sourceEntry.getKey();
+			JsonElement value = sourceEntry.getValue();
+			if (!target.has(key)) {
+				target.add(key, value);
+			} else {
+				if (!value.isJsonNull()) {
+					if (value.isJsonObject()) {
+						deepMerge(value.getAsJsonObject(), target.get(key).getAsJsonObject());
+					} else {
+						target.add(key, value);
+					}
+				} else {
+					target.remove(key);
+				}
+			}
+		}
+		return target;
 	}
 
 	/**
