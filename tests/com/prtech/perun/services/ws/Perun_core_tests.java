@@ -34,7 +34,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.lastpass.saml.SAMLException;
 import com.prtech.perun.PerunUtil;
-import com.prtech.perun.services.ws.AdminConsole;
+import com.prtech.perun.services.ws.WsAdminConsole;
 import com.prtech.perun.services.ws.DbReader;
 import com.prtech.perun.services.ws.PublicWs;
 import com.prtech.perun.services.ws.Rc;
@@ -89,7 +89,7 @@ public class Perun_core_tests {
 	@Test
 	public void defaultGroup() {
 		SvSecurity svc = null;
-		AdminConsole adm = new AdminConsole();
+		WsAdminConsole adm = new WsAdminConsole();
 		try {
 			svc = new SvSecurity();
 			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
@@ -465,7 +465,7 @@ public class Perun_core_tests {
 	@Test
 	public void invalidUser() {
 		SvSecurity svc;
-		AdminConsole wsc = new AdminConsole();
+		WsAdminConsole wsc = new WsAdminConsole();
 		try {
 			svc = new SvSecurity();
 			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("notValid"));
@@ -480,7 +480,7 @@ public class Perun_core_tests {
 	@Test
 	public void getLinkedUsers() {
 		SvSecurity svc;
-		AdminConsole wsc = new AdminConsole();
+		WsAdminConsole wsc = new WsAdminConsole();
 		try {
 			svc = new SvSecurity();
 			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("notValid"));
@@ -495,7 +495,7 @@ public class Perun_core_tests {
 	@Test
 	public void getLinkedGroups() {
 		SvSecurity svc;
-		AdminConsole wsc = new AdminConsole();
+		WsAdminConsole wsc = new WsAdminConsole();
 		try {
 			svc = new SvSecurity();
 			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("notvalid"));
@@ -1236,7 +1236,7 @@ public class Perun_core_tests {
 	@Test
 	public void getAclBygroup() {
 		SvSecurity svc;
-		AdminConsole wsc = new AdminConsole();
+		WsAdminConsole wsc = new WsAdminConsole();
 		try {
 			svc = new SvSecurity();
 			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
@@ -1252,7 +1252,7 @@ public class Perun_core_tests {
 	@Test
 	public void getAclBygroupFieldList() {
 		SvSecurity svc;
-		AdminConsole wsc = new AdminConsole();
+		WsAdminConsole wsc = new WsAdminConsole();
 		try {
 			svc = new SvSecurity();
 			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
@@ -1271,7 +1271,7 @@ public class Perun_core_tests {
 	@Test
 	public void getAclByUser() {
 		SvSecurity svc;
-		AdminConsole wsc = new AdminConsole();
+		WsAdminConsole wsc = new WsAdminConsole();
 		try {
 			svc = new SvSecurity();
 			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
@@ -1287,7 +1287,7 @@ public class Perun_core_tests {
 	@Test
 	public void getAclByUserFieldList() {
 		SvSecurity svc;
-		AdminConsole wsc = new AdminConsole();
+		WsAdminConsole wsc = new WsAdminConsole();
 		try {
 			svc = new SvSecurity();
 			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
