@@ -294,6 +294,33 @@ public class AdminConsole {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
+	
+	@Path("/getUsersTableUiSchema/{session_id}")
+	@GET
+	@Produces("application/json")
+	public Response getUsersTableUISchema(@PathParam("session_id") String session,
+			@Context HttpServletRequest httpRequest) {
+		JsonObject jObj = new JsonObject();
+		try (SvReader svr = new SvReader(session)) {
+
+			JsonObject readOnlyProperty = new JsonObject();
+			readOnlyProperty.addProperty("ui:readonly", true);
+			JsonObject hideProperty = new JsonObject();
+			hideProperty.addProperty("ui:widget", "hidden");
+
+			jObj.add("USER_UID", hideProperty);
+			jObj.add("USER_TYPE", readOnlyProperty);
+			jObj.add("USER_NAME", readOnlyProperty);
+			jObj.add("PIN", readOnlyProperty);
+			jObj.add("TAX_ID", readOnlyProperty);
+			jObj.add("PASSWORD_HASH", hideProperty);
+			jObj.add("CONFIRM_PASSWORD_HASH", hideProperty);
+
+		} catch (Exception e) {
+			PerunUtil.handleException(e, "Error get User UISchema");
+		}
+		return Response.status(200).entity(jObj.toString()).build();
+	}
 
 	/**
 	 * assignee user to group f.r
