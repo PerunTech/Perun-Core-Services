@@ -129,6 +129,7 @@ public class WsMenu {
 			menuDbo = MenuHelper.saveMenuHelper(requestData, svr);
 			if (menuDbo != null) {
 				svw.saveObject(menuDbo);
+				MenuHelper.updateCache(CC.PERUN_MENU, CC.PM, CC.PERUN_MENU);
 				String responseObj = menuDbo.toSimpleJson().toString();
 				return Response.ok(responseObj, MediaType.APPLICATION_JSON).build();
 			} else {
