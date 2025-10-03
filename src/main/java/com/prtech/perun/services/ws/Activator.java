@@ -74,7 +74,7 @@ public class Activator implements BundleActivator {
 		list.add(WsReactElements.class);
 		list.add(WsConf.class);
 		list.add(ElementBuilder.class);
-		list.add(AdminConsole.class);
+		list.add(WsAdminConsole.class);
 		list.add(PublicWs.class);
 		list.add(WsReporting.class);
 		list.add(WsMenu.class);

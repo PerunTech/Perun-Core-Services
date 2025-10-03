@@ -24,6 +24,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.prtech.perun.PerunUtil;
 import com.prtech.svarog.I18n;
+import com.prtech.svarog.Sv;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvConf.SvDbType;
 import com.prtech.svarog.SvCore;
@@ -49,7 +50,7 @@ import com.prtech.svarog_common.DbQueryObject.LinkType;
 import com.prtech.svarog_common.ResponseHandler.MessageType;
 
 @Path("/WsAdminConsole")
-public class AdminConsole {
+public class WsAdminConsole {
 	static final Logger log4j = SvConf.getLogger(WsConf.class);
 
 	/**
@@ -264,9 +265,10 @@ public class AdminConsole {
 						JsonObject jobj = new JsonObject();
 						Gson gs = new Gson();
 						jobj = gs.fromJson(key, JsonObject.class);
-
+						
+						if (svr.isAdmin()) {
 						DbDataObject dboUser = svr.getObjectById(objectId, svCONST.OBJECT_TYPE_USER, null);
-
+						
 						if (jobj.get("USER_NAME") != null && !jobj.get("USER_NAME").isJsonNull())
 							dboUser.setVal("USER_NAME", jobj.get("USER_NAME").getAsString());
 						if (jobj.get("FIRST_NAME") != null && !jobj.get("FIRST_NAME").isJsonNull())
@@ -281,9 +283,25 @@ public class AdminConsole {
 							dboUser.setVal("TAX_ID", jobj.get("TAX_ID").getAsString());
 						if (jobj.get("USER_TYPE") != null && !jobj.get("USER_TYPE").isJsonNull())
 							dboUser.setVal("USER_TYPE", jobj.get("USER_TYPE").getAsString());
-
+						
 						if (dboUser.getIsDirty())
 							svw.saveObject(dboUser);
+						} else {
+							if (svr.getInstanceUser().getObjectId().equals(objectId)) {
+								DbDataObject dboUser = svr.getObjectById(objectId, svCONST.OBJECT_TYPE_USER, null);
+								if (jobj.get("FIRST_NAME") != null && !jobj.get("FIRST_NAME").isJsonNull())
+									dboUser.setVal("FIRST_NAME", jobj.get("FIRST_NAME").getAsString());
+								if (jobj.get("LAST_NAME") != null && !jobj.get("LAST_NAME").isJsonNull())
+									dboUser.setVal("LAST_NAME", jobj.get("LAST_NAME").getAsString());
+								if (jobj.get("E_MAIL") != null && !jobj.get("E_MAIL").isJsonNull())
+									dboUser.setVal("E_MAIL", jobj.get("E_MAIL").getAsString());
+								
+								if (dboUser.getIsDirty())
+									svw.saveObject(dboUser);
+							} else {
+								throw new SvException(Sv.Exceptions.NOT_AUTHORISED, svr.getInstanceUser());
+							}
+						}
 					}
 				}
 				jrh.create(MessageType.SUCCESS, I18n.getText("saveUser.success.saveUser"),
