@@ -172,7 +172,7 @@ final class MenuHelper {
 
 	static void buildRecursiveWithSvCache(DbDataObject menuDbo, SvReader svr, Set<Long> visited,
 			JsonArray mergedButtons, JsonObject configData) throws Exception {
-		if (menuDbo == null || visited.contains(menuDbo.getObjectId()))
+		if (menuDbo == null)
 			return;
 
 		visited.add(menuDbo.getObjectId());
@@ -208,7 +208,7 @@ final class MenuHelper {
 			DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, CC.PM, svr);
 
 			if (importedMenu != null) {
-				buildRecursiveWithSvCache(importedMenu, svr, visited, mergedButtons, configData);
+				buildRecursiveWithSvCache(importedMenu, svr, visited, mergedButtons, obj);
 			} else {
 				log4j.warn("IMPORT_MENU: Menu code not found: " + importCode);
 			}
@@ -218,7 +218,7 @@ final class MenuHelper {
 		if (obj.has(CC.DATA) && obj.get(CC.DATA).isJsonArray()) {
 			JsonArray dataArray = new JsonArray();
 			for (JsonElement dataElem : obj.getAsJsonArray(CC.DATA)) {
-				processMenuItemWithSvCache(dataElem, svr, visited, dataArray, configData);
+				processMenuItemWithSvCache(dataElem, svr, visited, dataArray, dataElem.getAsJsonObject());
 			}
 			obj.add(CC.DATA, dataArray);
 		}
