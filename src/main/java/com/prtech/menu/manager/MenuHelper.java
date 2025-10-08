@@ -172,7 +172,7 @@ final class MenuHelper {
 
 	static void buildRecursiveWithSvCache(DbDataObject menuDbo, SvReader svr, Set<Long> visited,
 			JsonArray mergedButtons, JsonObject configData) throws Exception {
-		if (menuDbo == null || visited.contains(menuDbo.getObjectId()))
+		if (menuDbo == null)
 			return;
 
 		visited.add(menuDbo.getObjectId());
@@ -208,7 +208,7 @@ final class MenuHelper {
 			DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, CC.PM, svr);
 
 			if (importedMenu != null) {
-				buildRecursiveWithSvCache(importedMenu, svr, visited, mergedButtons, configData);
+				buildRecursiveWithSvCache(importedMenu, svr, visited, mergedButtons, obj);
 			} else {
 				log4j.warn("IMPORT_MENU: Menu code not found: " + importCode);
 			}
@@ -218,15 +218,9 @@ final class MenuHelper {
 		if (obj.has(CC.DATA) && obj.get(CC.DATA).isJsonArray()) {
 			JsonArray dataArray = new JsonArray();
 			for (JsonElement dataElem : obj.getAsJsonArray(CC.DATA)) {
-				processMenuItemWithSvCache(dataElem, svr, visited, dataArray, configData);
+				processMenuItemWithSvCache(dataElem, svr, visited, dataArray, dataElem.getAsJsonObject());
 			}
 			obj.add(CC.DATA, dataArray);
-		}
-
-		if (obj.has(CC.LABEL)) {
-			String labelCode = obj.get(CC.LABEL).getAsString();
-			String labelText = I18n.getText(localeId, labelCode);
-			obj.addProperty(CC.LABEL, labelText);
 		}
 
 		if (configData != null) {
@@ -252,10 +246,27 @@ final class MenuHelper {
 				menuStr = menuStr.replaceAll("%TABLE_NAME_OBJECT_ID%", dboTable.getObjectId().toString());
 			}
 
+			for (String key : configData.keySet()) {
+				if (Arrays.asList(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU).contains(key)) {
+					continue;
+				}
+
+				if (!configData.get(key).isJsonNull()) {
+					String toReplace = "%" + key + "%";
+					menuStr = menuStr.replaceAll(toReplace, configData.get(key).getAsString());
+				}
+			}
+
 			obj = new Gson().fromJson(menuStr, JsonObject.class);
 			if (configData.has(CC.INSERT) && configData.get(CC.INSERT).isJsonObject()) {
 				deepMerge(configData.getAsJsonObject(CC.INSERT), obj);
 			}
+		}
+
+		if (obj.has(CC.LABEL)) {
+			String labelCode = obj.get(CC.LABEL).getAsString();
+			String labelText = I18n.getText(localeId, labelCode);
+			obj.addProperty(CC.LABEL, labelText);
 		}
 
 		mergedButtons.add(obj.deepCopy());
@@ -691,5 +702,59 @@ final class MenuHelper {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Replaces all placeholders within a source JSON object string representation
+	 * with corresponding values from a data JSON object.
+	 *
+	 * Placeholders are defined as keys surrounded by percent signs (e.g., "%KEY%").
+	 * The replacement occurs on the string representation of the source JSON, which
+	 * is then parsed back into a new JsonObject.
+	 *
+	 * Note: If parsing the modified string back into a JsonObject fails, the method
+	 * logs the error and returns the original requestData JsonObject as a fallback.
+	 *
+	 * @param json The source JsonObject containing strings with placeholders to be
+	 *             replaced.
+	 * @param data The JsonObject containing the key-value pairs used for
+	 *             replacement.
+	 * @return A new JsonObject with the placeholders replaced, or the original
+	 *         JsonObject if an error occurred during the final JSON parsing step.
+	 */
+	static JsonObject applyDataToObject(JsonObject json, JsonObject data) {
+		JsonObject result;
+		String jsonStr = json.toString();
+		for (String key : data.keySet()) {
+			String toReplace = "%" + key.replaceFirst("\\w+\\.", CC.EMPTY_STRING) + "%";
+			if (!data.get(key).isJsonNull() && jsonStr.contains(toReplace)) {
+				jsonStr = jsonStr.replaceAll(toReplace, data.get(key).getAsString());
+			}
+		}
+		try {
+			result = new Gson().fromJson(jsonStr, JsonObject.class);
+		} catch (Exception e) {
+			log4j.error(e.getMessage(), e);
+			result = data;
+		}
+		return result;
+	}
+
+	/**
+	 * Finds all placeholders within the string representation of a JsonObject
+	 *
+	 * @param resultJson The JsonObject to be scanned for placeholders
+	 * @return A List containing the content (the key) of all placeholders found
+	 */
+	static Set<String> findPlaceholders(JsonObject resultJson) {
+		Set<String> placeholders = new HashSet<String>();
+		Pattern pattern = Pattern.compile("\\%(\\w+)\\%");
+		Matcher match = pattern.matcher(resultJson.toString());
+
+		while (match.find()) {
+			placeholders.add(match.group(1));
+		}
+
+		return placeholders;
 	}
 }
