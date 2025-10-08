@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -94,6 +95,16 @@ public class WsMenu {
 						.build();
 			}
 			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>());
+			resultJson = MenuHelper.applyDataToObject(resultJson, requestData);
+			Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
+
+			if (!missingData.isEmpty()) {
+				JsonObject responseJson = new JsonObject();
+				responseJson.addProperty("error",
+						"The following placeholders were not replaced: " + missingData.toString());
+				responseJson.add("config", resultJson);
+				return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseJson.toString()).build();
+			}
 			return Response.ok(resultJson.toString(), MediaType.APPLICATION_JSON).build();
 		} catch (Exception e) {
 			log4j.error("Error generating menu: ", e);
