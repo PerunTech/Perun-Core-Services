@@ -292,8 +292,8 @@ public class WsSecurityActions {
 				JsonObject jsonUser = samlAttribToJson(at);
 				// ok the user is not registered, so lets take him to the registration form or
 				// just create if its admin
-				if (jsonUser.get("ROLE") != null
-						&& svCONST.adminsGroup.getAsString(Sv.GROUP_NAME).equals(jsonUser.get("ROLE").getAsString())) {
+				if (jsonUser.get("ROLE") != null && jsonUser.get("ROLE").getAsString()
+						.startsWith(svCONST.adminsGroup.getAsString(Sv.GROUP_NAME))) {
 					// lets create the admin user and link to the admins group
 					svs.setAutoCommit(false);
 					try (SvLink svl = new SvLink(svs)) {
