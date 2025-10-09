@@ -282,10 +282,10 @@ public class WsSecurityActions {
 	 * @return
 	 * @throws SvException
 	 */
-	DbDataObject verifyUser(String userName, SvSecurity svs, AttributeSet at) throws SvException {
+	public DbDataObject verifyUser(String userName, SvWriter svw, AttributeSet at) throws SvException {
 		DbDataObject user = null;
 		// verify if it exists
-		try {
+		try (SvSecurity svs = new SvSecurity (svw)){
 			user = svs.getUser(userName);
 		} catch (SvException e) {
 			if (e.getLabelCode().equals(Sv.Exceptions.NO_USER_FOUND)) {
@@ -295,8 +295,9 @@ public class WsSecurityActions {
 				if (jsonUser.get("ROLE") != null && svCONST.adminsGroup.getAsString(Sv.GROUP_NAME)
 						.startsWith(jsonUser.get("ROLE").getAsString())) {
 					// lets create the admin user and link to the admins group
-					svs.setAutoCommit(false);
-					try (SvLink svl = new SvLink(svs)) {
+					
+					try (SvLink svl = new SvLink(svw);SvSecurity svs = new SvSecurity (svw)) {
+						svs.setAutoCommit(false);
 						user = svs.createUser(jsonUser.get("USER_NAME").getAsString(), "",
 								jsonUser.get("FIRST_NAME").getAsString(), jsonUser.get("LAST_NAME").getAsString(),
 								jsonUser.get("E_MAIL").getAsString(), jsonUser.get("PIN").getAsString(),
@@ -304,12 +305,12 @@ public class WsSecurityActions {
 
 						DbDataObject dblt = SvCore.getLinkType("USER_DEFAULT_GROUP", svCONST.OBJECT_TYPE_USER,
 								svCONST.OBJECT_TYPE_GROUP);
-
+						
 						svl.linkObjects(user.getObjectId(), svCONST.adminsGroup.getObjectId(), dblt.getObjectId(), "");
 						svs.dbCommit();
 					} catch (Exception ex) {
-						svs.dbRollback();
-						throw (new SvException("error.saml.user.failed", svs.getInstanceUser(), ex));
+						svw.dbRollback();
+						throw (new SvException("error.saml.user.failed", svw.getInstanceUser(), ex));
 					}
 
 				}
@@ -374,7 +375,7 @@ public class WsSecurityActions {
 
 					}
 					// verify if the user is admin/HQ and autocreated or public user
-					user = verifyUser(userName, svs, at);
+					user = verifyUser(userName, svw, at);
 					if (user == null) {
 						// store the response from the SAML SSO in the cache so we can reuse it after
 						// the user fills in the registration
@@ -517,6 +518,9 @@ public class WsSecurityActions {
 		JsonObject juser = new JsonObject();
 		juser.addProperty(Sv.USER_NAME.toString(), at.getNameId());
 		juser.addProperty("ID", at.getResponse().getInResponseTo());
+		juser.addProperty("PIN", Sv.EMPTY_STRING);
+		juser.addProperty("E_MAIL", "noreply");
+		juser.addProperty("TAX_ID", Sv.EMPTY_STRING);
 		for (Entry<String, List<String>> e : at.getAttributes().entrySet()) {
 			List<String> l = e.getValue();
 			String val = l.size() > 0 ? l.get(0) : Sv.EMPTY_STRING;
