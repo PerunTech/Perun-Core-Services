@@ -71,6 +71,7 @@ import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvExecManager;
 import com.prtech.svarog.SvFileStore;
+import com.prtech.svarog.SvLink;
 import com.prtech.svarog.SvNote;
 import com.prtech.svarog.SvParameter;
 import com.prtech.svarog.SvReader;
@@ -270,6 +271,56 @@ public class WsSecurityActions {
 
 	}
 
+	/**
+	 * Verify existence of the user in the Database. If the user doesn't exist
+	 * forward to the public registration form as EXTERNAL user. If the user has the
+	 * administators role, register immediately.
+	 * 
+	 * @param userName
+	 * @param svs
+	 * @param at
+	 * @return
+	 * @throws SvException
+	 */
+	DbDataObject verifyUser(String userName, SvSecurity svs, AttributeSet at) throws SvException {
+		DbDataObject user = null;
+		// verify if it exists
+		try {
+			user = svs.getUser(userName);
+		} catch (SvException e) {
+			if (e.getLabelCode().equals(Sv.Exceptions.NO_USER_FOUND)) {
+				JsonObject jsonUser = samlAttribToJson(at);
+				// ok the user is not registered, so lets take him to the registration form or
+				// just create if its admin
+				if (jsonUser.get("ROLE") != null
+						&& svCONST.adminsGroup.getAsString(Sv.GROUP_NAME).equals(jsonUser.get("ROLE").getAsString())) {
+					// lets create the admin user and link to the admins group
+					svs.setAutoCommit(false);
+					try (SvLink svl = new SvLink(svs)) {
+						user = svs.createUser(jsonUser.get("USER_NAME").getAsString(), "",
+								jsonUser.get("FIRST_NAME").getAsString(), jsonUser.get("LAST_NAME").getAsString(),
+								jsonUser.get("E_MAIL").getAsString(), jsonUser.get("PIN").getAsString(),
+								jsonUser.get("TAX_ID").getAsString(), "INTERNAL", "VALID", true);
+
+						DbDataObject dblt = SvCore.getLinkType("USER_DEFAULT_GROUP", svCONST.OBJECT_TYPE_USER,
+								svCONST.OBJECT_TYPE_GROUP);
+
+						svl.linkObjects(user.getObjectId(), svCONST.adminsGroup.getObjectId(), dblt.getObjectId(), "");
+						svs.dbCommit();
+					} catch (Exception ex) {
+						svs.dbRollback();
+						throw (new SvException("error.saml.user.failed", svs.getInstanceUser(), ex));
+					}
+
+				}
+
+			}
+		}
+
+		return user;
+
+	}
+
 	@Path("/sso")
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
@@ -322,8 +373,15 @@ public class WsSecurityActions {
 								"EXTERNAL", "VALID", true);
 
 					}
-					// verify if it exists
-					user = svs.getUser(userName);
+					// verify if the user is admin/HQ and autocreated or public user
+					user = verifyUser(userName, svs, at);
+					if (user == null) {
+						// store the response from the SAML SSO in the cache so we can reuse it after
+						// the user fills in the registration
+						ssoRequestCache.put(at.getResponse().getInResponseTo(), at);
+						return getRegisterUser(at);
+					}
+
 					// now authenticate
 					AuthnStatement as = at.getResponse().getAssertions().get(0).getAuthnStatements().get(0);
 					String userSession = as.getSessionIndex();
@@ -333,15 +391,6 @@ public class WsSecurityActions {
 							.seeOther(URI.create(
 									url.replace(CC.SESSION_PLACEHOLDER, URLEncoder.encode(userSession, "UTF-8"))))
 							.build();
-
-				} catch (SvException e) {
-					// ok the user is not registered, so lets take him to the registration form
-					if (e.getLabelCode().equals(Sv.Exceptions.NO_USER_FOUND)) {
-						// store the response from the SAML SSO in the cache so we can reuse it after
-						// the user fills in the registration
-						ssoRequestCache.put(at.getResponse().getInResponseTo(), at);
-						return getRegisterUser(at);
-					}
 
 				}
 			}
@@ -458,32 +507,47 @@ public class WsSecurityActions {
 		return Response.serverError().build();
 	}
 
+	/**
+	 * Method to convert SAML attributes to JSON
+	 * 
+	 * @param at
+	 * @return
+	 */
+	JsonObject samlAttribToJson(AttributeSet at) {
+		JsonObject juser = new JsonObject();
+		juser.addProperty(Sv.USER_NAME.toString(), at.getNameId());
+		juser.addProperty("ID", at.getResponse().getInResponseTo());
+		for (Entry<String, List<String>> e : at.getAttributes().entrySet()) {
+			List<String> l = e.getValue();
+			String val = l.size() > 0 ? l.get(0) : Sv.EMPTY_STRING;
+			switch (e.getKey()) {
+			case "FirstName":
+				juser.addProperty("FIRST_NAME", val);
+				break;
+			case "LastName":
+				juser.addProperty("LAST_NAME", val);
+				break;
+			case "EmailAddress":
+				juser.addProperty("E_MAIL", val);
+				break;
+			case "Role":
+				juser.addProperty("ROLE", val);
+				break;
+			case "IDNO":
+				juser.addProperty("PIN", val.equals(Sv.EMPTY_STRING) ? at.getNameId() : val);
+				break;
+			default:
+				juser.addProperty(e.getKey().toUpperCase(), val);
+			}
+		}
+		return juser;
+	}
+
 	Response getRegisterUser(AttributeSet at) {
 		try {
 
 			String url = SvParameter.getSysParam(CC.SSO_REGISTER_USER, CC.NOT_CONFIGURED);
-			JsonObject juser = new JsonObject();
-			juser.addProperty(Sv.USER_NAME.toString(), at.getNameId());
-			juser.addProperty("ID", at.getResponse().getInResponseTo());
-			for (Entry<String, List<String>> e : at.getAttributes().entrySet()) {
-				List<String> l = e.getValue();
-				String val = l.size() > 0 ? l.get(0) : Sv.EMPTY_STRING;
-				switch (e.getKey()) {
-				case "FirstName":
-					juser.addProperty("FIRST_NAME", val);
-					break;
-				case "LastName":
-					juser.addProperty("LAST_NAME", val);
-					break;
-				case "EmailAddress":
-					juser.addProperty("E_MAIL", val);
-					break;
-				case "IDNO":
-					juser.addProperty("PIN", val.equals(Sv.EMPTY_STRING) ? at.getNameId() : val);
-					break;
-				}
-			}
-
+			JsonObject juser = samlAttribToJson(at);
 			return Response
 					.seeOther(URI
 							.create(url.replace(CC.USERDATA_PLACEHOLDER, URLEncoder.encode(juser.toString(), "UTF-8"))))
@@ -595,7 +659,7 @@ public class WsSecurityActions {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
+
 	public JsonObject getAvatarFileObjectInfo(DbDataObject dbo, SvReader svr) throws SvException {
 		JsonObject avatarInfo = new JsonObject();
 		try (SvFileStore svfs = new SvFileStore(svr)) {
