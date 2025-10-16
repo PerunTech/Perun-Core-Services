@@ -29,11 +29,14 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.prtech.menu.manager.MenuExceptions.MenuError;
 import com.prtech.menu.manager.MenuExceptions.UserNotAuthorizedError;
+import com.prtech.perun.PerunUtil;
 import com.prtech.perun.services.ws.DbReader;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvWriter;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
+import com.prtech.svarog_common.ResponseHandler;
+import com.prtech.svarog_common.ResponseHandler.MessageType;
 
 /**
  * WsMenu class for generating merged menu definitions. Uses PERUN_MENU as
@@ -56,16 +59,19 @@ public class WsMenu {
 	@Path("/generate/{sid}/{rootMenuCode}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response generateMenu(@PathParam("sid") String sessionId, @PathParam("rootMenuCode") String rootMenuCode) {
+		ResponseHandler jrh = new ResponseHandler();
 		try (SvReader svr = new SvReader(sessionId)) {
 			DbDataObject menuRoot = new DbReader().searchDbObjectBySingleFilter(DbCompareOperand.EQUAL,
 					SvReader.getTypeIdByName(CC.PERUN_MENU), CC.MENU_CODE, rootMenuCode, svr);
-			if (menuRoot == null)
-				return Response.status(Response.Status.NOT_FOUND).entity("Menu not found").build();
+			if (menuRoot == null) {
+				jrh.create(MessageType.ERROR, "Menu not found", null, new JsonObject());
+				return Response.status(Response.Status.NOT_FOUND).entity(jrh.getAll().toString()).build();
+			}
 			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>());
 			return Response.ok(resultJson.toString(), MediaType.APPLICATION_JSON).build();
 		} catch (Exception e) {
 			log4j.error("Error generating menu: ", e);
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			return PerunUtil.handleException(e, "Error generating menu");
 		}
 	}
 
@@ -81,34 +87,34 @@ public class WsMenu {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getMenu(@PathParam("sid") String sessionId, String entity) {
+		ResponseHandler jrh = new ResponseHandler();
 		JsonObject requestData = new JsonObject();
 		DbDataObject menuRoot = null;
 		try (SvReader svr = new SvReader(sessionId)) {
 			try {
 				requestData = new Gson().fromJson(entity, JsonObject.class);
 			} catch (Exception e) {
-				return Response.status(Response.Status.BAD_REQUEST).entity("Request body has bad format").build();
+				jrh.create(MessageType.ERROR, "Request body has bad format", null, new JsonObject());
+				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 			}
 			menuRoot = MenuHelper.findMenuCodeForObject(requestData, svr);
 			if (menuRoot == null) {
-				return Response.status(Response.Status.BAD_REQUEST).entity("Menu for this type of object was not found")
-						.build();
+				jrh.create(MessageType.ERROR, "Menu for this type of object was not found", null, new JsonObject());
+				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 			}
 			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>());
 			resultJson = MenuHelper.applyDataToObject(resultJson, requestData);
 			Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
 
 			if (!missingData.isEmpty()) {
-				JsonObject responseJson = new JsonObject();
-				responseJson.addProperty("error",
-						"The following placeholders were not replaced: " + missingData.toString());
-				responseJson.add("config", resultJson);
-				return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseJson.toString()).build();
+				jrh.create(MessageType.ERROR, "The following placeholders were not replaced", missingData.toString(),
+						new JsonObject());
+				return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(jrh.getAll().toString()).build();
 			}
 			return Response.ok(resultJson.toString(), MediaType.APPLICATION_JSON).build();
 		} catch (Exception e) {
 			log4j.error("Error generating menu: ", e);
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			return PerunUtil.handleException(e, "Error generating menu");
 		}
 	}
 
@@ -124,37 +130,43 @@ public class WsMenu {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response addMenu(@PathParam("sid") String sessionId, String entity) {
+		ResponseHandler jrh = new ResponseHandler();
 		JsonObject requestData = new JsonObject();
 		DbDataObject menuDbo = null;
 		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
 			try {
 				requestData = new Gson().fromJson(entity, JsonObject.class);
 			} catch (Exception e) {
-				return Response.status(Response.Status.BAD_REQUEST).entity("Request body has bad format").build();
+				jrh.create(MessageType.ERROR, "Request body has bad format", null, new JsonObject());
+				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 			}
 			List<String> missing = MenuHelper.checkAndReturnMissingKeys(requestData, Arrays.asList(CC.OBJECT_ID));
 			if (!missing.isEmpty()) {
-				return Response.status(Response.Status.BAD_REQUEST)
-						.entity("Missing required keys in request data: " + missing.toString()).build();
+				jrh.create(MessageType.ERROR, "Missing required keys in request data", missing.toString(),
+						new JsonObject());
+				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 			}
 			menuDbo = MenuHelper.saveMenuHelper(requestData, svr);
 			if (menuDbo != null) {
 				svw.saveObject(menuDbo);
 				MenuHelper.updateCache(CC.PERUN_MENU, CC.PM, CC.PERUN_MENU);
-				String responseObj = menuDbo.toSimpleJson().toString();
-				return Response.ok(responseObj, MediaType.APPLICATION_JSON).build();
+				jrh.create(MessageType.SUCCESS, "Menu item successfully saved", null, menuDbo.toSimpleJson());
 			} else {
-				return Response.ok("The item couldn't be saved", MediaType.APPLICATION_JSON).build();
+				jrh.create(MessageType.ERROR, "The item couldn't be saved", null, new JsonObject());
 			}
+			return Response.ok(jrh.getAll().toString()).build();
 		} catch (UserNotAuthorizedError e) {
 			log4j.error("User is not authorized to save or edit the menu: ", e);
-			return Response.status(Response.Status.UNAUTHORIZED).entity(e.getMessage()).build();
+			jrh.create(MessageType.ERROR, "User is not authorized to save or edit the menu", e.getMessage(),
+					new JsonObject());
+			return Response.status(Response.Status.UNAUTHORIZED).entity(jrh.getAll().toString()).build();
 		} catch (MenuError e) {
 			log4j.error("Error while adding menu: ", e);
-			return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+			jrh.create(MessageType.ERROR, "Error while adding menu", e.getMessage(), new JsonObject());
+			return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 		} catch (Exception e) {
 			log4j.error("Error while adding menu: ", e);
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			return PerunUtil.handleException(e, "Error while adding menu");
 		}
 	}
 
@@ -169,26 +181,30 @@ public class WsMenu {
 	@Path("/remove/{sid}/{rootMenuCode}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response removeMenu(@PathParam("sid") String sessionId, @PathParam("rootMenuCode") String rootMenuCode) {
+		ResponseHandler jrh = new ResponseHandler();
 		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
 			DbDataObject menuRoot = new DbReader().searchDbObjectBySingleFilter(DbCompareOperand.EQUAL,
 					SvReader.getTypeIdByName(CC.PERUN_MENU), CC.MENU_CODE, rootMenuCode, svr);
 			if (menuRoot == null) {
-				return Response.status(Response.Status.NOT_FOUND).entity("Menu not found").build();
+				jrh.create(MessageType.ERROR, "Menu not found", null, new JsonObject());
+				return Response.status(Response.Status.NOT_FOUND).entity(jrh.getAll().toString()).build();
 			}
 			if (!MenuHelper.checkUserHasPermission(menuRoot, Arrays.asList("FULL", "WRITE"), svr)) {
-				return Response.status(Response.Status.UNAUTHORIZED)
-						.entity("User does not have permission to delete this menu").build();
+				jrh.create(MessageType.ERROR, "User does not have permission to delete this menu", null,
+						new JsonObject());
+				return Response.status(Response.Status.UNAUTHORIZED).entity(jrh.getAll().toString()).build();
 			}
 			MenuHelper.deleteMenuHelper(rootMenuCode, svr);
-			String responseObj = menuRoot.toSimpleJson().toString();
 			svw.deleteObject(menuRoot);
-			return Response.ok(responseObj, MediaType.APPLICATION_JSON).build();
+			jrh.create(MessageType.SUCCESS, "Menu item successfully deleted", null, menuRoot.toSimpleJson());
+			return Response.ok(jrh.getAll().toString()).build();
 		} catch (MenuError e) {
 			log4j.error("Error while removing menu: ", e);
-			return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+			jrh.create(MessageType.ERROR, "Error while removing menu", e.getMessage(), new JsonObject());
+			return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 		} catch (Exception e) {
 			log4j.error("Error removing menu: ", e);
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			return PerunUtil.handleException(e, "Error removing menu");
 		}
 	}
 
@@ -234,7 +250,7 @@ public class WsMenu {
 					.header("content-disposition", "attachment; filename = " + rootMenuCode + ".json").build();
 		} catch (Exception e) {
 			log4j.error("Error downloading menu: ", e);
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			return PerunUtil.handleException(e, "Error downloading menu");
 		}
 	}
 
@@ -261,51 +277,58 @@ public class WsMenu {
 		String fileData = null;
 		JsonObject menuJson = new JsonObject();
 		DbDataObject menuDbo = null;
+		ResponseHandler jrh = new ResponseHandler();
 		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
 			try {
 				data = IOUtils.toByteArray(fileInput);
 			} catch (IOException e) {
 				log4j.error("Error reading file: ", e);
-				return Response.status(Response.Status.BAD_REQUEST).entity("Error reading uploaded file").build();
+				jrh.create(MessageType.ERROR, "Error reading uploaded file", null, new JsonObject());
+				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 			}
 
 			try {
 				fileData = new String(data, StandardCharsets.UTF_8);
 			} catch (Exception e) {
-				return Response.status(Response.Status.BAD_REQUEST).entity("File is not in UTF-8 format").build();
+				jrh.create(MessageType.ERROR, "File is not in UTF-8 format", null, new JsonObject());
+				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 			}
 
 			if (data.length > 5 * 1024 * 1024) {
-				return Response.status(Response.Status.REQUEST_ENTITY_TOO_LARGE)
-						.entity("File is bigger than the allowed size of 5MB").build();
+				jrh.create(MessageType.ERROR, "File is bigger than the allowed size of 5MB", null, new JsonObject());
+				return Response.status(Response.Status.REQUEST_ENTITY_TOO_LARGE).entity(jrh.getAll().toString())
+						.build();
 			}
 
 			if (fileData != null) {
 				try {
 					menuJson = new Gson().fromJson(fileData, JsonObject.class);
 				} catch (Exception e) {
-					return Response.status(Response.Status.BAD_REQUEST).entity("File does not contain valid JSON")
-							.build();
+					jrh.create(MessageType.ERROR, "File does not contain valid JSON", null, new JsonObject());
+					return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 				}
 			}
 			if (menuJson != null && menuJson.size() != 0) {
 				menuDbo = MenuHelper.saveMenuHelper(menuJson, svr);
 				if (menuDbo != null) {
 					svw.saveObject(menuDbo);
-					String responseObj = menuDbo.toSimpleJson().toString();
-					return Response.ok(responseObj, MediaType.APPLICATION_JSON).build();
+					jrh.create(MessageType.SUCCESS, "Menu item successfully uploaded", null, menuDbo.toSimpleJson());
+					return Response.ok(jrh.getAll().toString()).build();
 				} else {
-					return Response.status(Response.Status.BAD_REQUEST).entity("The item couldn't be saved").build();
+					jrh.create(MessageType.ERROR, "The item couldn't be saved", null, new JsonObject());
+					return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 				}
 			} else {
-				return Response.status(Response.Status.BAD_REQUEST).entity("Input JSON is empty").build();
+				jrh.create(MessageType.ERROR, "Input JSON is empty", null, new JsonObject());
+				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 			}
 		} catch (MenuError e) {
 			log4j.error("Error while uploading menu: ", e);
-			return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+			jrh.create(MessageType.ERROR, "Error while uploading menu", e.getMessage(), new JsonObject());
+			return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 		} catch (Exception e) {
 			log4j.error("Error while uploading menu: ", e);
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			return PerunUtil.handleException(e, "Error while uploading menu");
 		}
 	}
 }
