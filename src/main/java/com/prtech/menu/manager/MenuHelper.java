@@ -224,13 +224,16 @@ final class MenuHelper {
 		}
 
 		if (configData != null) {
+			if (configData.has(CC.INSERT) && configData.get(CC.INSERT).isJsonObject()) {
+				deepMerge(configData.getAsJsonObject(CC.INSERT), obj);
+			}
+
 			String menuStr = obj.toString();
 			DbDataObject dboTable = null;
 			if (configData.has(CC.TABLE_NAME)) {
 				dboTable = SvReader.getDbtByName(configData.get(CC.TABLE_NAME).getAsString());
 			}
 
-			menuStr = menuStr.replaceAll("%PARENT_OBJECT_ID%", "0");
 			if (menuStr.contains("%CHILD_ID_OF%")) {
 				String recordIdStr = "0";
 				DbDataArray recordArray = svr.getObjectsByParentId(0l, dboTable.getObjectId(), null);
@@ -258,9 +261,6 @@ final class MenuHelper {
 			}
 
 			obj = new Gson().fromJson(menuStr, JsonObject.class);
-			if (configData.has(CC.INSERT) && configData.get(CC.INSERT).isJsonObject()) {
-				deepMerge(configData.getAsJsonObject(CC.INSERT), obj);
-			}
 		}
 
 		if (obj.has(CC.LABEL)) {
@@ -418,7 +418,7 @@ final class MenuHelper {
 		String svarogAclLbl = requestData.has(CC.SVAROG_ACL_LBL) ? requestData.get(CC.SVAROG_ACL_LBL).getAsString()
 				: null;
 		String internalCat = requestData.has(CC.INTERNAL_CAT) ? requestData.get(CC.INTERNAL_CAT).getAsString() : null;
-		Long version = requestData.has(CC.VERSION) ? requestData.get(CC.VERSION).getAsLong() : 1;
+		Long version = perunMenuDbo.getVal(CC.VERSION) == null ? 1 : perunMenuDbo.getAsLong(CC.VERSION) + 1;
 		Long parentId = requestData.has(CC.PARENT_ID) ? requestData.get(CC.PARENT_ID).getAsLong() : 0;
 
 		setPerunMenuObjectValues(perunMenuDbo, parentId, menuCode, labelCode, menuType, menuConf, parentTableName,
