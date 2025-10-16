@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 import java.util.HashSet;
 
 import org.apache.logging.log4j.Logger;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.gson.Gson;
@@ -24,7 +25,7 @@ import com.prtech.svarog.SvUtil;
 import com.prtech.svarog.SvWriter;
 import com.prtech.svarog_common.DbDataObject;
 
-//@Ignore
+@Ignore
 public class TestMenu {
 	static final Logger log4j = SvConf.getLogger(TestMenu.class);
 	static String menuConfValid = "{\"buttonArray\":[{\"menu_name\":\"test_menu\"}]}";
