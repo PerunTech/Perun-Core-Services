@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -45,13 +46,14 @@ public class TestMenu {
 
 	private JsonObject createBasicMenuFormValues(String menuCode, String labelCode, String menuConf) {
 		JsonObject data = new JsonObject();
+		Gson gson = new Gson();
 		data.addProperty(Rc.OBJECT_ID, 0l);
 		data.addProperty("MENU_CODE", menuCode);
 		data.addProperty("LABEL_CODE", labelCode);
 		data.addProperty("MENU_TYPE", "menu");
 		data.addProperty("VERSION", 1);
 		if (menuConf != null) {
-			data.addProperty("MENU_CONF", menuConf);
+			data.add("MENU_CONF", gson.fromJson(menuConf, JsonObject.class));
 		}
 		return data;
 	}
