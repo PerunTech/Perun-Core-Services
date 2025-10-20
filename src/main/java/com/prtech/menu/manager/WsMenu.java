@@ -76,6 +76,46 @@ public class WsMenu {
 	}
 
 	/**
+	 * Endpoint for generation of the menu configuration. The values sent in the
+	 * POST data will be replaced in the menu configuration.
+	 * 
+	 * @param sessionId    Session ID
+	 * @param rootMenuCode Root menu code
+	 * @param entity       JSON object containing the values that will be replaced
+	 *                     in the menu configuration
+	 * @return JSON with merged buttonArray content
+	 */
+	@POST
+	@Path("/getMenu/{sid}/{rootMenuCode}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getMenu(@PathParam("sid") String sessionId, @PathParam("rootMenuCode") String rootMenuCode,
+			String entity) {
+		ResponseHandler jrh = new ResponseHandler();
+		JsonObject requestData = new JsonObject();
+		try (SvReader svr = new SvReader(sessionId)) {
+			try {
+				requestData = new Gson().fromJson(entity, JsonObject.class);
+			} catch (Exception e) {
+				jrh.create(MessageType.ERROR, "Request body has bad format", null, new JsonObject());
+				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
+			}
+			DbDataObject menuRoot = new DbReader().searchDbObjectBySingleFilter(DbCompareOperand.EQUAL,
+					SvReader.getTypeIdByName(CC.PERUN_MENU), CC.MENU_CODE, rootMenuCode, svr);
+			if (menuRoot == null) {
+				jrh.create(MessageType.ERROR, "Menu not found", null, new JsonObject());
+				return Response.status(Response.Status.NOT_FOUND).entity(jrh.getAll().toString()).build();
+			}
+			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>());
+			resultJson = MenuHelper.applyDataToObject(resultJson, requestData);
+			return Response.ok(resultJson.toString(), MediaType.APPLICATION_JSON).build();
+		} catch (Exception e) {
+			log4j.error("Error generating menu: ", e);
+			return PerunUtil.handleException(e, "Error generating menu");
+		}
+	}
+
+	/**
 	 * Return full menu config for the object that is sent in the request
 	 * 
 	 * @param sessionId Session ID

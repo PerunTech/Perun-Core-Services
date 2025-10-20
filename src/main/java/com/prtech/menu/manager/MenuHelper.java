@@ -127,25 +127,22 @@ final class MenuHelper {
 		if (obj.has(CC.DATA) && obj.get(CC.DATA).isJsonArray()) {
 			JsonArray dataArray = new JsonArray();
 			for (JsonElement dataElem : obj.getAsJsonArray(CC.DATA)) {
-				processMenuItem(dataElem, svr, visited, dataArray, configData);
+				processMenuItem(dataElem, svr, visited, dataArray, dataElem.getAsJsonObject());
 			}
 			obj.add(CC.DATA, dataArray);
 		}
 
-		if (obj.has(CC.LABEL)) {
-			String labelCode = obj.get(CC.LABEL).getAsString();
-			String labelText = I18n.getText(localeId, labelCode);
-			obj.addProperty(CC.LABEL, labelText);
-		}
-
 		if (configData != null) {
+			if (configData.has(CC.INSERT) && configData.get(CC.INSERT).isJsonObject()) {
+				deepMerge(configData.getAsJsonObject(CC.INSERT), obj);
+			}
+
 			String menuStr = obj.toString();
 			DbDataObject dboTable = null;
 			if (configData.has(CC.TABLE_NAME)) {
 				dboTable = SvReader.getDbtByName(configData.get(CC.TABLE_NAME).getAsString());
 			}
 
-			menuStr = menuStr.replaceAll("%PARENT_OBJECT_ID%", "0");
 			if (menuStr.contains("%CHILD_ID_OF%")) {
 				String recordIdStr = "0";
 				DbDataArray recordArray = svr.getObjectsByParentId(0l, dboTable.getObjectId(), null);
@@ -161,10 +158,25 @@ final class MenuHelper {
 				menuStr = menuStr.replaceAll("%TABLE_NAME_OBJECT_ID%", dboTable.getObjectId().toString());
 			}
 
-			obj = new Gson().fromJson(menuStr, JsonObject.class);
-			if (configData.has(CC.INSERT) && configData.get(CC.INSERT).isJsonObject()) {
-				deepMerge(configData.getAsJsonObject(CC.INSERT), obj);
+			for (String key : configData.keySet()) {
+				if (Arrays.asList(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU).contains(key)) {
+					continue;
+				}
+
+				if (!configData.get(key).isJsonNull()) {
+					String toReplace = "%" + key + "%";
+					menuStr = menuStr.replaceAll(toReplace, configData.get(key).getAsString());
+				}
 			}
+
+			obj = new Gson().fromJson(menuStr, JsonObject.class);
+			cleanMenuItem(obj);
+		}
+
+		if (obj.has(CC.LABEL)) {
+			String labelCode = obj.get(CC.LABEL).getAsString();
+			String labelText = I18n.getText(localeId, labelCode);
+			obj.addProperty(CC.LABEL, labelText);
 		}
 
 		mergedButtons.add(obj.deepCopy());
@@ -261,6 +273,7 @@ final class MenuHelper {
 			}
 
 			obj = new Gson().fromJson(menuStr, JsonObject.class);
+			cleanMenuItem(obj);
 		}
 
 		if (obj.has(CC.LABEL)) {
@@ -270,6 +283,30 @@ final class MenuHelper {
 		}
 
 		mergedButtons.add(obj.deepCopy());
+	}
+
+	private static void cleanMenuItem(JsonObject item) {
+		boolean removeInitialData = false;
+		JsonObject objectConfigurationJsonObject = item.get("objectConfiguration") != null
+				? item.get("objectConfiguration").getAsJsonObject()
+				: null;
+		JsonObject initialData = (objectConfigurationJsonObject != null
+				&& objectConfigurationJsonObject.get("initialData") != null)
+						? objectConfigurationJsonObject.get("initialData").getAsJsonObject()
+						: null;
+
+		if (initialData != null && initialData.has("initialDataWs") && (initialData.get("initialDataWs").isJsonNull()
+				|| initialData.get("initialDataWs").getAsString().contains("%INITIAL_DATA_WS%")))
+			removeInitialData = true;
+
+		if (initialData != null && initialData.has("type") && (initialData.get("type").isJsonNull()
+				|| initialData.get("type").getAsString().contains("%INITIAL_DATA_SUBMIT_TYPE%")))
+			removeInitialData = true;
+
+		if (removeInitialData) {
+			objectConfigurationJsonObject.remove("initialData");
+			item.add("objectConfiguration", objectConfigurationJsonObject);
+		}
 	}
 
 	private static JsonObject deepMerge(JsonObject source, JsonObject target) {
@@ -725,10 +762,22 @@ final class MenuHelper {
 	static JsonObject applyDataToObject(JsonObject json, JsonObject data) {
 		JsonObject result;
 		String jsonStr = json.toString();
+		String objectId = "0";
 		for (String key : data.keySet()) {
-			String toReplace = "%" + key.replaceFirst("\\w+\\.", CC.EMPTY_STRING) + "%";
+			String fieldName = key.replaceFirst("\\w+\\.", CC.EMPTY_STRING);
+			if (fieldName.equals(CC.OBJECT_ID)) {
+				objectId = data.get(key).toString();
+			}
+		}
+		for (String key : data.keySet()) {
+			String fieldName = key.replaceFirst("\\w+\\.", CC.EMPTY_STRING);
+			String toReplace = "%" + fieldName + "%";
 			if (!data.get(key).isJsonNull() && jsonStr.contains(toReplace)) {
-				jsonStr = jsonStr.replaceAll(toReplace, data.get(key).getAsString());
+				String replacement = data.get(key).getAsString();
+				if (fieldName.equals(CC.PARENT_ID) && data.get(key).toString().equals("0")) {
+					replacement = objectId;
+				}
+				jsonStr = jsonStr.replaceAll(toReplace, replacement);
 			}
 		}
 		try {
