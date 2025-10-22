@@ -106,9 +106,10 @@ public class WsMenu {
 				jrh.create(MessageType.ERROR, "Menu not found", null, new JsonObject());
 				return Response.status(Response.Status.NOT_FOUND).entity(jrh.getAll().toString()).build();
 			}
-			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>());
+			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>(), requestData);
 			resultJson = MenuHelper.applyDataToObject(resultJson, requestData);
-			return Response.ok(resultJson.toString(), MediaType.APPLICATION_JSON).build();
+			jrh.create(MessageType.SUCCESS, "Menu successfully generated", null, resultJson);
+			return Response.ok(jrh.getAll().toString()).build();
 		} catch (Exception e) {
 			log4j.error("Error generating menu: ", e);
 			return PerunUtil.handleException(e, "Error generating menu");
@@ -142,7 +143,7 @@ public class WsMenu {
 				jrh.create(MessageType.ERROR, "Menu for this type of object was not found", null, new JsonObject());
 				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 			}
-			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>());
+			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>(), requestData);
 			resultJson = MenuHelper.applyDataToObject(resultJson, requestData);
 			Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
 
@@ -151,7 +152,8 @@ public class WsMenu {
 						new JsonObject());
 				return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(jrh.getAll().toString()).build();
 			}
-			return Response.ok(resultJson.toString(), MediaType.APPLICATION_JSON).build();
+			jrh.create(MessageType.SUCCESS, "Menu successfully generated", null, resultJson);
+			return Response.ok(jrh.getAll().toString()).build();
 		} catch (Exception e) {
 			log4j.error("Error generating menu: ", e);
 			return PerunUtil.handleException(e, "Error generating menu");
