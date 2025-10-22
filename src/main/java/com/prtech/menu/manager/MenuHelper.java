@@ -18,6 +18,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import com.prtech.menu.manager.MenuExceptions.ImportedMenuNotFoundError;
 import com.prtech.menu.manager.MenuExceptions.MenuDeleteConstraintError;
 import com.prtech.menu.manager.MenuExceptions.MenuError;
@@ -54,8 +55,23 @@ final class MenuHelper {
 	 * @return Merged JsonObject with buttonArray
 	 */
 	static JsonObject buildFullHierarchy(DbDataObject menuDbo, SvReader svr, Set<Long> visited) throws Exception {
+		return buildFullHierarchy(menuDbo, svr, visited, null);
+	}
+
+	/**
+	 * Recursively builds full menu config based on IMPORT_MENU json key. Maintains
+	 * top-down ordering of buttonArray elements.
+	 * 
+	 * @param menuDbo    Initial menu object
+	 * @param svr        SvReader instance
+	 * @param visited    Set of visited menu object IDs to prevent loop
+	 * @param objectData Object descriptor
+	 * @return Merged JsonObject with buttonArray
+	 */
+	static JsonObject buildFullHierarchy(DbDataObject menuDbo, SvReader svr, Set<Long> visited, JsonObject objectData)
+			throws Exception {
 		JsonArray mergedButtons = new JsonArray();
-		buildRecursiveWithSvCache(menuDbo, svr, visited, mergedButtons, null);
+		buildRecursiveWithSvCache(menuDbo, svr, visited, mergedButtons, null, objectData);
 		JsonObject result = new JsonObject();
 
 		String year = String.valueOf(new DateTime().year().get());
@@ -183,7 +199,7 @@ final class MenuHelper {
 	}
 
 	static void buildRecursiveWithSvCache(DbDataObject menuDbo, SvReader svr, Set<Long> visited,
-			JsonArray mergedButtons, JsonObject configData) throws Exception {
+			JsonArray mergedButtons, JsonObject configData, JsonObject objectData) throws Exception {
 		if (menuDbo == null)
 			return;
 
@@ -198,29 +214,37 @@ final class MenuHelper {
 
 		JsonArray btns = confJson.getAsJsonArray("buttonArray");
 		for (JsonElement btn : btns) {
-			processMenuItemWithSvCache(btn, svr, visited, mergedButtons, configData);
+			processMenuItemWithSvCache(btn, svr, visited, mergedButtons, configData, objectData);
 		}
 	}
 
-	static void buildRecursiveWithSvCache(JsonObject obj, SvReader svr, Set<Long> visited, JsonArray mergedButtons,
-			JsonObject configData) throws Exception {
-		processMenuItemWithSvCache(obj, svr, visited, mergedButtons, configData);
-	}
-
 	private static void processMenuItemWithSvCache(JsonElement item, SvReader svr, Set<Long> visited,
-			JsonArray mergedButtons, JsonObject configData) throws Exception {
+			JsonArray mergedButtons, JsonObject configData, JsonObject objectData) throws Exception {
 		if (!item.isJsonObject())
 			return;
 
 		JsonObject obj = item.getAsJsonObject();
 		String localeId = svr.getUserLocaleId(svr.getInstanceUser());
 
+		if (objectData != null && obj.has(CC.OBJECT_TYPE_VISIBILITY)) {
+			String objectStatus = getObjectStatusFromDescriptor(objectData);
+			String objectType = getObjectTypeFromDescriptor(objectData, svr);
+			JsonObject objectTypeVisibility = obj.getAsJsonObject(CC.OBJECT_TYPE_VISIBILITY);
+			if (objectTypeVisibility.has(objectType)) {
+				JsonArray statusList = objectTypeVisibility.getAsJsonArray(objectType);
+				if (!statusList.contains(new JsonPrimitive(objectStatus))) {
+					return;
+				}
+			}
+			obj.remove(CC.OBJECT_TYPE_VISIBILITY);
+		}
+
 		if (obj.has(CC.IMPORT_MENU)) {
 			String importCode = obj.get(CC.IMPORT_MENU).getAsString();
 			DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, CC.PM, svr);
 
 			if (importedMenu != null) {
-				buildRecursiveWithSvCache(importedMenu, svr, visited, mergedButtons, obj);
+				buildRecursiveWithSvCache(importedMenu, svr, visited, mergedButtons, obj, objectData);
 			} else {
 				log4j.warn("IMPORT_MENU: Menu code not found: " + importCode);
 			}
@@ -230,7 +254,7 @@ final class MenuHelper {
 		if (obj.has(CC.DATA) && obj.get(CC.DATA).isJsonArray()) {
 			JsonArray dataArray = new JsonArray();
 			for (JsonElement dataElem : obj.getAsJsonArray(CC.DATA)) {
-				processMenuItemWithSvCache(dataElem, svr, visited, dataArray, dataElem.getAsJsonObject());
+				processMenuItemWithSvCache(dataElem, svr, visited, dataArray, dataElem.getAsJsonObject(), objectData);
 			}
 			obj.add(CC.DATA, dataArray);
 		}
@@ -262,11 +286,11 @@ final class MenuHelper {
 			}
 
 			for (String key : configData.keySet()) {
-				if (Arrays.asList(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU).contains(key)) {
+				if (Arrays.asList(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU, CC.OBJECT_TYPE_VISIBILITY).contains(key)) {
 					continue;
 				}
 
-				if (!configData.get(key).isJsonNull()) {
+				if (!configData.get(key).isJsonNull() && configData.get(key).isJsonPrimitive()) {
 					String toReplace = "%" + key + "%";
 					menuStr = menuStr.replaceAll(toReplace, configData.get(key).getAsString());
 				}
@@ -283,6 +307,34 @@ final class MenuHelper {
 		}
 
 		mergedButtons.add(obj.deepCopy());
+	}
+
+	private static String getObjectStatusFromDescriptor(JsonObject objectData) {
+		String status = "";
+		for (String key : objectData.keySet()) {
+			String fieldName = key.replaceFirst("\\w+\\.", CC.EMPTY_STRING);
+			if (fieldName.equals(CC.STATUS)) {
+				status = objectData.get(key).getAsString();
+			}
+		}
+		return status;
+	}
+
+	private static String getObjectTypeFromDescriptor(JsonObject objectData, SvReader svr) throws SvException {
+		String objectType = "0";
+		for (String key : objectData.keySet()) {
+			String fieldName = key.replaceFirst("\\w+\\.", CC.EMPTY_STRING);
+			if (fieldName.equals(CC.OBJECT_TYPE)) {
+				objectType = objectData.get(key).toString();
+			}
+		}
+
+		DbDataObject dboTable = svr.getObjectById(Long.valueOf(objectType), svCONST.OBJECT_TYPE_TABLE, null);
+		if (dboTable != null) {
+			objectType = dboTable.getAsString(CC.TABLE_NAME);
+		}
+
+		return objectType;
 	}
 
 	private static void cleanMenuItem(JsonObject item) {
