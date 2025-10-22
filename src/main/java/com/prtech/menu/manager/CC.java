@@ -38,4 +38,5 @@ public class CC {
 	public static final String DATA = "data";
 	public static final String LABEL = "label";
 	public static final String INSERT = "insert";
+	public static final String OBJECT_TYPE_VISIBILITY = "objectTypeVisibility";
 }
