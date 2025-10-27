@@ -1,0 +1,17 @@
+package com.prtech.models;
+
+/*
+ * Central place for Model constants (MC).
+ */
+public class MC {
+
+	public static final String PARENT_ID = "PARENT_ID";
+	public static final String STATUS = "STATUS";
+	public static final String LABEL_CODE = "LABEL_CODE";
+	public static final String FIELD_NAME = "FIELD_NAME";
+	public static final String PKID = "PKID";
+	public static final String CODE_LIST_ID = "CODE_LIST_ID";
+	public static final String SKIP_CHECK = "SKIP_CHECK";
+	public static final String IS_NULL = "IS_NULL";
+
+}
