@@ -1,9 +1,9 @@
 package com.prtech.models;
 
 /*
- * Central place for Model constants (MC).
+ * Central place for Model constants (CC).
  */
-public class MC {
+public class CC {
 
 	public static final String PARENT_ID = "PARENT_ID";
 	public static final String STATUS = "STATUS";
