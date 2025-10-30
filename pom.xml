@@ -173,7 +173,8 @@
 						<Export-Package>
 							com.prtech.perun,
 							com.prtech.perun.services.ws,
-							com.prtech.menu.manager
+							com.prtech.menu.manager,
+							com.prtech.models
 						</Export-Package>
 						<Import-Package>
 							com.eclipsesource.jaxrs.publisher;version=!,*

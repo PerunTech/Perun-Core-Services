@@ -231,7 +231,7 @@ public abstract class BaseModel {
 		obj.setObjectType(this.objectType);
 		obj.setUserId(this.userId);
 		obj.setParentId(this.parentId);
-		obj.setVal(MC.SKIP_CHECK, this.skipCheck);
+		obj.setVal(CC.SKIP_CHECK, this.skipCheck);
 		return obj;
 	}
 
@@ -296,8 +296,8 @@ public abstract class BaseModel {
 			DbDataArray fieldsDba = svr.getObjectsByParentId(SvReader.getTypeIdByName(getTableName()),
 					svCONST.OBJECT_TYPE_FIELD, null);
 			for (DbDataObject field : fieldsDba.getItems()) {
-				if (field.getVal(MC.CODE_LIST_ID) != null) {
-					fieldsWithCodeList.add(field.getVal(MC.FIELD_NAME).toString());
+				if (field.getVal(CC.CODE_LIST_ID) != null) {
+					fieldsWithCodeList.add(field.getVal(CC.FIELD_NAME).toString());
 				}
 			}
 		} catch (Exception e) {
@@ -577,8 +577,8 @@ public abstract class BaseModel {
 	 * @throws SvException if an error occurs during the database query
 	 */
 	public DbDataArray getObjectsByParentAndStatus(String status, Long objectType, SvReader svr) throws SvException {
-		DbSearchCriterion dbc1 = new DbSearchCriterion(MC.PARENT_ID, DbCompareOperand.EQUAL, this.objectId);
-		DbSearchCriterion dbc2 = new DbSearchCriterion(MC.STATUS, DbCompareOperand.EQUAL, status);
+		DbSearchCriterion dbc1 = new DbSearchCriterion(CC.PARENT_ID, DbCompareOperand.EQUAL, this.objectId);
+		DbSearchCriterion dbc2 = new DbSearchCriterion(CC.STATUS, DbCompareOperand.EQUAL, status);
 		DbSearchExpression dbse = new DbSearchExpression().addDbSearchItem(dbc1).addDbSearchItem(dbc2);
 		DbDataArray dbArr = svr.getObjects(dbse, objectType, null, null, null);
 		return dbArr;
@@ -667,12 +667,12 @@ public abstract class BaseModel {
 		String labelCode;
 		DbDataArray dbArr = SvReader.getFields(SvReader.getTypeIdByName(getTableName()));
 		for (DbDataObject dbo : dbArr.getItems()) {
-			fieldName = dbo.getAsString(MC.FIELD_NAME);
-			labelCode = dbo.getAsString(MC.LABEL_CODE);
+			fieldName = dbo.getAsString(CC.FIELD_NAME);
+			labelCode = dbo.getAsString(CC.LABEL_CODE);
 			if (fieldName != null) {
 				fieldsLabels.put(fieldName, labelCode);
 			}
-			if (!fieldName.equals(MC.PKID) && dbo.getVal(MC.IS_NULL) != null && !dbo.getAsBoolean(MC.IS_NULL)) {
+			if (!fieldName.equals(CC.PKID) && dbo.getVal(CC.IS_NULL) != null && !dbo.getAsBoolean(CC.IS_NULL)) {
 				mandatoryFields.add(fieldName);
 			}
 		}
