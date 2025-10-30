@@ -35,8 +35,8 @@ import com.prtech.svarog_common.DbSearchExpression;
 /**
  * Abstract base class for all data models (tables) in the application.
  */
-public abstract class BaseModel {
-	static final Logger log4j = LogManager.getLogger(BaseModel.class.getName());
+public abstract class BaseObjectModel {
+	static final Logger log4j = LogManager.getLogger(BaseObjectModel.class.getName());
 
 	public static final Integer ROW_LIMIT = 100;
 	public static final int COMMIT_COUNT = 100;
@@ -64,17 +64,18 @@ public abstract class BaseModel {
 	protected List<String> mandatoryFields;
 
 	/**
-	 * Constructs a new BaseModel instance. Initializes field labels map and
+	 * Constructs a new BaseObjectModel instance. Initializes field labels map and
 	 * mandatory fields list, and sets the object type.
 	 */
-	public BaseModel() {
+	public BaseObjectModel() {
 		fieldsLabels = new HashMap<String, String>();
 		mandatoryFields = new ArrayList<>();
 		try {
 			this.objectType = SvReader.getTypeIdByName(getTableName());
 			initFields();
 		} catch (SvException e) {
-			log4j.error("An error occured while initializing BaseModel for {}: {}", getTableName(), e.getMessage(), e);
+			log4j.error("An error occured while initializing BaseObjectModel for {}: {}", getTableName(),
+					e.getMessage(), e);
 		}
 	}
 
@@ -205,7 +206,7 @@ public abstract class BaseModel {
 	 * @param value The value to assign to the field
 	 * @return The current model instance
 	 */
-	public abstract BaseModel setValue(String field, Object value);
+	public abstract BaseObjectModel setValue(String field, Object value);
 
 	/**
 	 * Abstract method to get a field value by name
@@ -332,7 +333,7 @@ public abstract class BaseModel {
 	 * @throws SvException if an error occurs during database operations
 	 */
 	public boolean from(Long objectId, SvReader svr) throws SvException {
-		return from(objectId, svr, true);
+		return from(objectId, true, svr);
 	}
 
 	/**
@@ -345,7 +346,7 @@ public abstract class BaseModel {
 	 * @return true if the object was found and loaded successfully, false otherwise
 	 * @throws SvException if an error occurs during database operations
 	 */
-	public boolean from(Long objectId, SvReader svr, Boolean useCache) throws SvException {
+	public boolean from(Long objectId, Boolean useCache, SvReader svr) throws SvException {
 		DbDataObject obj;
 		if (useCache) {
 			obj = svr.getObjectById(objectId, SvReader.getTypeIdByName(getTableName()), null);
@@ -368,7 +369,7 @@ public abstract class BaseModel {
 	 * @param autoCommit Whether to automatically commit
 	 * @return true if the status change was successful, false otherwise
 	 */
-	protected Boolean changeStatus(DbDataObject obj, String sessionId, String newStatus, boolean autoCommit) {
+	protected Boolean changeStatus(DbDataObject obj, String sessionId, String newStatus, Boolean autoCommit) {
 		Boolean result = false;
 		try (SvWorkflow svw = new SvWorkflow(sessionId)) {
 			svw.moveObject(obj, newStatus, autoCommit);
@@ -391,21 +392,21 @@ public abstract class BaseModel {
 	 * @throws SvException if an error occurs during the status change
 	 */
 	public List<String> changeStatus(String newStatus, SvReader svr, SvWriter svw, SvWorkflow sww) throws SvException {
-		return changeStatus(newStatus, svr, svw, sww, true);
+		return changeStatus(newStatus, true, svr, svw, sww);
 	}
 
 	/**
 	 * Changes the status of this object.
 	 * 
 	 * @param newStatus  The new status to assign
+	 * @param autoCommit Whether to automatically commit
 	 * @param svr        SvReader instance
 	 * @param svw        SvWriter instance
 	 * @param sww        SvWorkflow instance
-	 * @param autoCommit Whether to automatically commit
 	 * @return List of validation errors, empty if successful
 	 * @throws SvException if an error occurs during the status change
 	 */
-	public List<String> changeStatus(String newStatus, SvReader svr, SvWriter svw, SvWorkflow sww, Boolean autoCommit)
+	public List<String> changeStatus(String newStatus, Boolean autoCommit, SvReader svr, SvWriter svw, SvWorkflow sww)
 			throws SvException {
 		List<String> errorsList = null;
 		DbDataObject dbo = getDbObj();
@@ -433,7 +434,7 @@ public abstract class BaseModel {
 		List<String> errors = new ArrayList<String>(0);
 		for (String objId : objectIds) {
 			this.from(Long.valueOf(objId), svr);
-			errors.addAll(this.changeStatus(newStatus, svr, svw, sww, false));
+			errors.addAll(this.changeStatus(newStatus, false, svr, svw, sww));
 		}
 
 		return errors;
@@ -514,7 +515,7 @@ public abstract class BaseModel {
 	 * @return LinkedHashMap containing detailed information about the object
 	 * @throws SvException if an error occurs during data retrieval
 	 */
-	public abstract LinkedHashMap<String, String> getDetails(SvReader svr, String localeId) throws SvException;
+	public abstract LinkedHashMap<String, String> getDetails(String localeId, SvReader svr) throws SvException;
 
 	/**
 	 * Returns short information about this model instance as key-value pairs. The
@@ -525,7 +526,7 @@ public abstract class BaseModel {
 	 * @return LinkedHashMap containing detailed information about the object
 	 * @throws SvException if an error occurs during data retrieval
 	 */
-	public abstract LinkedHashMap<String, String> getSummary(SvReader svr, String localeId) throws SvException;
+	public abstract LinkedHashMap<String, String> getSummary(String localeId, SvReader svr) throws SvException;
 
 	/**
 	 * Saves this object to the database.
@@ -767,7 +768,7 @@ public abstract class BaseModel {
 					}
 				}
 			} catch (Exception e) {
-				log4j.debug("Error in checkValidData - BaseModel", e);
+				log4j.debug("Error in checkValidData - BaseObjectModel", e);
 			}
 		}
 
