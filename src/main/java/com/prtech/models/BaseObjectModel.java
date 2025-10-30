@@ -12,12 +12,12 @@ import javax.ws.rs.core.Response;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.checkerframework.checker.index.qual.NonNegative;
 import org.joda.time.DateTime;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.prtech.models.ModelAnnotations.FixedLength;
+import com.prtech.models.ModelAnnotations.NonNegative;
 import com.prtech.perun.services.ws.WsReactElements;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.SvException;
