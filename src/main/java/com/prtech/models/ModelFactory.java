@@ -11,7 +11,7 @@ import org.apache.logging.log4j.Logger;
 public class ModelFactory {
 	static final Logger log4j = LogManager.getLogger(ModelFactory.class.getName());
 
-	public static <T extends BaseModel> T fromMap(MultivaluedMap<String, String> map, Class<T> clazz) {
+	public static <T extends BaseObjectModel> T fromMap(MultivaluedMap<String, String> map, Class<T> clazz) {
 		try {
 			T instance = clazz.getDeclaredConstructor().newInstance();
 			for (Entry<String, List<String>> entry : map.entrySet()) {
