@@ -64,12 +64,18 @@ public abstract class BaseObjectModel {
 	protected List<String> mandatoryFields;
 
 	/**
-	 * Constructs a new BaseObjectModel instance. Initializes field labels map and
-	 * mandatory fields list, and sets the object type.
+	 * Map of all fields in the table
+	 */
+	protected Map<String, DbDataObject> tableFields;
+
+	/**
+	 * Constructs a new BaseObjectModel instance. Initializes field labels map,
+	 * mandatory fields list, tableFields map, and sets the object type.
 	 */
 	public BaseObjectModel() {
 		fieldsLabels = new HashMap<String, String>();
 		mandatoryFields = new ArrayList<>();
+		tableFields = new HashMap<String, DbDataObject>();
 		try {
 			this.objectType = SvReader.getTypeIdByName(getTableName());
 			initFields();
@@ -261,6 +267,15 @@ public abstract class BaseObjectModel {
 	 */
 	protected List<String> getMandatoryFields() {
 		return mandatoryFields;
+	}
+
+	/**
+	 * Get the map of all fields in the table
+	 * 
+	 * @return Map of all fields for this model
+	 */
+	protected Map<String, DbDataObject> getTableFields() {
+		return tableFields;
 	}
 
 	/**
@@ -671,6 +686,9 @@ public abstract class BaseObjectModel {
 			fieldName = dbo.getAsString(CC.FIELD_NAME);
 			labelCode = dbo.getAsString(CC.LABEL_CODE);
 			if (fieldName != null) {
+				if (!fieldName.equals(CC.PKID)) {
+					tableFields.put(fieldName, dbo);
+				}
 				fieldsLabels.put(fieldName, labelCode);
 			}
 			if (!fieldName.equals(CC.PKID) && dbo.getVal(CC.IS_NULL) != null && !dbo.getAsBoolean(CC.IS_NULL)) {
