@@ -274,7 +274,7 @@ public abstract class BaseObjectModel {
 	 * 
 	 * @return Map of all fields for this model
 	 */
-	protected Map<String, DbDataObject> getTableFields() {
+	public Map<String, DbDataObject> getTableFields() {
 		return tableFields;
 	}
 
