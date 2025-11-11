@@ -738,6 +738,16 @@ public abstract class BaseObjectModel {
 	}
 
 	/**
+	 * Get fields for specific form contexts
+	 * 
+	 * @param formContext
+	 * @return
+	 */
+	public List<String> getFormFields(String formContext) {
+		return getReportFields();
+	}
+
+	/**
 	 * @return JsonObject representation for this object
 	 */
 	public JsonObject getJsonRepresentation() {
