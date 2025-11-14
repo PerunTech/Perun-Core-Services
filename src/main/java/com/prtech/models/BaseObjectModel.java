@@ -2,6 +2,7 @@ package com.prtech.models;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -507,6 +508,16 @@ public abstract class BaseObjectModel {
 		String responseStr = response.getEntity().toString();
 		JsonObject responseJson = new Gson().fromJson(responseStr, JsonObject.class);
 		return responseJson;
+	}
+
+	/**
+	 * Return a list of all statuses that this object can have. Override in child
+	 * classes.
+	 * 
+	 * @return List of all valid statuses for this object
+	 */
+	public List<String> getObjectStatusList() {
+		return Arrays.asList(CC.VALID);
 	}
 
 	/**
