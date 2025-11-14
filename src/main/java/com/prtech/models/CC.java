@@ -13,5 +13,6 @@ public class CC {
 	public static final String CODE_LIST_ID = "CODE_LIST_ID";
 	public static final String SKIP_CHECK = "SKIP_CHECK";
 	public static final String IS_NULL = "IS_NULL";
+	public static final String VALID = "VALID";
 
 }
