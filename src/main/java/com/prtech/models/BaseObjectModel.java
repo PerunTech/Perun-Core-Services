@@ -266,7 +266,7 @@ public abstract class BaseObjectModel {
 	 * 
 	 * @return List of mandatory fields for this model
 	 */
-	protected List<String> getMandatoryFields() {
+	public List<String> getMandatoryFields() {
 		return mandatoryFields;
 	}
 
