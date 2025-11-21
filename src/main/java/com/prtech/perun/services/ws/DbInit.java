@@ -333,6 +333,63 @@ public class DbInit implements IDbInit {
 		return dbe;
 	}
 
+	private static DbDataTable createPerunMenuPlaceholderConfTable() {
+		DbDataTable dbe = new DbDataTable();
+		dbe.setDbTableName(CC.PERUN_MENU_PH_CONF);
+		dbe.setDbRepoName("{MASTER_REPO}");
+		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setIsSystemTable(false);
+		dbe.setIsRepoTable(false);
+		dbe.setLabel_code("perun_menu_ph_conf");
+		dbe.setUse_cache(false);
+
+		DbDataField dbf1 = new DbDataField();
+		dbf1.setDbFieldName("PKID");
+		dbf1.setIsPrimaryKey(true);
+		dbf1.setDbFieldType(DbFieldType.NUMERIC);
+		dbf1.setDbFieldSize(18);
+		dbf1.setDbFieldScale(0);
+		dbf1.setIsNull(false);
+		dbf1.setLabel_code("perun_menu_ph_conf.pkid");
+
+		DbDataField dbf2 = new DbDataField();
+		dbf2.setDbFieldName(CC.PLACEHOLDER_NAME);
+		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf2.setDbFieldSize(50);
+		dbf2.setIsNull(false);
+		dbf2.setLabel_code("perun_menu_ph_conf.placeholder_name");
+
+		DbDataField dbf3 = new DbDataField();
+		dbf3.setDbFieldName(CC.SOURCE_FIELD);
+		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf3.setDbFieldSize(50);
+		dbf3.setIsNull(false);
+		dbf3.setLabel_code("perun_menu_ph_conf.source_field");
+
+		DbDataField dbf4 = new DbDataField();
+		dbf4.setDbFieldName(CC.REF_TABLE_NAME);
+		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf4.setDbFieldSize(50);
+		dbf4.setIsNull(false);
+		dbf4.setLabel_code("perun_menu_ph_conf.ref_table_name");
+
+		DbDataField dbf5 = new DbDataField();
+		dbf5.setDbFieldName(CC.REF_FIELD_NAME);
+		dbf5.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf5.setDbFieldSize(50);
+		dbf5.setIsNull(false);
+		dbf5.setLabel_code("perun_menu_ph_conf.ref_field_name");
+
+		DbDataField[] dbTableFields = new DbDataField[5];
+		dbTableFields[0] = dbf1;
+		dbTableFields[1] = dbf2;
+		dbTableFields[2] = dbf3;
+		dbTableFields[3] = dbf4;
+		dbTableFields[4] = dbf5;
+		dbe.setDbTableFields(dbTableFields);
+		return dbe;
+	}
+
 	@Override
 	public ArrayList<DbDataTable> getCustomObjectTypes() {
 		DbDataTable dbtt = null;
@@ -344,6 +401,8 @@ public class DbInit implements IDbInit {
 		dbtt = DbInit.createPerunMenuTable();
 		dbtList.add(addSortOrder(dbtt));
 		dbtt = DbInit.createPerunMenuConfTable();
+		dbtList.add(addSortOrder(dbtt));
+		dbtt = DbInit.createPerunMenuPlaceholderConfTable();
 		dbtList.add(addSortOrder(dbtt));
 		return dbtList;
 	}
