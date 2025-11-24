@@ -358,6 +358,7 @@ public class DbInit implements IDbInit {
 		dbf2.setDbFieldName(CC.PLACEHOLDER_NAME);
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf2.setDbFieldSize(50);
+		dbf2.setIsUnique(true);
 		dbf2.setIsNull(false);
 		dbf2.setLabel_code("perun_menu_ph_conf.placeholder_name");
 
