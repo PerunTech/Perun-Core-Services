@@ -107,7 +107,7 @@ public class WsMenu {
 				return Response.status(Response.Status.NOT_FOUND).entity(jrh.getAll().toString()).build();
 			}
 			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>(), requestData);
-			resultJson = MenuHelper.applyDataToObject(resultJson, requestData);
+			resultJson = MenuHelper.applyDataToObject(resultJson, requestData, svr);
 			jrh.create(MessageType.SUCCESS, "Menu successfully generated", null, resultJson);
 			return Response.ok(jrh.getAll().toString()).build();
 		} catch (Exception e) {
@@ -144,7 +144,7 @@ public class WsMenu {
 				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 			}
 			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>(), requestData);
-			resultJson = MenuHelper.applyDataToObject(resultJson, requestData);
+			resultJson = MenuHelper.applyDataToObject(resultJson, requestData, svr);
 			Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
 
 			if (!missingData.isEmpty()) {

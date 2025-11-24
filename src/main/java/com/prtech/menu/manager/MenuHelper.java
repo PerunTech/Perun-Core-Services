@@ -531,6 +531,19 @@ final class MenuHelper {
 		return perunMenuConfDbo;
 	}
 
+	public static DbDataObject createPerunMenuPlaceholderConfObj(Long parentId, String placeholderName,
+			String sourceField, String refTableName, String refFieldName) throws SvException {
+		DbDataObject perunMenuPhConfDbo = new DbDataObject();
+		perunMenuPhConfDbo.setObjectType(SvReader.getTypeIdByName(CC.PERUN_MENU_PH_CONF));
+		perunMenuPhConfDbo.setParentId(parentId);
+		perunMenuPhConfDbo.setVal(CC.PLACEHOLDER_NAME, placeholderName);
+		perunMenuPhConfDbo.setVal(CC.SOURCE_FIELD, sourceField);
+		perunMenuPhConfDbo.setVal(CC.REF_TABLE_NAME, refTableName);
+		perunMenuPhConfDbo.setVal(CC.REF_FIELD_NAME, refFieldName);
+
+		return perunMenuPhConfDbo;
+	}
+
 	/**
 	 * Helper method for deleting a PERUN_MENU object. If the menu is referenced by
 	 * other menus it will block the deletion.
@@ -810,8 +823,9 @@ final class MenuHelper {
 	 *             replacement.
 	 * @return A new JsonObject with the placeholders replaced, or the original
 	 *         JsonObject if an error occurred during the final JSON parsing step.
+	 * @throws SvException
 	 */
-	static JsonObject applyDataToObject(JsonObject json, JsonObject data) {
+	static JsonObject applyDataToObject(JsonObject json, JsonObject data, SvReader svr) throws SvException {
 		JsonObject result;
 		String jsonStr = json.toString();
 		String objectId = "0";
@@ -832,6 +846,41 @@ final class MenuHelper {
 				jsonStr = jsonStr.replaceAll(toReplace, replacement);
 			}
 		}
+
+		Set<String> placeholders = findPlaceholders(jsonStr);
+		if (!placeholders.isEmpty()) {
+			DbDataObject dbTable = SvReader.getDbtByName(CC.PERUN_MENU_PH_CONF);
+			for (String placeholder : placeholders) {
+				try {
+					DbDataObject dbo = svr.getObjectByUnqConfId(placeholder, dbTable, false);
+					if (dbo == null) {
+						continue;
+					}
+
+					String sourceField = dbo.getAsString(CC.SOURCE_FIELD);
+					if (!data.has(sourceField)) {
+						continue;
+					}
+
+					Long targetObjId = data.has(sourceField) ? Long.valueOf(data.get(sourceField).getAsString()) : 0L;
+					if (targetObjId == 0L) {
+						continue;
+					}
+
+					String tableName = dbo.getAsString(CC.REF_TABLE_NAME);
+					String fieldName = dbo.getAsString(CC.REF_FIELD_NAME);
+
+					DbDataObject targetDbo = svr.getObjectById(targetObjId, SvReader.getDbtByName(tableName), null);
+					if (targetDbo != null) {
+						String replacementString = targetDbo.getAsString(fieldName);
+						jsonStr = jsonStr.replaceAll("%" + placeholder + "%", replacementString);
+					}
+				} catch (Exception e) {
+					log4j.error("Error replacing palceholder: " + placeholder, e);
+				}
+			}
+		}
+
 		try {
 			result = new Gson().fromJson(jsonStr, JsonObject.class);
 		} catch (Exception e) {
@@ -848,9 +897,20 @@ final class MenuHelper {
 	 * @return A List containing the content (the key) of all placeholders found
 	 */
 	static Set<String> findPlaceholders(JsonObject resultJson) {
+		return findPlaceholders(resultJson.toString());
+	}
+
+	/**
+	 * Finds all placeholders within a string
+	 * 
+	 * @param searchStr The string to search for placeholders in
+	 * @return @return A List containing the content (the key) of all placeholders
+	 *         found
+	 */
+	static Set<String> findPlaceholders(String searchStr) {
 		Set<String> placeholders = new HashSet<String>();
 		Pattern pattern = Pattern.compile("\\%(\\w+)\\%");
-		Matcher match = pattern.matcher(resultJson.toString());
+		Matcher match = pattern.matcher(searchStr);
 
 		while (match.find()) {
 			placeholders.add(match.group(1));
