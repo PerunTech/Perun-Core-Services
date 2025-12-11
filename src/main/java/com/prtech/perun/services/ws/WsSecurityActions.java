@@ -667,8 +667,7 @@ public class WsSecurityActions {
 	public JsonObject getAvatarFileObjectInfo(DbDataObject dbo, SvReader svr) throws SvException {
 		JsonObject avatarInfo = new JsonObject();
 		try (SvFileStore svfs = new SvFileStore(svr)) {
-			if (SvCore.getLinkType("AVATAR", SvCore.getDbt(svCONST.OBJECT_TYPE_USER),
-					SvCore.getDbt(svCONST.OBJECT_TYPE_FILE)) != null) {
+			if (SvParameter.getSysParam("ALLOWED_USER_AVATAR", "false").equals("true")) {
 				DbDataArray dbArraySvFiles = svfs.getFiles(dbo, "AVATAR", null);
 				if (!dbArraySvFiles.isEmpty()) {
 					avatarInfo.addProperty("objectId", dbArraySvFiles.get(0).getObjectId());
