@@ -424,7 +424,13 @@ public abstract class BaseObjectModel {
 	 */
 	public List<String> changeStatus(String newStatus, Boolean autoCommit, SvReader svr, SvWriter svw, SvWorkflow sww)
 			throws SvException {
-		List<String> errorsList = null;
+		List<String> errorsList = new ArrayList<String>();
+
+		if (this.getStatus().equals(newStatus)) {
+			errorsList.add(I18n.getText(svr.getUserLocaleId(svr.getInstanceUser()), "error.transition_same_status"));
+			return errorsList;
+		}
+
 		DbDataObject dbo = getDbObj();
 		errorsList = onStatusChange(newStatus, svr, svw);
 		if (errorsList.isEmpty()) {
