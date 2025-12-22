@@ -494,7 +494,7 @@ public abstract class BaseObjectModel {
 	 */
 	public JsonObject getTableJsonSchema(String locale, SvReader svr) throws SvException {
 		WsReactElements ws = new WsReactElements();
-		Response response = ws.getTableJSONSchema(getTableName(), svr.getSessionId(), null);
+		Response response = ws.getTableJSONSchema(svr.getSessionId(), getTableName(), null);
 		String responseStr = response.getEntity().toString();
 		JsonObject responseJson = new Gson().fromJson(responseStr, JsonObject.class);
 		return responseJson;
@@ -510,7 +510,7 @@ public abstract class BaseObjectModel {
 	 */
 	public JsonObject getTableUiSchema(String locale, SvReader svr) throws SvException {
 		WsReactElements ws = new WsReactElements();
-		Response response = ws.getTableUISchema(getTableName(), svr.getSessionId(), null);
+		Response response = ws.getTableUISchema(svr.getSessionId(), getTableName(), null);
 		String responseStr = response.getEntity().toString();
 		JsonObject responseJson = new Gson().fromJson(responseStr, JsonObject.class);
 		return responseJson;
