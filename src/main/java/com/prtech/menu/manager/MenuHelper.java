@@ -306,7 +306,49 @@ final class MenuHelper {
 			obj.addProperty(CC.LABEL, labelText);
 		}
 
+		if (obj.has("objectConfiguration")) {
+			JsonObject objConfig = obj.getAsJsonObject("objectConfiguration");
+			if (objConfig.has("additionalTopButtons") && objConfig.get("additionalTopButtons").isJsonArray()) {
+				JsonArray additionalTopButtons = new JsonArray();
+				for (JsonElement btnElem : objConfig.getAsJsonArray("additionalTopButtons")) {
+					decodeLabelCode(btnElem, additionalTopButtons, localeId);
+				}
+				objConfig.add("additionalTopButtons", additionalTopButtons);
+			}
+		}
+
 		mergedButtons.add(obj.deepCopy());
+	}
+
+	private static void decodeLabelCode(JsonElement btnElem, JsonArray arr, String localeId) {
+		if (!btnElem.isJsonObject()) {
+			return;
+		}
+
+		JsonObject obj = btnElem.getAsJsonObject();
+
+		String[] labelProperties = { CC.LABEL, "promptTitle", "promptMessage" };
+		for (String property : labelProperties) {
+			decodeProperty(obj, property, localeId);
+		}
+
+		if (obj.has(CC.DATA) && obj.get(CC.DATA).isJsonArray()) {
+			JsonArray dataArray = new JsonArray();
+			for (JsonElement dataElem : obj.getAsJsonArray(CC.DATA)) {
+				decodeLabelCode(dataElem, dataArray, localeId);
+			}
+			obj.add(CC.DATA, dataArray);
+		}
+
+		arr.add(obj.deepCopy());
+	}
+
+	private static void decodeProperty(JsonObject obj, String property, String localeId) {
+		if (obj.has(property)) {
+			String labelCode = obj.get(property).getAsString();
+			String labelText = I18n.getText(localeId, labelCode);
+			obj.addProperty(property, labelText);
+		}
 	}
 
 	private static String getObjectStatusFromDescriptor(JsonObject objectData) {
