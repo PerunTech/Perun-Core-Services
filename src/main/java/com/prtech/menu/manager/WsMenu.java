@@ -129,20 +129,70 @@ public class WsMenu {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getMenu(@PathParam("sid") String sessionId, String entity) {
 		ResponseHandler jrh = new ResponseHandler();
+		JsonObject requestData;
+		try {
+			requestData = new Gson().fromJson(entity, JsonObject.class);
+		} catch (Exception e) {
+			jrh.create(MessageType.ERROR, "Request body has bad format", null, new JsonObject());
+			return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
+		}
+		return generateGetMenuResponse(sessionId, requestData);
+	}
+
+	/**
+	 * Return full menu config for the object that is sent in the request. GET
+	 * version
+	 * 
+	 * @param sessionId  User's session ID
+	 * @param objectId   Object ID we want to generate the menu for
+	 * @param objectType The type of the object
+	 * @return
+	 */
+	@GET
+	@Path("/getMenu/{sid}/{objectId}/{objectType}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getMenu(@PathParam("sid") String sessionId, @PathParam("objectId") Long objectId,
+			@PathParam("objectType") String objectType) {
+		ResponseHandler jrh = new ResponseHandler();
 		JsonObject requestData = new JsonObject();
-		DbDataObject menuRoot = null;
+
 		try (SvReader svr = new SvReader(sessionId)) {
-			try {
-				requestData = new Gson().fromJson(entity, JsonObject.class);
-			} catch (Exception e) {
-				jrh.create(MessageType.ERROR, "Request body has bad format", null, new JsonObject());
+			DbDataObject dbo = svr.getObjectById(objectId, SvReader.getTypeIdByName(objectType), null);
+			if (dbo == null) {
+				jrh.create(MessageType.ERROR, "Object not found", null, new JsonObject());
 				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 			}
+
+			JsonObject dboJson = dbo.toSimpleJson();
+			for (String key : dboJson.keySet()) {
+				requestData.add(key.toUpperCase(), dboJson.get(key));
+			}
+		} catch (Exception e) {
+			log4j.error("Error fetching object: ", e);
+			return PerunUtil.handleException(e, "Error fetching object");
+		}
+
+		return generateGetMenuResponse(sessionId, requestData);
+	}
+
+	/**
+	 * Common logic for generating menu response from request data
+	 * 
+	 * @param sessionId   Session ID
+	 * @param requestData JSON object containing the request data
+	 * @return Response with menu configuration or error
+	 */
+	private Response generateGetMenuResponse(String sessionId, JsonObject requestData) {
+		ResponseHandler jrh = new ResponseHandler();
+		DbDataObject menuRoot;
+
+		try (SvReader svr = new SvReader(sessionId)) {
 			menuRoot = MenuHelper.findMenuCodeForObject(requestData, svr);
 			if (menuRoot == null) {
 				jrh.create(MessageType.ERROR, "Menu for this type of object was not found", null, new JsonObject());
 				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 			}
+
 			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>(), requestData);
 			resultJson = MenuHelper.applyDataToObject(resultJson, requestData, svr);
 			Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
@@ -152,6 +202,7 @@ public class WsMenu {
 						new JsonObject());
 				return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(jrh.getAll().toString()).build();
 			}
+
 			jrh.create(MessageType.SUCCESS, "Menu successfully generated", null, resultJson);
 			return Response.ok(jrh.getAll().toString()).build();
 		} catch (Exception e) {
