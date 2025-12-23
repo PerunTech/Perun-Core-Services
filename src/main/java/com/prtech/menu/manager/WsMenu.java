@@ -150,7 +150,6 @@ public class WsMenu {
 	 */
 	@GET
 	@Path("/getMenu/{sid}/{objectId}/{objectType}")
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getMenu(@PathParam("sid") String sessionId, @PathParam("objectId") Long objectId,
 			@PathParam("objectType") String objectType) {
