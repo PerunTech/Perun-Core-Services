@@ -172,14 +172,8 @@ public class DbInit implements IDbInit {
 		dbf2.setIsUnique(true);
 		dbf2.setIsNull(false);
 		dbf2.setLabel_code("perun_menu.menu_code");
-
-		DbDataField dbf3 = new DbDataField();
-		dbf3.setDbFieldName(CC.LABEL_CODE);
-		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
-		dbf3.setDbFieldSize(50);
-		dbf3.setIsUnique(true);
-		dbf3.setIsNull(false);
-		dbf3.setLabel_code("perun_menu.label_code");
+		dbf2.setGui_metadata(
+				"{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"editable\":true,\"width\":300}}");
 
 		// codelist - enum MENU_TYPES
 		DbDataField dbf4 = new DbDataField();
@@ -197,22 +191,6 @@ public class DbInit implements IDbInit {
 		dbf5.setIsNull(true);
 		dbf5.setLabel_code("perun_menu.menu_conf");
 
-		// table name of the menu parent
-		DbDataField dbf6 = new DbDataField();
-		dbf6.setDbFieldName(CC.PARENT_TABLE_NAME);
-		dbf6.setDbFieldType(DbFieldType.NVARCHAR);
-		dbf6.setDbFieldSize(50);
-		dbf6.setIsNull(true);
-		dbf6.setLabel_code("perun_menu.parent_table_name");
-
-		// code_value of svarog codelist item
-		DbDataField dbf7 = new DbDataField();
-		dbf7.setDbFieldName(CC.SVAROG_CDL_CAT);
-		dbf7.setDbFieldType(DbFieldType.NVARCHAR);
-		dbf7.setDbFieldSize(50);
-		dbf7.setIsNull(true);
-		dbf7.setLabel_code("perun_menu.parent_codelist_cat");
-
 		// label_code of svarog_acl
 		DbDataField dbf8 = new DbDataField();
 		dbf8.setDbFieldName(CC.SVAROG_ACL_LBL);
@@ -220,6 +198,8 @@ public class DbInit implements IDbInit {
 		dbf8.setDbFieldSize(100);
 		dbf8.setIsNull(true);
 		dbf8.setLabel_code("perun_menu.svarog_acl_label");
+		dbf8.setGui_metadata(
+				"{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"editable\":true,\"uischema\":{\"ui:widget\":\"hidden\"}}}");
 
 		// internal category
 		DbDataField dbf9 = new DbDataField();
@@ -236,18 +216,17 @@ public class DbInit implements IDbInit {
 		dbf10.setDbFieldScale(0);
 		dbf10.setIsNull(true);
 		dbf10.setLabel_code("perun_menu.version");
+		dbf10.setGui_metadata(
+				"{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"editable\":true,\"uischema\":{\"ui:widget\":\"hidden\"}}}");
 
-		DbDataField[] dbTableFields = new DbDataField[10];
+		DbDataField[] dbTableFields = new DbDataField[7];
 		dbTableFields[0] = dbf1;
 		dbTableFields[1] = dbf2;
-		dbTableFields[2] = dbf3;
-		dbTableFields[3] = dbf4;
-		dbTableFields[4] = dbf5;
-		dbTableFields[5] = dbf6;
-		dbTableFields[6] = dbf7;
-		dbTableFields[7] = dbf8;
-		dbTableFields[8] = dbf9;
-		dbTableFields[9] = dbf10;
+		dbTableFields[2] = dbf4;
+		dbTableFields[3] = dbf5;
+		dbTableFields[4] = dbf8;
+		dbTableFields[5] = dbf9;
+		dbTableFields[6] = dbf10;
 		dbe.setDbTableFields(dbTableFields);
 		return dbe;
 	}
