@@ -4964,6 +4964,7 @@ public class WsReactElements {
 	private void fillTableUISchemaData(Gson gson, JsonObject jsonData, SvReader svr, JsonObject jsonreactGUI,
 			JsonObject jsonUISchema, DbDataObject tempDboField, String tmpField) throws SvException {
 		Boolean visible = false;
+		Boolean readonly = false;
 		addUISchemaToGroupPath(jsonData, jsonreactGUI, jsonUISchema, tmpField);
 
 		if (tempDboField.getVal(Rc.REFERENTIAL_TABLE) != null && tempDboField.getVal(Rc.REFERENTIAL_FIELD) != null
@@ -4978,6 +4979,10 @@ public class WsReactElements {
 						|| jsonreactGUI.get("denormalizeUiVisible").getAsBoolean()) {
 					visible = true;
 				}
+				if (!jsonreactGUI.has("denormalizeUiReadonly")
+						|| jsonreactGUI.get("denormalizeUiReadonly").getAsBoolean()) {
+					readonly = true;
+				}
 				if (denormalizedField.getVal(Rc.GUI_METADATA) != null) {
 					JsonObject denormalizedGuiMetadata = gson
 							.fromJson(denormalizedField.getVal(Rc.GUI_METADATA).toString(), JsonObject.class);
@@ -4990,6 +4995,14 @@ public class WsReactElements {
 						if (visible && denormalizedJsonUiSchema.has("ui:widget")
 								&& denormalizedJsonUiSchema.get("ui:widget").getAsString().equals("hidden")) {
 							denormalizedJsonUiSchema.remove("ui:widget");
+						} else if (!visible) {
+							denormalizedJsonUiSchema.addProperty("ui:widget", "hidden");
+						}
+						if (!readonly && denormalizedJsonUiSchema.has("ui:readonly")
+								&& denormalizedJsonUiSchema.get("ui:readonly").getAsString().equals("true")) {
+							denormalizedJsonUiSchema.remove("ui:readonly");
+						} else if (readonly) {
+							denormalizedJsonUiSchema.addProperty("ui:readonly", true);
 						}
 						addUISchemaToGroupPath(jsonData, jsonreactGUI, denormalizedJsonUiSchema,
 								tempDboField.getVal(Rc.FIELD_NAME).toString() + '.'
@@ -5179,14 +5192,14 @@ public class WsReactElements {
 			DbDataArray typetoGet = new DbDataArray();
 			typetoGet = svr.getObjectsByParentId(tableID, svCONST.OBJECT_TYPE_FIELD, null, 0, 0, Rc.SORT_ORDER);
 			DbDataObject tempDboField = null;
-			if (reqObject != null)
+			if (reqObject != null) {
+				jsonData.addProperty(Rc.OBJECT_ID, reqObject.getObjectId());
+				jsonData.addProperty(Rc.OBJECT_TYPE, reqObject.getObjectType());
+				jsonData.addProperty(Rc.PKID, reqObject.getPkid());
+				jsonData.addProperty(Rc.PARENT_ID, reqObject.getParentId());
 				for (int i = 0; i < typetoGet.getItems().size(); i++) {
 					tempDboField = typetoGet.getItems().get(i);
 					String tmpField = tempDboField.getVal(Rc.FIELD_NAME).toString();
-					jsonData.addProperty(Rc.OBJECT_ID, reqObject.getObjectId());
-					jsonData.addProperty(Rc.OBJECT_TYPE, reqObject.getObjectType());
-					jsonData.addProperty(Rc.PKID, reqObject.getPkid());
-					jsonData.addProperty(Rc.PARENT_ID, reqObject.getParentId());
 					if (processField(tmpField)) {
 						jsonData = addValueToJsonObject1(jsonData, reqObject, tempDboField);
 
@@ -5263,6 +5276,7 @@ public class WsReactElements {
 						}
 					}
 				}
+			}
 		} catch (SvException e) {
 			return PerunUtil.handleException(e, "Error getting table form data");
 		} finally {
