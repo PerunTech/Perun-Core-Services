@@ -21,6 +21,7 @@ public class CC {
 	public static final String INTERNAL_CAT = "INTERNAL_CAT";
 	public static final String PERUN_MENU_CONF = "PERUN_MENU_CONF";
 	public static final String PERUN_MENU_PH_CONF = "PERUN_MENU_PH_CONF";
+	public static final String SV_ID_SEQ_PATTERN = "SV_ID_SEQ_PATTERN";
 	public static final String TABLE_NAME = "TABLE_NAME";
 	public static final String FIELD_NAME = "FIELD_NAME";
 	public static final String REF_TABLE_NAME = "REF_TABLE_NAME";
@@ -42,4 +43,13 @@ public class CC {
 	public static final String LABEL = "label";
 	public static final String INSERT = "insert";
 	public static final String OBJECT_TYPE_VISIBILITY = "objectTypeVisibility";
+	public static final String SEQ_PATTERN_ID = "SEQ_PATTERN_ID";
+	public static final String CONF_TABLE = "CONF_TABLE";
+	public static final String DEST_FIELD = "DEST_FIELD";
+	public static final String SEQ_PATTERN = "SEQ_PATTERN";
+	public static final String COND_FIELD = "COND_FIELD";
+	public static final String COND_OPERATOR = "COND_OPERATOR";
+	public static final String COND_VALUE = "COND_VALUE";
+	public static final String IS_DEFAULT = "IS_DEFAULT";
+	
 }
