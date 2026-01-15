@@ -4,10 +4,12 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.ws.rs.core.Response;
 
@@ -803,16 +805,37 @@ public abstract class BaseObjectModel {
 		return new ArrayList<SearchField>();
 	}
 
+	/**
+	 * Searches for objects in the database based on the provided search parameters.
+	 * 
+	 * If the search only contains these combinations of field/s the method will
+	 * raise an exception: PARENT_ID, STATUS, PARENT_ID + STATUS. You should use the
+	 * existing methods getObjectsByParentIs and getObjectsByLinkedId methods for
+	 * such cases.
+	 * 
+	 * @param searchParams JSON object containing search criteria and optional
+	 *                     pagination/sorting parameters
+	 * @param svr          SvReader instance used for database operations
+	 * @return DbDataArray containing objects that match the search criteria, or
+	 *         empty array if no criteria provided
+	 * @throws SvException
+	 */
 	public DbDataArray searchObjects(JsonObject searchParams, SvReader svr) throws SvException {
 		DbDataArray result = new DbDataArray();
 		DbSearchExpression dbse = new DbSearchExpression();
 		Boolean hasCrit = false;
+		Set<String> searchFieldsPresent = new HashSet<>();
 
 		for (SearchField field : getSearchableFields()) {
-			hasCrit = addSearchCriterion(searchParams, field, dbse) || hasCrit;
+			boolean added = addSearchCriterion(searchParams, field, dbse) || hasCrit;
+			if (added) {
+				searchFieldsPresent.add(field.getFieldName().toUpperCase());
+			}
+			hasCrit = added || hasCrit;
 		}
 
 		if (hasCrit) {
+			validateSearchCombination(searchFieldsPresent, svr);
 			Integer rowLimit = null;
 			Integer offset = null;
 			String sortByField = CC.PKID;
@@ -827,7 +850,7 @@ public abstract class BaseObjectModel {
 				rowLimit = ROW_LIMIT;
 			}
 			if (searchParams.has(CC.SORT_FIELD)) {
-				sortOrder = searchParams.get(CC.SORT_FIELD).getAsString();
+				sortByField = searchParams.get(CC.SORT_FIELD).getAsString();
 			}
 			if (searchParams.has(CC.SORT_ORDER)) {
 				sortOrder = searchParams.get(CC.SORT_ORDER).getAsString();
@@ -840,6 +863,31 @@ public abstract class BaseObjectModel {
 			result = svr.getObjects(query, rowLimit, offset);
 		}
 		return result;
+	}
+
+	/**
+	 * Validates that search fields does not contain these combinations:<br>
+	 * - PARENT_ID only<br>
+	 * - STATUS only<br>
+	 * - PARENT_ID + STATUS<br>
+	 * 
+	 * @param searchFields Set of search field names that are present
+	 * @throws SvException
+	 */
+	private void validateSearchCombination(Set<String> searchFields, SvReader svr) throws SvException {
+		// Define allowed combinations
+		Set<String> parentIdOnly = new HashSet<>(Arrays.asList("PARENT_ID"));
+		Set<String> statusOnly = new HashSet<>(Arrays.asList("STATUS"));
+		Set<String> parentIdAndStatus = new HashSet<>(Arrays.asList("PARENT_ID", "STATUS"));
+
+		boolean isValid = searchFields.equals(parentIdOnly) || searchFields.equals(statusOnly)
+				|| searchFields.equals(parentIdAndStatus);
+
+		if (!isValid) {
+			throw new SvException("Invalid search field combination. Invalid combinations are: "
+					+ "PARENT_ID, STATUS, or PARENT_ID + STATUS. " + "Provided fields: "
+					+ String.join(", ", searchFields), svr.getInstanceUser());
+		}
 	}
 
 	/**
