@@ -4,10 +4,12 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.ws.rs.core.Response;
 
@@ -16,7 +18,9 @@ import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.prtech.models.ModelAnnotations.FixedLength;
 import com.prtech.models.ModelAnnotations.NonNegative;
 import com.prtech.perun.services.ws.WsReactElements;
@@ -29,6 +33,7 @@ import com.prtech.svarog.SvWriter;
 import com.prtech.svarog.svCONST;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
+import com.prtech.svarog_common.DbQueryObject;
 import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
@@ -736,13 +741,153 @@ public abstract class BaseObjectModel {
 		return result;
 	}
 
+	protected static class SearchField {
+		private String fieldName;
+		private boolean ignoreCase;
+		private int minLength;
+		private boolean includePercent;
+
+		public SearchField(String fieldName, boolean ignoreCase, int minLength, boolean includePercent) {
+			this.fieldName = fieldName;
+			this.ignoreCase = ignoreCase;
+			this.minLength = minLength;
+			this.includePercent = includePercent;
+		}
+
+		public String getFieldName() {
+			return fieldName;
+		}
+
+		public void setFieldName(String fieldName) {
+			this.fieldName = fieldName;
+		}
+
+		public boolean isIgnoreCase() {
+			return ignoreCase;
+		}
+
+		public void setIgnoreCase(boolean ignoreCase) {
+			this.ignoreCase = ignoreCase;
+		}
+
+		public int getMinLength() {
+			return minLength;
+		}
+
+		public void setMinLength(int minLength) {
+			this.minLength = minLength;
+		}
+
+		public boolean getIncludePercent() {
+			return includePercent;
+		}
+
+		public void setIncludePercent(boolean includePercent) {
+			this.includePercent = includePercent;
+		}
+	}
+
 	/**
-	 * Get list of all fields you can search for
+	 * Get list of all fields you can search for. Kept for backward compatibility.
 	 * 
 	 * @return List of all search fields
 	 */
 	public List<String> getSearchFields() {
 		return new ArrayList<String>();
+	}
+
+	/**
+	 * Get list of all fields you can search for
+	 * 
+	 * @return List of all search fields
+	 */
+	public List<SearchField> getSearchableFields() {
+		return new ArrayList<SearchField>();
+	}
+
+	/**
+	 * Searches for objects in the database based on the provided search parameters.
+	 * 
+	 * If the search only contains these combinations of field/s the method will
+	 * raise an exception: PARENT_ID, STATUS, PARENT_ID + STATUS. You should use the
+	 * existing methods getObjectsByParentId and getObjectsByLinkedId for such
+	 * cases.
+	 * 
+	 * @param searchParams JSON object containing search criteria and optional
+	 *                     pagination/sorting parameters
+	 * @param svr          SvReader instance used for database operations
+	 * @return DbDataArray containing objects that match the search criteria, or
+	 *         empty array if no criteria provided
+	 * @throws SvException
+	 */
+	public DbDataArray searchObjects(JsonObject searchParams, SvReader svr) throws SvException {
+		DbDataArray result = new DbDataArray();
+		DbSearchExpression dbse = new DbSearchExpression();
+		Boolean hasCrit = false;
+		Set<String> searchFieldsPresent = new HashSet<>();
+
+		for (SearchField field : getSearchableFields()) {
+			boolean added = addSearchCriterion(searchParams, field, dbse) || hasCrit;
+			if (added) {
+				searchFieldsPresent.add(field.getFieldName().toUpperCase());
+			}
+			hasCrit = added || hasCrit;
+		}
+
+		if (hasCrit) {
+			validateSearchCombination(searchFieldsPresent, svr);
+			Integer rowLimit = null;
+			Integer offset = null;
+			String sortByField = CC.PKID;
+			String sortOrder = "DESC";
+			try {
+				if (searchParams.has(CC.ROW_LIMIT)) {
+					rowLimit = Integer.valueOf(searchParams.get(CC.ROW_LIMIT).getAsInt());
+				}
+			} catch (NumberFormatException e) {
+			}
+			if (rowLimit == null) {
+				rowLimit = ROW_LIMIT;
+			}
+			if (searchParams.has(CC.SORT_FIELD)) {
+				sortByField = searchParams.get(CC.SORT_FIELD).getAsString();
+			}
+			if (searchParams.has(CC.SORT_ORDER)) {
+				sortOrder = searchParams.get(CC.SORT_ORDER).getAsString();
+			}
+
+			DbQueryObject query = new DbQueryObject(SvReader.getDbtByName(getTableName()), dbse, null, null);
+			ArrayList<String> orderBy = new ArrayList<String>();
+			orderBy.add(sortByField + " " + sortOrder);
+			query.setOrderByFields(orderBy);
+			result = svr.getObjects(query, rowLimit, offset);
+		}
+		return result;
+	}
+
+	/**
+	 * Validates that search fields does not contain these combinations:<br>
+	 * - PARENT_ID only<br>
+	 * - STATUS only<br>
+	 * - PARENT_ID + STATUS<br>
+	 * 
+	 * @param searchFields Set of search field names that are present
+	 * @throws SvException
+	 */
+	private void validateSearchCombination(Set<String> searchFields, SvReader svr) throws SvException {
+		// Define allowed combinations
+		Set<String> parentIdOnly = new HashSet<>(Arrays.asList("PARENT_ID"));
+		Set<String> statusOnly = new HashSet<>(Arrays.asList("STATUS"));
+		Set<String> parentIdAndStatus = new HashSet<>(Arrays.asList("PARENT_ID", "STATUS"));
+
+		boolean isValid = searchFields.equals(parentIdOnly) || searchFields.equals(statusOnly)
+				|| searchFields.equals(parentIdAndStatus);
+
+		if (!isValid) {
+			throw new SvException("Invalid search field combination. Invalid combinations are: "
+					+ "PARENT_ID, STATUS, or PARENT_ID + STATUS. " + "Provided fields: "
+					+ String.join(", ", searchFields), svr.getInstanceUser());
+		}
 	}
 
 	/**
@@ -843,5 +988,41 @@ public abstract class BaseObjectModel {
 			}
 		}
 		return result.toString();
+	}
+
+	private Boolean addSearchCriterion(JsonObject searchParams, SearchField field, DbSearchExpression dbse)
+			throws SvException {
+		Object value = null;
+		DbCompareOperand operand = null;
+		JsonElement element = searchParams.has(field.getFieldName())
+				&& !searchParams.get(field.getFieldName()).isJsonNull() ? searchParams.get(field.getFieldName()) : null;
+
+		if (element != null && !element.isJsonNull()) {
+			JsonPrimitive primitive = element.getAsJsonPrimitive();
+			if (primitive.isBoolean()) {
+				operand = DbCompareOperand.EQUAL;
+				value = primitive.getAsBoolean();
+			} else if (primitive.isNumber()) {
+				operand = DbCompareOperand.EQUAL;
+				value = primitive.getAsLong();
+			} else if (primitive.isString()) {
+				if (field.isIgnoreCase()) {
+					operand = DbCompareOperand.ILIKE;
+				} else {
+					operand = DbCompareOperand.LIKE;
+				}
+				value = primitive.getAsString();
+				if (field.getIncludePercent()) {
+					value = CC.PERCENT_OPERATOR + primitive.getAsString() + CC.PERCENT_OPERATOR;
+				}
+			}
+		}
+
+		if (value != null && operand != null) {
+			DbSearchCriterion dbc = new DbSearchCriterion(field.getFieldName(), operand, value);
+			dbse.addDbSearchItem(dbc);
+			return true;
+		}
+		return false;
 	}
 }
