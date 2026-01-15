@@ -810,8 +810,8 @@ public abstract class BaseObjectModel {
 	 * 
 	 * If the search only contains these combinations of field/s the method will
 	 * raise an exception: PARENT_ID, STATUS, PARENT_ID + STATUS. You should use the
-	 * existing methods getObjectsByParentIs and getObjectsByLinkedId methods for
-	 * such cases.
+	 * existing methods getObjectsByParentId and getObjectsByLinkedId for such
+	 * cases.
 	 * 
 	 * @param searchParams JSON object containing search criteria and optional
 	 *                     pagination/sorting parameters
