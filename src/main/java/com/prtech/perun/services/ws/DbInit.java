@@ -371,6 +371,97 @@ public class DbInit implements IDbInit {
 		dbe.setDbTableFields(dbTableFields);
 		return dbe;
 	}
+	
+	// Create Sequence Pattern Configuration Table
+	private static DbDataTable createSequencePattern() {
+		DbDataTable dbe = new DbDataTable();
+		dbe.setDbTableName(CC.SV_ID_SEQ_PATTERN);
+		dbe.setDbRepoName("{MASTER_REPO}");
+		dbe.setDbSchema("{DEFAULT_SCHEMA}");
+		dbe.setIsSystemTable(false);
+		dbe.setIsRepoTable(false);
+		dbe.setLabel_code("sv_id_seq_pattern");
+		dbe.setUse_cache(false);
+
+		DbDataField dbf1 = new DbDataField();
+		dbf1.setDbFieldName("PKID");
+		dbf1.setIsPrimaryKey(true);
+		dbf1.setDbFieldType(DbFieldType.NUMERIC);
+		dbf1.setDbFieldSize(18);
+		dbf1.setDbFieldScale(0);
+		dbf1.setIsNull(false);
+		dbf1.setLabel_code("sv_id_seq_pattern.pkid");
+		
+		DbDataField dbe2 = new DbDataField();
+		dbe2.setDbFieldName(CC.SEQ_PATTERN_ID);
+		dbe2.setDbFieldType(DbFieldType.NVARCHAR);
+		dbe2.setDbFieldScale(0);
+		dbe2.setDbFieldSize(80);
+		dbe2.setIsNull(false);
+		dbe2.setIsUnique(true);
+		dbe2.setLabel_code("sv_id_seq_pattern.seq_pattern_id");
+
+		DbDataField dbf2 = new DbDataField();
+		dbf2.setDbFieldName(CC.CONF_TABLE);
+		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf2.setDbFieldSize(60);
+		dbf2.setIsNull(false);
+		dbf2.setLabel_code("sv_id_seq_pattern.conf_table");
+
+		DbDataField dbf3 = new DbDataField();
+		dbf3.setDbFieldName(CC.DEST_FIELD);
+		dbf3.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf3.setDbFieldSize(60);
+		dbf3.setIsNull(false);
+		dbf3.setLabel_code("sv_id_seq_pattern.dest_field");
+
+		DbDataField dbf4 = new DbDataField();
+		dbf4.setDbFieldName(CC.SEQ_PATTERN);
+		dbf4.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf4.setDbFieldSize(500);
+		dbf4.setIsNull(false);
+		dbf4.setLabel_code("sv_id_seq_pattern.seq_pattern");
+
+		DbDataField dbf5 = new DbDataField();
+		dbf5.setDbFieldName(CC.COND_FIELD);
+		dbf5.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf5.setDbFieldSize(60);
+		dbf5.setIsNull(true);
+		dbf5.setLabel_code("sv_id_seq_pattern.cond_field");
+
+		DbDataField dbf6 = new DbDataField();
+		dbf6.setDbFieldName(CC.COND_OPERATOR);
+		dbf6.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf6.setDbFieldSize(10);
+		dbf6.setIsNull(true);
+		dbf4.setCode_list_user_code("COND_OPERATOR");
+		dbf6.setLabel_code("sv_id_seq_pattern.cond_operator");
+
+		DbDataField dbf7 = new DbDataField();
+		dbf7.setDbFieldName(CC.COND_VALUE);
+		dbf7.setDbFieldType(DbFieldType.NVARCHAR);
+		dbf7.setDbFieldSize(500);
+		dbf7.setIsNull(true);
+		dbf7.setLabel_code("sv_id_seq_pattern.cond_value");
+
+		DbDataField dbf8 = new DbDataField();
+		dbf8.setDbFieldName(CC.IS_DEFAULT);
+		dbf8.setDbFieldType(DbFieldType.BOOLEAN);
+		dbf8.setIsNull(false);
+		dbf8.setLabel_code("sv_id_seq_pattern.is_default");
+
+		DbDataField[] dbTableFields = new DbDataField[8];
+		dbTableFields[0] = dbf1;
+		dbTableFields[1] = dbf2;
+		dbTableFields[2] = dbf3;
+		dbTableFields[3] = dbf4;
+		dbTableFields[4] = dbf5;
+		dbTableFields[5] = dbf6;
+		dbTableFields[6] = dbf7;
+		dbTableFields[7] = dbf8;
+		dbe.setDbTableFields(dbTableFields);
+		return dbe;
+	}
 
 	@Override
 	public ArrayList<DbDataTable> getCustomObjectTypes() {
@@ -385,6 +476,8 @@ public class DbInit implements IDbInit {
 		dbtt = DbInit.createPerunMenuConfTable();
 		dbtList.add(addSortOrder(dbtt));
 		dbtt = DbInit.createPerunMenuPlaceholderConfTable();
+		dbtList.add(addSortOrder(dbtt));
+		dbtt = DbInit.createSequencePattern();
 		dbtList.add(addSortOrder(dbtt));
 		return dbtList;
 	}
