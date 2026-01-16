@@ -880,10 +880,10 @@ public abstract class BaseObjectModel {
 		Set<String> statusOnly = new HashSet<>(Arrays.asList("STATUS"));
 		Set<String> parentIdAndStatus = new HashSet<>(Arrays.asList("PARENT_ID", "STATUS"));
 
-		boolean isValid = searchFields.equals(parentIdOnly) || searchFields.equals(statusOnly)
+		boolean isInvalid = searchFields.equals(parentIdOnly) || searchFields.equals(statusOnly)
 				|| searchFields.equals(parentIdAndStatus);
 
-		if (!isValid) {
+		if (isInvalid) {
 			throw new SvException("Invalid search field combination. Invalid combinations are: "
 					+ "PARENT_ID, STATUS, or PARENT_ID + STATUS. " + "Provided fields: "
 					+ String.join(", ", searchFields), svr.getInstanceUser());
