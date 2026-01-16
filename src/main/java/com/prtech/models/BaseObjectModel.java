@@ -741,7 +741,7 @@ public abstract class BaseObjectModel {
 		return result;
 	}
 
-	protected static class SearchField {
+	public static class SearchField {
 		private String fieldName;
 		private boolean ignoreCase;
 		private int minLength;
@@ -825,6 +825,18 @@ public abstract class BaseObjectModel {
 		DbSearchExpression dbse = new DbSearchExpression();
 		Boolean hasCrit = false;
 		Set<String> searchFieldsPresent = new HashSet<>();
+
+		Boolean hasSearchParams = false;
+		for (SearchField field : getSearchableFields()) {
+			if (searchParams.has(field.getFieldName()) && !searchParams.get(field.getFieldName()).isJsonNull()) {
+				hasSearchParams = true;
+				break;
+			}
+		}
+
+		if (!hasSearchParams) {
+			throw new SvException("perun.error.no_search_criteria_given", svr.getInstanceUser());
+		}
 
 		for (SearchField field : getSearchableFields()) {
 			boolean added = addSearchCriterion(searchParams, field, dbse) || hasCrit;
