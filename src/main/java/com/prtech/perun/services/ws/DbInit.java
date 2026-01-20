@@ -478,8 +478,8 @@ public class DbInit implements IDbInit {
 		dbtList.add(addSortOrder(dbtt));
 		dbtt = DbInit.createPerunMenuPlaceholderConfTable();
 		dbtList.add(addSortOrder(dbtt));
-		dbtt = DbInit.createSequencePattern();
-		dbtList.add(addSortOrder(dbtt));
+		//dbtt = DbInit.createSequencePattern();
+		//dbtList.add(addSortOrder(dbtt));
 		return dbtList;
 	}
 
