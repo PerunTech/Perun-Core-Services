@@ -450,7 +450,7 @@ public class DbInit implements IDbInit {
 		dbf9.setIsNull(false);
 		dbf9.setLabel_code("sv_id_seq_pattern.is_default");
 
-		DbDataField[] dbTableFields = new DbDataField[8];
+		DbDataField[] dbTableFields = new DbDataField[9];
 		dbTableFields[0] = dbf1;
 		dbTableFields[1] = dbf2;
 		dbTableFields[2] = dbf3;
