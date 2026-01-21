@@ -315,6 +315,22 @@ final class MenuHelper {
 				}
 				objConfig.add("additionalTopButtons", additionalTopButtons);
 			}
+
+			if (objConfig.has("additionalBtns") && objConfig.get("additionalBtns").isJsonArray()) {
+				JsonArray additionalBtnsButtons = new JsonArray();
+				for (JsonElement btnElem : objConfig.getAsJsonArray("additionalBtns")) {
+					if (btnElem.isJsonObject() && btnElem.getAsJsonObject().has("promptInput")
+							&& btnElem.getAsJsonObject().get("promptInput").isJsonArray()) {
+						JsonArray promptInputButtons = new JsonArray();
+						for (JsonElement inputElem : btnElem.getAsJsonObject().getAsJsonArray("promptInput")) {
+							decodeLabelCode(inputElem, promptInputButtons, localeId);
+						}
+						btnElem.getAsJsonObject().add("promptInput", promptInputButtons);
+					}
+					decodeLabelCode(btnElem, additionalBtnsButtons, localeId);
+				}
+				objConfig.add("additionalBtns", additionalBtnsButtons);
+			}
 		}
 
 		mergedButtons.add(obj.deepCopy());
