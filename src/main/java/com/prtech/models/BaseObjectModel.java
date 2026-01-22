@@ -626,7 +626,7 @@ public abstract class BaseObjectModel {
 	 * @return a list of error messages; empty list allows deletion to proceed,
 	 *         non-empty list prevents deletion
 	 */
-	private List<String> onDelete(SvReader svr, SvWriter svw) {
+	protected List<String> onDelete(SvReader svr, SvWriter svw) throws SvException {
 		return new ArrayList<String>();
 	}
 
