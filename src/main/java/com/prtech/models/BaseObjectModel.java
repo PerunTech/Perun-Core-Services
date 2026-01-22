@@ -590,6 +590,47 @@ public abstract class BaseObjectModel {
 	}
 
 	/**
+	 * Deletes the current object from the database. </br>
+	 * Executes pre-deletion validation and business logic via
+	 * {@link #onDelete(SvReader, SvWriter)}. </br>
+	 * If validation passes (no errors), performs the actual database deletion.
+	 *
+	 * @param svr the SvReader instance for database operations
+	 * @param svw the SvWriter instance for database operations
+	 * @return a list of error messages; empty list indicates successful deletion
+	 * @throws SvException if an error occurs during the delete operation
+	 * 
+	 * @see #onDelete(SvReader, SvWriter)
+	 */
+	public List<String> deleteObject(SvReader svr, SvWriter svw) throws SvException {
+		List<String> errorsList = new ArrayList<String>();
+
+		DbDataObject dbo = getDbObj();
+		errorsList = this.onDelete(svr, svw);
+		if (errorsList.isEmpty()) {
+			svw.deleteObject(dbo);
+		}
+
+		return errorsList;
+	}
+
+	/**
+	 * 
+	 * This method is called before the actual database deletion occurs and allows
+	 * subclasses to implement custom validation rules, check constraints, or
+	 * perform cleanup operations. The default implementation returns an empty list,
+	 * allowing the deletion to proceed.
+	 * 
+	 * @param svr the SvReader instance for database operations
+	 * @param svw the SvWriter instance for database operations
+	 * @return a list of error messages; empty list allows deletion to proceed,
+	 *         non-empty list prevents deletion
+	 */
+	private List<String> onDelete(SvReader svr, SvWriter svw) {
+		return new ArrayList<String>();
+	}
+
+	/**
 	 * Validates that a field is not null or empty and adds an error message if it
 	 * is.
 	 * 
