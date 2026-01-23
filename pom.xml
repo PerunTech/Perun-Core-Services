@@ -174,7 +174,8 @@
 							com.prtech.perun,
 							com.prtech.perun.services.ws,
 							com.prtech.menu.manager,
-							com.prtech.models
+							com.prtech.models,
+							com.prtech.form
 						</Export-Package>
 						<Import-Package>
 							com.eclipsesource.jaxrs.publisher;version=!,*
