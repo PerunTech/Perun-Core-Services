@@ -8,7 +8,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class ModelFactory {
+public abstract class ModelFactory {
 	static final Logger log4j = LogManager.getLogger(ModelFactory.class.getName());
 
 	public static <T extends BaseObjectModel> T fromMap(MultivaluedMap<String, String> map, Class<T> clazz) {
@@ -25,4 +25,6 @@ public class ModelFactory {
 			return null;
 		}
 	}
+
+	public abstract BaseObjectModel createObject(String tableName);
 }

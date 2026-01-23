@@ -1,0 +1,60 @@
+package com.prtech.form;
+
+public class CC {
+
+	public static final String LABEL_CODE = "LABEL_CODE";
+	public static final String TITLE_LC = "title";
+	public static final String TYPE_LC = "type";
+	public static final String OBJECT_LC = "object";
+	public static final String PROPERTIES = "properties";
+	public static final String REQUIRED_LC = "required";
+	public static final String GUI_METADATA = "GUI_METADATA";
+	public static final String GUI_METADATA_CC = "guiMetadata";
+	public static final String REACT = "react";
+	public static final String REPLACE_LC = "replace";
+	public static final String DESCRIPTION_LC = "description";
+	public static final String FIELD_TYPE = "FIELD_TYPE";
+	public static final String FIELD_NAME = "FIELD_NAME";
+	public static final String FIELD_SIZE = "FIELD_SIZE";
+	public static final String FIELD_SCALE = "FIELD_SCALE";
+	public static final String NUMERIC = "NUMERIC";
+	public static final String NVARCHAR = "NVARCHAR";
+	public static final String DATE = "DATE";
+	public static final String TIMESTAMP = "TIMESTAMP";
+	public static final String DATETIME = "DATETIME";
+	public static final String BOOLEAN = "BOOLEAN";
+	public static final String TEXT = "TEXT";
+	public static final String REFERENTIAL_TABLE = "REFERENTIAL_TABLE";
+	public static final String REFERENTIAL_FIELD = "REFERENTIAL_FIELD";
+	public static final String DENORMALIZED_MNEMONIC = "denormalizedMnemonic";
+	public static final String STRING_LC = "string";
+	public static final String IDTABLE = "idtable";
+	public static final String IDGETFIELD = "idgetfield";
+	public static final String IDSETFIELD = "idsetfield";
+	public static final String GROUPPATH = "grouppath";
+	public static final String IS_NULL = "IS_NULL";
+	public static final String ENUM = "enum";
+	public static final String ENUM_NAMES = "enumNames";
+	public static final String FORMAT_LC = "format";
+	public static final String DEFAULT_LC = "default";
+	public static final String MAX_LENGTH = "maxLength";
+	public static final String MIN_LENGTH = "minLength";
+	public static final String MAXIMUM = "maximum";
+	public static final String MINIMUM = "minimum";
+	public static final String FORM_NAME = "FORM_NAME";
+	public static final String GROUP_NAME = "GROUP_NAME";
+	public static final String USERS = "USERS";
+	public static final String ADMINISTRATORS = "ADMINISTRATORS";
+	public static final String ISNULL = "IS_NULL";
+	public static final String ARRAY_LC = "array";
+	public static final String ITEMS_LC = "items";
+	public static final String UISCHEMA = "uischema";
+	public static final String NAME = "NAME";
+	public static final String EMPTY_STRING = "";
+	public static final String CODE_LIST_ID = "CODE_LIST_ID";
+	public static final String TYPE = "TYPE";
+	public static final String OBJECT_ID = "OBJECT_ID";
+	public static final String DEFAULT = "DEFAULT";
+	public static final String VALID = "VALID";
+
+}
