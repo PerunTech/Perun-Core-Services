@@ -203,7 +203,7 @@ public class SeqPatternService {
 			seqPatternDbo.setObjectType(SvReader.getTypeIdByName(CC.SV_ID_SEQ_PATTERN));
 		}
 		setSeqPatternObjectValues(seqPatternDbo, requestData);
-		svw.saveObject(seqPatternDbo, true);
+		svw.saveObject(seqPatternDbo);
 		return seqPatternDbo;
 	}
 
@@ -391,7 +391,7 @@ public class SeqPatternService {
 		newDbo.setVal(CC.COND_VALUE, oldDbo.getVal(CC.COND_VALUE));
 		newDbo.setParentId(oldDbo.getParentId());
 		newDbo.setVal(CC.SEQ_PATTERN, newSeqPattern);
-		svw.saveObject(newDbo, true);
+		svw.saveObject(newDbo);
 		return newDbo;
 	}
 
