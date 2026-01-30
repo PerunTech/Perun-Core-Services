@@ -295,7 +295,6 @@ public class WsConf {
 			Gson gson = new Gson();
 			svr = new SvReader(token);
 			spm = new SvPerunManager(token);
-			DbDataObject userDbo = SvCore.getUserBySession(token);
 			localeId = getLocaleId(svr);
 			if (svr.isAdmin()) {
 				accessCard = true;
