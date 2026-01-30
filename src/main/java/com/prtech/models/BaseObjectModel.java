@@ -444,9 +444,9 @@ public abstract class BaseObjectModel {
 			return errorsList;
 		}
 
-		DbDataObject dbo = getDbObj();
 		this.setSvWorkflow(sww);
 		errorsList = onStatusChange(newStatus, svr, svw);
+		DbDataObject dbo = getDbObj();
 		if (errorsList.isEmpty()) {
 			sww.moveObject(dbo, newStatus, autoCommit);
 		}
