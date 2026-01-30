@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -396,19 +397,16 @@ public class SeqPatternService {
 	}
 
 	/**
-	 * Generate an identifier value for a business object based on the
-	 * SV_ID_SEQ_PATTERN configuration
-	 * 
 	 * @param row       business table row for which the identifier is generated
-	 * @param confTable name of the target business table
+	 * @param name      of the target business table
 	 * @param destField column name in {@code confTable} where the generated value
 	 *                  will be written
-	 * @param svr       Svarog reader
-	 * @return Generated identifier value based on the resolved sequence pattern
+	 * @param svr
+	 * @return
 	 * @throws SvException
 	 * @throws SeqPatternError
 	 */
-	public static String generateId(DbDataObject row, String confTable, String destField, SvReader svr)
+	public static DbDataObject findMatchingPattern(DbDataObject row, String confTable, String destField, SvReader svr)
 			throws SvException, SeqPatternError {
 		Long patternType = SvReader.getTypeIdByName(CC.SV_ID_SEQ_PATTERN);
 		DbSearchCriterion filterTable = new DbSearchCriterion(CC.CONF_TABLE, DbCompareOperand.EQUAL, confTable);
@@ -465,9 +463,38 @@ public class SeqPatternService {
 			throw new SeqPatternError(
 					"No default pattern found for table " + confTable + " and dest field " + destField);
 		}
-		String seqPattern = selectedPattern.getVal(CC.SEQ_PATTERN).toString();
-		seqPattern = seqPattern.replace("{currYear}", String.valueOf(LocalDate.now().getYear()));
-		Pattern placeholderPattern = Pattern.compile("\\{([A-Z_]+)\\}");
+		return selectedPattern;
+	}
+
+	/**
+	 * @param seqPattern Pattern string
+	 * @param svr
+	 * @return
+	 * @throws SvException
+	 * @throws SeqPatternError
+	 */
+	private static String replaceStandardKeys(String seqPattern, SvReader svr) throws SvException, SeqPatternError {
+		LocalDate today = LocalDate.now();
+		Map<String, String> standardValues = Map.of("{currYear}", String.valueOf(today.getYear()), "{currMonth}",
+				String.format("%02d", today.getMonthValue()), "{currDay}",
+				String.format("%02d", today.getDayOfMonth()));
+		for (Map.Entry<String, String> entry : standardValues.entrySet()) {
+			seqPattern = seqPattern.replace(entry.getKey(), entry.getValue());
+		}
+		return seqPattern;
+	}
+
+	/**
+	 * Replaces all business keys in the pattern string with values from the
+	 * business row.
+	 * 
+	 * @param seqPattern selected matching pattern string
+	 * @param row        the business table row to take values from
+	 * @return the pattern string with business keys replaced (SvSeq remains intact)
+	 * @throws SeqPatternError
+	 */
+	public static String replaceBusinessKeys(String seqPattern, DbDataObject row) throws SeqPatternError {
+		Pattern placeholderPattern = Pattern.compile("\\{([A-Za-z0-9_]+)\\}");
 		Matcher matcher = placeholderPattern.matcher(seqPattern);
 		StringBuffer sb = new StringBuffer();
 		while (matcher.find()) {
@@ -483,10 +510,33 @@ public class SeqPatternService {
 			matcher.appendReplacement(sb, value.toString());
 		}
 		matcher.appendTail(sb);
-		seqPattern = sb.toString();
+		return sb.toString();
+	}
+
+	/**
+	 * Generate an identifier value for a business object based on the
+	 * SV_ID_SEQ_PATTERN configuration.
+	 *
+	 * @param row       business table row for which the identifier is generated
+	 * @param confTable name of the target business table
+	 * @param destField column name in {@code confTable} where the generated value
+	 *                  will be written
+	 * @param svr       Svarog reader
+	 * @return Generated identifier value based on the resolved sequence pattern
+	 * @throws SvException
+	 * @throws SeqPatternError
+	 */
+	public static String generateSequenceId(DbDataObject row, String confTable, String destField, SvReader svr)
+			throws SvException, SeqPatternError {
+		DbDataObject selectedPattern = findMatchingPattern(row, confTable, destField, svr);
+		String seqPattern = selectedPattern.getVal(CC.SEQ_PATTERN).toString();
+		seqPattern = replaceStandardKeys(seqPattern, svr);
+		seqPattern = replaceBusinessKeys(seqPattern, row);
 		String sequenceKey = seqPattern.replace("{SvSeq}", "");
 		Long nextSeq = SvSequence.getSeqNextVal(sequenceKey, svr);
 		String generatedId = seqPattern.replace("{SvSeq}", String.valueOf(nextSeq));
+
 		return generatedId;
 	}
+
 }
