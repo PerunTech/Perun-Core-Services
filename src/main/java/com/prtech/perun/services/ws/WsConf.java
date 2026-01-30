@@ -308,8 +308,8 @@ public class WsConf {
 				SvPerunInstance dbocard = plugins.getValue();
 				jObj = new JsonObject();
 				jObj.addProperty("id", dbocard.getPlugin().getContextName());
-				jObj.addProperty("title", I18n.getText(dbocard.getLabelCode(), localeId));
-				jObj.addProperty("text", I18n.getLongText(dbocard.getLabelCode(), localeId));
+				jObj.addProperty("title", I18n.getText(localeId, dbocard.getLabelCode()));
+				jObj.addProperty("text", I18n.getLongText(localeId, dbocard.getLabelCode()));
 				jObj.addProperty("cardHidden", cardIsHidden(dbocard.getDboPlugin()));
 				if (!svr.isAdmin()) {
 
