@@ -290,12 +290,13 @@ public class WsConf {
 		SvReader svr = null;
 		JsonArray jArray = new JsonArray();
 		Boolean accessCard = true;
+		String localeId = null;
 		try {
 			Gson gson = new Gson();
 			svr = new SvReader(token);
 			spm = new SvPerunManager(token);
 			DbDataObject userDbo = SvCore.getUserBySession(token);
-
+			localeId = getLocaleId(svr);
 			if (svr.isAdmin()) {
 				accessCard = true;
 			} else {
@@ -308,8 +309,8 @@ public class WsConf {
 				SvPerunInstance dbocard = plugins.getValue();
 				jObj = new JsonObject();
 				jObj.addProperty("id", dbocard.getPlugin().getContextName());
-				jObj.addProperty("title", I18n.getText(dbocard.getLabelCode(), getLocaleId(svr)));
-				jObj.addProperty("text", I18n.getLongText(dbocard.getLabelCode(), getLocaleId(svr)));
+				jObj.addProperty("title", I18n.getText(dbocard.getLabelCode(), localeId));
+				jObj.addProperty("text", I18n.getLongText(dbocard.getLabelCode(), localeId));
 				jObj.addProperty("cardHidden", cardIsHidden(dbocard.getDboPlugin()));
 				if (!svr.isAdmin()) {
 
