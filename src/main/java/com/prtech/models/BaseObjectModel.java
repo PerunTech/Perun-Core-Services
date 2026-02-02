@@ -75,10 +75,18 @@ public abstract class BaseObjectModel {
 	protected Map<String, DbDataObject> tableFields;
 
 	/**
+	 * Reference to SvCore instances
+	 */
+	private SvReader svr = null;
+	private SvWriter svw = null;
+	private SvWorkflow sww = null;
+
+	/**
 	 * Constructs a new BaseObjectModel instance. Initializes field labels map,
 	 * mandatory fields list, tableFields map, and sets the object type.
 	 */
 	public BaseObjectModel() {
+		this.skipCheck = false;
 		fieldsLabels = new HashMap<String, String>();
 		mandatoryFields = new ArrayList<>();
 		tableFields = new HashMap<String, DbDataObject>();
@@ -436,8 +444,9 @@ public abstract class BaseObjectModel {
 			return errorsList;
 		}
 
-		DbDataObject dbo = getDbObj();
+		this.setSvWorkflow(sww);
 		errorsList = onStatusChange(newStatus, svr, svw);
+		DbDataObject dbo = getDbObj();
 		if (errorsList.isEmpty()) {
 			sww.moveObject(dbo, newStatus, autoCommit);
 		}
@@ -1077,5 +1086,29 @@ public abstract class BaseObjectModel {
 			return true;
 		}
 		return false;
+	}
+
+	public SvReader getSvReader() {
+		return svr;
+	}
+
+	public void setSvReader(SvReader svr) {
+		this.svr = svr;
+	}
+
+	public SvWriter getSvWriter() {
+		return svw;
+	}
+
+	public void setSvWriter(SvWriter svw) {
+		this.svw = svw;
+	}
+
+	public SvWorkflow getSvWorkflow() {
+		return sww;
+	}
+
+	public void setSvWorkflow(SvWorkflow sww) {
+		this.sww = sww;
 	}
 }
