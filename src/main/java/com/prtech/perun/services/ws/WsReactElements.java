@@ -4929,7 +4929,7 @@ public class WsReactElements {
 				String tmpField = tempDboField.getVal(Rc.FIELD_NAME).toString();
 				if (processField(tmpField)) {
 					if (tempDboField.getVal(Rc.GUI_METADATA) != null)
-						jsonObj = gson.fromJson(tempDboField.getVal(Rc.GUI_METADATA).toString(), JsonObject.class);
+						jsonObj = (JsonObject) tempDboField.getVal(Rc.GUI_METADATA);
 					if (jsonObj != null && jsonObj.has(Rc.REACT)) {
 						jsonreactGUI = (JsonObject) jsonObj.get(Rc.REACT);
 						if (jsonreactGUI.has(Rc.OVERRIDE_READONLY)

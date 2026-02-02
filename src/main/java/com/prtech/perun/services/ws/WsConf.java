@@ -40,6 +40,20 @@ import com.prtech.svarog_common.ResponseHandler.MessageType;
 public class WsConf {
 	static final Logger log4j = SvConf.getLogger(WsConf.class);
 
+	private static String getLocaleId(SvReader svr) {
+		String locale = SvConf.getDefaultLocale();
+		try {
+			if (svr.getUserLocale(SvReader.getUserBySession(svr.getSessionId())) != null) {
+				DbDataObject localeObj = svr.getUserLocale(SvReader.getUserBySession(svr.getSessionId()));
+				if (localeObj.getVal("LOCALE_ID").toString() != null)
+					locale = localeObj.getVal("LOCALE_ID").toString();
+			}
+		} catch (SvException e) {
+			log4j.error(e.getFormattedMessage(), e);
+		}
+		return locale;
+	}
+
 	/**
 	 * returns server location from svarog.properties param "frontend.server"
 	 * 
@@ -276,12 +290,12 @@ public class WsConf {
 		SvReader svr = null;
 		JsonArray jArray = new JsonArray();
 		Boolean accessCard = true;
+		String localeId = null;
 		try {
 			Gson gson = new Gson();
 			svr = new SvReader(token);
 			spm = new SvPerunManager(token);
-			DbDataObject userDbo = SvCore.getUserBySession(token);
-
+			localeId = getLocaleId(svr);
 			if (svr.isAdmin()) {
 				accessCard = true;
 			} else {
@@ -289,37 +303,38 @@ public class WsConf {
 			}
 
 //			if (accessCard) {
-				JsonObject jObj = new JsonObject();
-				for (Entry<String, SvPerunInstance> plugins : spm.getPerunPlugins()) {
-					SvPerunInstance dbocard = plugins.getValue();
-					jObj = new JsonObject();
-					jObj.addProperty("id", dbocard.getPlugin().getContextName());
-					jObj.addProperty("title", I18n.getText(dbocard.getLabelCode()));
-					jObj.addProperty("text", I18n.getLongText(dbocard.getLabelCode()));
-					jObj.addProperty("cardHidden", cardIsHidden(dbocard.getDboPlugin()));
-					if (!svr.isAdmin()) {
+			JsonObject jObj = new JsonObject();
+			for (Entry<String, SvPerunInstance> plugins : spm.getPerunPlugins()) {
+				SvPerunInstance dbocard = plugins.getValue();
+				jObj = new JsonObject();
+				jObj.addProperty("id", dbocard.getPlugin().getContextName());
+				jObj.addProperty("title", I18n.getText(localeId, dbocard.getLabelCode()));
+				jObj.addProperty("text", I18n.getLongText(localeId, dbocard.getLabelCode()));
+				jObj.addProperty("cardHidden", cardIsHidden(dbocard.getDboPlugin()));
+				if (!svr.isAdmin()) {
 
-						jObj.addProperty("cardDirectAccess", manageCardAccess(dbocard.getDboPlugin(), svr));
-					} else {
-						jObj.addProperty("cardDirectAccess", false);
-					}
-					jObj.addProperty("hasPersistReducer", hasReducer(dbocard.getDboPlugin()));
-					if (dbocard.getImgPath() != null) {
-						jObj.addProperty("imgPath", dbocard.getImgPath());
-					} else {
-						jObj.addProperty("imgPath", "/perun/assets/img/login/afpzrr_trans_grey.png");
-					}
-					List<String> deps = dbocard.getPlugin().dependencies();
-					if (deps != null) {
-						jObj.addProperty("deps", gson.toJson(deps));
-					}
-					jObj.addProperty("js", dbocard.getJsPath());
-					jArray.add(jObj);
+					jObj.addProperty("cardDirectAccess", manageCardAccess(dbocard.getDboPlugin(), svr));
+				} else {
+					jObj.addProperty("cardDirectAccess", false);
 				}
-		//	} else {
-		//		log4j.error(
-		//				"the user is in administrators group, but it is not an admin therefor he doesn't have an access to card menu");
-		//	}
+				jObj.addProperty("hasPersistReducer", hasReducer(dbocard.getDboPlugin()));
+				if (dbocard.getImgPath() != null) {
+					jObj.addProperty("imgPath", dbocard.getImgPath());
+				} else {
+					jObj.addProperty("imgPath", "/perun/assets/img/login/afpzrr_trans_grey.png");
+				}
+				List<String> deps = dbocard.getPlugin().dependencies();
+				if (deps != null) {
+					jObj.addProperty("deps", gson.toJson(deps));
+				}
+				jObj.addProperty("js", dbocard.getJsPath());
+				jArray.add(jObj);
+			}
+			// } else {
+			// log4j.error(
+			// "the user is in administrators group, but it is not an admin therefor he
+			// doesn't have an access to card menu");
+			// }
 		} catch (SvException e) {
 			log4j.error(e.getMessage());
 			throw (e);
