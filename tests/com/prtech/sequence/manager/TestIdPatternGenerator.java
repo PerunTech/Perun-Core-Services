@@ -477,4 +477,5 @@ public class TestIdPatternGenerator {
 			}
 		}
 	}
+	
 }
