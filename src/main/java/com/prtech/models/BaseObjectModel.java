@@ -1037,6 +1037,13 @@ public abstract class BaseObjectModel {
 	}
 
 	/**
+	 * @return the string name of the destination field for generated sequences
+	 */
+	public String getSequenceDestField() {
+		return null;
+	}
+
+	/**
 	 * Checks if fields in the model are annotated and validates them
 	 * 
 	 * @param localeId
@@ -1146,31 +1153,44 @@ public abstract class BaseObjectModel {
 	}
 
 	/**
+	 * This function generates a unique sequence ID for the current record based on
+	 * a configured pattern.
+	 * 
+	 * To use it, first configure the pattern in the SV_ID_SEQ_PATTERN table. There,
+	 * you define for which business table the pattern applies and in which
+	 * destination field the generated value should be stored.
+	 * 
+	 * It first retrieves the destination field. If the field is null, blank, or
+	 * already has a value, no sequence is generated. Otherwise, it finds the
+	 * matching pattern for the record in the SV_ID_SEQ_PATTERN table (based on
+	 * target table, destination field, and optional condition fields) and generates
+	 * a unique sequence using SeqPatternService. The generated sequence is then
+	 * written into the destination field.
+	 * 
 	 * @param svr
 	 * @throws SvException
 	 * @throws SeqPatternError
 	 */
-	protected void generateSequenceIdsIfConfigured(SvReader svr) throws SvException, SeqPatternError {
-		List<String> destFields = SeqPatternService.getDestFieldsByConfTableNoDuplicates(this.getTableName(), svr);
-		if (destFields == null || destFields.isEmpty())
+	protected void generateSequenceIdsIfConf(SvReader svr) throws SvException, SeqPatternError {
+		String destField = this.getSequenceDestField();
+		if (destField == null || destField.isBlank()) {
 			return;
-		DbDataObject row = new DbDataObject();
-		this.setValues(row);
-		for (String destField : destFields) {
-			Object existingValue = this.getValue(destField);
-			if (existingValue != null)
-				continue;
-			String generatedValue = SeqPatternService.generateSequenceId(row, this.getTableName(), destField, svr);
-			this.setValue(destField, generatedValue);
-			row.setVal(destField, generatedValue);
 		}
+		DbDataObject row = getDbObj();
+		Object existingValue = this.getValue(destField);
+		if (existingValue != null) {
+			return;
+		}
+		String generatedValue = SeqPatternService.generateSequenceId(row, this.getTableName(), destField, svr);
+		this.setValue(destField, generatedValue);
 	}
-	
+
 	/*
 	 * Checks if the current system date falls within the defined business start and
 	 * end dates of the BaseObjectModel instance.
 	 * 
 	 * @param obj BaseObjectModel instance this check is performed on
+	 * 
 	 * @return
 	 */
 	public static boolean isWithinBusinessPeriod(BaseObjectModel obj) {
