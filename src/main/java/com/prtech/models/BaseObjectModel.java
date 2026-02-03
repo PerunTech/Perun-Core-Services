@@ -980,6 +980,27 @@ public abstract class BaseObjectModel {
 	}
 
 	/**
+	 * @return List containing the possible parent tables of this object
+	 */
+	public List<String> getParents() {
+		return new ArrayList<String>();
+	}
+
+	/**
+	 * @return the string name of the business start date field
+	 */
+	public String getBusinessStartDate() {
+		return null;
+	}
+
+	/**
+	 * @return the string name of the business end date field
+	 */
+	public String getBusinessEndDate() {
+		return null;
+	}
+
+	/**
 	 * Checks if fields in the model are annotated and validates them
 	 * 
 	 * @param localeId
@@ -1086,6 +1107,50 @@ public abstract class BaseObjectModel {
 			return true;
 		}
 		return false;
+	}
+
+	public static boolean isWithinBusinessPeriod(BaseObjectModel obj) {
+		if (obj.getBusinessStartDate() == null && obj.getBusinessEndDate() == null) {
+			return true;
+		}
+		DateTime startDate = parseDateTime(obj.getValue(obj.getBusinessStartDate()));
+		DateTime endDate = parseDateTime(obj.getValue(obj.getBusinessEndDate()));
+		DateTime now = new DateTime();
+
+		boolean afterStart = (startDate == null || now.compareTo(startDate) >= 0);
+		boolean beforeEnd = (endDate == null || now.compareTo(endDate) <= 0);
+
+		return afterStart && beforeEnd;
+	}
+
+	private static DateTime parseDateTime(Object value) {
+		return value != null ? new DateTime(value.toString()) : null;
+	}
+
+	public static boolean areParentsWithinBusinessPeriod(BaseObjectModel obj, SvReader svr) throws SvException {
+		if (obj.getParents() == null || obj.getParents().isEmpty() || obj.getParentId().equals(0L)) {
+			return true;
+		}
+
+		boolean foundParent = false;
+		for (String parent : obj.getParents()) {
+			BaseObjectModel parentObj = ModelFactoryRegistry.createModel(parent);
+			if (parentObj != null && parentObj.from(obj.getParentId(), svr)) {
+				foundParent = true;
+				if (!isWithinBusinessPeriod(parentObj)) {
+					return false;
+				}
+				if (!areParentsWithinBusinessPeriod(parentObj, svr)) {
+					return false;
+				}
+			}
+		}
+
+		if (!foundParent) {
+			log4j.debug("Parent not found for object {} (object ID: {})", obj.getTableName(), obj.getObjectId());
+		}
+
+		return true;
 	}
 
 	public SvReader getSvReader() {
