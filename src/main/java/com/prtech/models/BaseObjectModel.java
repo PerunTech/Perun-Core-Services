@@ -1,6 +1,8 @@
 package com.prtech.models;
 
 import java.lang.reflect.Field;
+import java.sql.Date;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -84,11 +86,24 @@ public abstract class BaseObjectModel {
 	private SvWorkflow sww = null;
 
 	/**
+	 * Should we check if the object is in valid business period
+	 */
+	protected Boolean checkBusinessPeriod;
+
+	/**
+	 * Should we do recursive validation of the business period of the ancestors of
+	 * this object
+	 */
+	protected Boolean parentBusinessPeriodDeepSearch;
+
+	/**
 	 * Constructs a new BaseObjectModel instance. Initializes field labels map,
 	 * mandatory fields list, tableFields map, and sets the object type.
 	 */
 	public BaseObjectModel() {
 		this.skipCheck = false;
+		this.checkBusinessPeriod = false;
+		this.parentBusinessPeriodDeepSearch = false;
 		fieldsLabels = new HashMap<String, String>();
 		mandatoryFields = new ArrayList<>();
 		tableFields = new HashMap<String, DbDataObject>();
@@ -219,6 +234,22 @@ public abstract class BaseObjectModel {
 
 	public void setSkipCheck(Boolean skipCheck) {
 		this.skipCheck = skipCheck;
+	}
+
+	public Boolean getCheckBusinessPeriod() {
+		return checkBusinessPeriod;
+	}
+
+	public void setCheckBusinessPeriod(Boolean checkBusinessPeriod) {
+		this.checkBusinessPeriod = checkBusinessPeriod;
+	}
+
+	public Boolean getParentBusinessPeriodDeepSearch() {
+		return parentBusinessPeriodDeepSearch;
+	}
+
+	public void setParentBusinessPeriodDeepSearch(Boolean parentBusinessPeriodDeepSearch) {
+		this.parentBusinessPeriodDeepSearch = parentBusinessPeriodDeepSearch;
 	}
 
 	/**
@@ -982,6 +1013,30 @@ public abstract class BaseObjectModel {
 	}
 
 	/**
+	 * @return List containing the possible parent tables of this object. Svarog
+	 *         table configuration allows defining only one parent type for the
+	 *         object. In practice we can have parents from different types for the
+	 *         same object type.
+	 */
+	public List<String> getParents() {
+		return new ArrayList<String>();
+	}
+
+	/**
+	 * @return the string name of the business start date field
+	 */
+	public String getBusinessStartDate() {
+		return null;
+	}
+
+	/**
+	 * @return the string name of the business end date field
+	 */
+	public String getBusinessEndDate() {
+		return null;
+	}
+
+	/**
 	 * Checks if fields in the model are annotated and validates them
 	 * 
 	 * @param localeId
@@ -1109,6 +1164,81 @@ public abstract class BaseObjectModel {
 			this.setValue(destField, generatedValue);
 			row.setVal(destField, generatedValue);
 		}
+	}
+	
+	/*
+	 * Checks if the current system date falls within the defined business start and
+	 * end dates of the BaseObjectModel instance.
+	 * 
+	 * @param obj BaseObjectModel instance this check is performed on
+	 * @return
+	 */
+	public static boolean isWithinBusinessPeriod(BaseObjectModel obj) {
+		if (obj.getBusinessStartDate() == null && obj.getBusinessEndDate() == null) {
+			return true;
+		}
+		DateTime startDate = parseDateTime(obj.getValue(obj.getBusinessStartDate()));
+		DateTime endDate = parseDateTime(obj.getValue(obj.getBusinessEndDate()));
+		DateTime now;
+		if (obj.getValue(obj.getBusinessStartDate()) instanceof Date) {
+			now = new DateTime(Date.valueOf(LocalDate.now()));
+		} else {
+			now = new DateTime();
+		}
+
+		boolean afterStart = (startDate == null || now.compareTo(startDate) >= 0);
+		boolean beforeEnd = (endDate == null || now.compareTo(endDate) <= 0);
+
+		return afterStart && beforeEnd;
+	}
+
+	private static DateTime parseDateTime(Object value) {
+		return value != null ? new DateTime(value.toString()) : null;
+	}
+
+	/**
+	 * Validates that the parent hierarchy of the given object falls within their
+	 * respective business periods. If the flag parentBusinessPeriodDeepSearch is
+	 * set the method will do the check recursively in all object ancestors.
+	 * 
+	 * @param obj The BaseObjectModel instance which is being validated
+	 * 
+	 * @param svr SvReader instance used for database operations.
+	 * @return {@code true} if the object has no parents, or if all ancestors are
+	 *         within their valid business periods. Returns {@code false} if any
+	 *         ancestor is invalid.
+	 * @throws SvException
+	 * @see {@link #isWithinBusinessPeriod(BaseObjectModel)}
+	 */
+	public static boolean areObjectParentsWithinBusinessPeriod(BaseObjectModel obj, SvReader svr) throws SvException {
+		if (obj.getParents() == null || obj.getParents().isEmpty() || obj.getParentId().equals(0L)) {
+			return true;
+		}
+
+		boolean foundParent = false;
+		for (String parent : obj.getParents()) {
+			BaseObjectModel parentObj = ModelFactoryRegistry.createModel(parent);
+			if (parentObj != null && parentObj.from(obj.getParentId(), svr)) {
+				foundParent = true;
+				if (!isWithinBusinessPeriod(parentObj)) {
+					return false;
+				}
+				if (obj.getParentBusinessPeriodDeepSearch()) {
+					if (!areObjectParentsWithinBusinessPeriod(parentObj, svr)) {
+						return false;
+					}
+				}
+			}
+			if (foundParent) {
+				break;
+			}
+		}
+
+		if (!foundParent) {
+			log4j.debug("Parent not found for object {} (object ID: {})", obj.getTableName(), obj.getObjectId());
+		}
+
+		return true;
 	}
 
 	public SvReader getSvReader() {
