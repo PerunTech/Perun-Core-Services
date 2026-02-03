@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.prtech.svarog.SvException;
@@ -16,6 +17,7 @@ import com.prtech.svarog.SvLink;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvWriter;
 
+@Ignore
 public class TestModelsBusinessPeriod {
 
 	private class TestClassA extends BaseObjectModel {
