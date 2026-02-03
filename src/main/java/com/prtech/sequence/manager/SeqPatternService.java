@@ -3,8 +3,10 @@ package com.prtech.sequence.manager;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -537,6 +539,29 @@ public class SeqPatternService {
 		String generatedId = seqPattern.replace("{SvSeq}", String.valueOf(nextSeq));
 
 		return generatedId;
+	}
+
+	/**
+	 * Retrieve all destination fields for given target table
+	 * 
+	 * @param confTable name of the target table
+	 * @param svr
+	 * @return List of destination field from confTable matching the criteria
+	 * @throws SvException
+	 */
+	public static List<String> getDestFieldsByConfTableNoDuplicates(String confTable, SvReader svr) throws SvException {
+		Long objectType = SvReader.getTypeIdByName(CC.SV_ID_SEQ_PATTERN);
+		DbSearchExpression expr = new DbSearchExpression()
+				.addDbSearchItem(new DbSearchCriterion(CC.CONF_TABLE, DbCompareOperand.EQUAL, confTable));
+		DbDataArray patterns = svr.getObjects(expr, objectType, null, null, null);
+		Set<String> destFieldSet = new LinkedHashSet<>();
+		for (DbDataObject pattern : patterns.getItems()) {
+			Object val = pattern.getVal(CC.DEST_FIELD);
+			if (val != null) {
+				destFieldSet.add(val.toString());
+			}
+		}
+		return new ArrayList<>(destFieldSet);
 	}
 
 }
