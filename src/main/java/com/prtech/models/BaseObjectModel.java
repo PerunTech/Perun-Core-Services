@@ -1144,6 +1144,9 @@ public abstract class BaseObjectModel {
 					return false;
 				}
 			}
+			if (foundParent) {
+				break;
+			}
 		}
 
 		if (!foundParent) {
