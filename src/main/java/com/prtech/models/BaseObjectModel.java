@@ -24,6 +24,8 @@ import com.google.gson.JsonPrimitive;
 import com.prtech.models.ModelAnnotations.FixedLength;
 import com.prtech.models.ModelAnnotations.NonNegative;
 import com.prtech.perun.services.ws.WsReactElements;
+import com.prtech.sequence.manager.SeqPatternExceptions.SeqPatternError;
+import com.prtech.sequence.manager.SeqPatternService;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvLink;
@@ -1086,6 +1088,27 @@ public abstract class BaseObjectModel {
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * @param svr
+	 * @throws SvException
+	 * @throws SeqPatternError
+	 */
+	protected void generateSequenceIdsIfConfigured(SvReader svr) throws SvException, SeqPatternError {
+		List<String> destFields = SeqPatternService.getDestFieldsByConfTableNoDuplicates(this.getTableName(), svr);
+		if (destFields == null || destFields.isEmpty())
+			return;
+		DbDataObject row = new DbDataObject();
+		this.setValues(row);
+		for (String destField : destFields) {
+			Object existingValue = this.getValue(destField);
+			if (existingValue != null)
+				continue;
+			String generatedValue = SeqPatternService.generateSequenceId(row, this.getTableName(), destField, svr);
+			this.setValue(destField, generatedValue);
+			row.setVal(destField, generatedValue);
+		}
 	}
 
 	public SvReader getSvReader() {

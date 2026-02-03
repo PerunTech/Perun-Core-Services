@@ -477,5 +477,21 @@ public class TestIdPatternGenerator {
 			}
 		}
 	}
-	
+
+	@Test
+	public void testGetDestFieldsByConfTable() throws Exception {
+		try (SvSecurity svc = new SvSecurity()) {
+			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
+			try (SvReader svr = new SvReader(sessionId)) {
+				List<String> destFields = SeqPatternService.getDestFieldsByConfTableNoDuplicates("HOLDING", svr);
+				assertNotNull(destFields);
+				assertFalse(destFields.isEmpty());
+				for (String field : destFields) {
+					assertNotNull(field);
+					assertFalse(field.trim().isEmpty());
+					System.out.println("DEST_FIELD = " + field);
+				}
+			}
+		}
+	}
 }
