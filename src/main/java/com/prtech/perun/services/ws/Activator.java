@@ -22,8 +22,11 @@ import org.apache.logging.log4j.Logger;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.util.tracker.ServiceTracker;
 
 import com.prtech.menu.manager.WsMenu;
+import com.prtech.models.ModelFactory;
+import com.prtech.models.ModelFactoryRegistry;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog_interfaces.ISvExecutorGroup;
 
@@ -50,6 +53,12 @@ public class Activator implements BundleActivator {
 	 * List of service registrations which we use for unregistering when cleaning up
 	 */
 	private ArrayList<ServiceRegistration> registration = new ArrayList<ServiceRegistration>();
+
+	/**
+	 * ServiceTracker that monitors all registered ModelFactory services across all
+	 * bundles in the OSGi container
+	 */
+	private ServiceTracker<ModelFactory, ModelFactory> tracker;
 
 	/**
 	 * List of JAXRS Service classes which we will later use for registration in the
@@ -128,6 +137,10 @@ public class Activator implements BundleActivator {
 			if (svc != null)
 				this.registration.add(svc);
 		}
+
+		tracker = new ServiceTracker<ModelFactory, ModelFactory>(context, ModelFactory.class, null);
+		tracker.open();
+		ModelFactoryRegistry.setTracker(tracker);
 	}
 
 	/**
@@ -140,7 +153,9 @@ public class Activator implements BundleActivator {
 		for (ServiceRegistration svc : registration) {
 			svc.unregister();
 		}
-
+		if (tracker != null) {
+			tracker.close();
+		}
 	}
 
 }
