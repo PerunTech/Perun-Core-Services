@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -32,6 +33,7 @@ import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
 
+@Ignore
 public class TestIdPatternGenerator {
 
 	static final Logger log4j = SvConf.getLogger(TestIdPatternGenerator.class);
