@@ -1216,8 +1216,14 @@ public abstract class BaseObjectModel {
 			return true;
 		}
 
-		DateTime parentStartDate = parseDateTime(obj.getValue(obj.getBusinessStartDate()));
-		DateTime parentEndDate = parseDateTime(obj.getValue(obj.getBusinessEndDate()));
+		DateTime parentStartDate = null;
+		DateTime parentEndDate = null;
+		if (this.getBusinessStartDate() != null) {
+			parseDateTime(obj.getValue(obj.getBusinessStartDate()));
+		}
+		if (this.getBusinessEndDate() != null) {
+			parentEndDate = parseDateTime(obj.getValue(obj.getBusinessEndDate()));
+		}
 		Boolean compareWithCurrentDate = obj.getTerminalStatusList().contains(obj.getStatus());
 
 		if (compareWithCurrentDate) {
@@ -1233,8 +1239,14 @@ public abstract class BaseObjectModel {
 
 			return afterStart && beforeEnd;
 		} else {
-			DateTime startDate = parseDateTime(this.getValue(this.getBusinessStartDate()));
-			DateTime endDate = parseDateTime(this.getValue(this.getBusinessEndDate()));
+			DateTime startDate = null;
+			DateTime endDate = null;
+			if (this.getBusinessStartDate() != null) {
+				startDate = parseDateTime(this.getValue(this.getBusinessStartDate()));
+			}
+			if (this.getBusinessEndDate() != null) {
+				endDate = parseDateTime(this.getValue(this.getBusinessEndDate()));
+			}
 			return PerunUtil.isDateTimeRangeContained(startDate, endDate, parentStartDate, parentEndDate);
 		}
 	}
