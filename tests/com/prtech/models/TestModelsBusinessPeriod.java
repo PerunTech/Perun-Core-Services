@@ -103,12 +103,19 @@ public class TestModelsBusinessPeriod {
 			return null;
 		}
 
+		@Override
 		public String getBusinessStartDate() {
 			return "START_DATE";
 		}
 
+		@Override
 		public String getBusinessEndDate() {
 			return "END_DATE";
+		}
+
+		@Override
+		public List<String> getTerminalStatusList() {
+			return Arrays.asList("CLOSED");
 		}
 	}
 
@@ -116,6 +123,15 @@ public class TestModelsBusinessPeriod {
 
 		Date startDate;
 		Date endDate;
+
+		public TestClassB() {
+		}
+
+		public TestClassB(Date startDate, Date endDate) {
+			this();
+			this.startDate = startDate;
+			this.endDate = endDate;
+		}
 
 		@Override
 		public BaseObjectModel setValue(String field, Object value) {
@@ -221,13 +237,35 @@ public class TestModelsBusinessPeriod {
 	public void testIsWithinBusinessPeriod() {
 		TestClassA objA = new TestClassA(Date.valueOf(LocalDate.now().minusDays(2)),
 				Date.valueOf(LocalDate.now().plusDays(2)));
-		assertTrue(BaseObjectModel.isWithinBusinessPeriod(objA));
+		TestClassB objB = new TestClassB(Date.valueOf(LocalDate.now().minusDays(1)),
+				Date.valueOf(LocalDate.now().plusDays(1)));
+		assertTrue(objB.isWithinBusinessPeriod(objA));
 	}
 
 	@Test
 	public void testIsNotWithinBusinessPeriod() {
-		TestClassA objA = new TestClassA(Date.valueOf(LocalDate.now().minusDays(10)),
-				Date.valueOf(LocalDate.now().minusDays(5)));
-		assertFalse(BaseObjectModel.isWithinBusinessPeriod(objA));
+		TestClassA objA = new TestClassA(Date.valueOf(LocalDate.now().minusDays(2)),
+				Date.valueOf(LocalDate.now().plusDays(2)));
+		TestClassB objB = new TestClassB(Date.valueOf(LocalDate.now().minusDays(1)),
+				Date.valueOf(LocalDate.now().plusDays(5)));
+		assertFalse(objB.isWithinBusinessPeriod(objA));
+	}
+
+	@Test
+	public void testIsWithinBusinessPeriodWithTerminalStatus() {
+		TestClassA objA = new TestClassA(Date.valueOf(LocalDate.now().minusDays(2)),
+				Date.valueOf(LocalDate.now().plusDays(2)));
+		TestClassB objB = new TestClassB();
+		objA.setStatus("CLOSED");
+		assertTrue(objB.isWithinBusinessPeriod(objA));
+	}
+
+	@Test
+	public void testIsNotWithinBusinessPeriodWithTerminalStatus() {
+		TestClassA objA = new TestClassA(Date.valueOf(LocalDate.now().minusDays(2)),
+				Date.valueOf(LocalDate.now().minusDays(1)));
+		TestClassB objB = new TestClassB();
+		objA.setStatus("CLOSED");
+		assertFalse(objB.isWithinBusinessPeriod(objA));
 	}
 }
