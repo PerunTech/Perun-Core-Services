@@ -568,12 +568,12 @@ public class PerunUtil extends SvUtil {
 	 *         {@code false} otherwise or if any parameter other than aTo is null
 	 */
 	public static Boolean isDateTimeRangeContained(DateTime aFrom, DateTime aTo, DateTime bFrom, DateTime bTo) {
-		if (aFrom == null || bFrom == null || bTo == null) {
+		if (aFrom == null || bFrom == null) {
 			return false;
 		}
 
 		boolean aStartsAfterOrAtBStart = aFrom.compareTo(bFrom) >= 0;
-		boolean aEndsBeforeOrAtBEnd = aTo == null || aTo.compareTo(bTo) <= 0;
+		boolean aEndsBeforeOrAtBEnd = (aTo == null && bTo == null) || aTo == null || aTo.compareTo(bTo) <= 0;
 
 		return aStartsAfterOrAtBStart && aEndsBeforeOrAtBEnd;
 	}
