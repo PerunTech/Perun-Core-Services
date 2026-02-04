@@ -25,6 +25,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.prtech.models.ModelAnnotations.FixedLength;
 import com.prtech.models.ModelAnnotations.NonNegative;
+import com.prtech.perun.PerunUtil;
 import com.prtech.perun.services.ws.WsReactElements;
 import com.prtech.sequence.manager.SeqPatternExceptions.SeqPatternError;
 import com.prtech.sequence.manager.SeqPatternService;
@@ -574,6 +575,17 @@ public abstract class BaseObjectModel {
 	}
 
 	/**
+	 * Returns the list of statuses that represent a terminal state for this object.
+	 * Once an object enters a terminal status, it is considered final and cannot be
+	 * modified. Override in child classes.
+	 * 
+	 * @return a list of terminal status strings
+	 */
+	public List<String> getTerminalStatusList() {
+		return new ArrayList<String>();
+	}
+
+	/**
 	 * Method called before a status change occurs. Implementations should perform
 	 * validation and return any errors that prevent the status change.
 	 * 
@@ -1048,8 +1060,9 @@ public abstract class BaseObjectModel {
 	 * 
 	 * @param localeId
 	 * @return
+	 * @throws SvException
 	 */
-	public List<String> checkValidData(String localeId) {
+	public List<String> checkValidData(String localeId, SvReader svr) throws SvException {
 		List<String> errors = new ArrayList<String>();
 
 		Class<?> clazz = this.getClass();
@@ -1086,6 +1099,10 @@ public abstract class BaseObjectModel {
 			} catch (Exception e) {
 				log4j.debug("Error in checkValidData - BaseObjectModel", e);
 			}
+		}
+
+		if (this.getCheckBusinessPeriod() && !BaseObjectModel.areObjectParentsWithinBusinessPeriod(this, svr)) {
+			errors.add(I18n.getText(localeId, "perun.error.parent_invalid_business_period"));
 		}
 
 		return errors;
@@ -1193,23 +1210,33 @@ public abstract class BaseObjectModel {
 	 * 
 	 * @return
 	 */
-	public static boolean isWithinBusinessPeriod(BaseObjectModel obj) {
-		if (obj.getBusinessStartDate() == null && obj.getBusinessEndDate() == null) {
+	public boolean isWithinBusinessPeriod(BaseObjectModel obj) {
+		if ((obj.getBusinessStartDate() == null && obj.getBusinessEndDate() == null)
+				|| (this.getBusinessStartDate() == null && this.getBusinessEndDate() == null)) {
 			return true;
 		}
-		DateTime startDate = parseDateTime(obj.getValue(obj.getBusinessStartDate()));
-		DateTime endDate = parseDateTime(obj.getValue(obj.getBusinessEndDate()));
-		DateTime now;
-		if (obj.getValue(obj.getBusinessStartDate()) instanceof Date) {
-			now = new DateTime(Date.valueOf(LocalDate.now()));
+
+		DateTime parentStartDate = parseDateTime(obj.getValue(obj.getBusinessStartDate()));
+		DateTime parentEndDate = parseDateTime(obj.getValue(obj.getBusinessEndDate()));
+		Boolean compareWithCurrentDate = obj.getTerminalStatusList().contains(obj.getStatus());
+
+		if (compareWithCurrentDate) {
+			DateTime now;
+			if (obj.getValue(obj.getBusinessStartDate()) instanceof Date) {
+				now = new DateTime(Date.valueOf(LocalDate.now()));
+			} else {
+				now = new DateTime();
+			}
+
+			boolean afterStart = (parentStartDate == null || now.compareTo(parentStartDate) >= 0);
+			boolean beforeEnd = (parentEndDate == null || now.compareTo(parentEndDate) <= 0);
+
+			return afterStart && beforeEnd;
 		} else {
-			now = new DateTime();
+			DateTime startDate = parseDateTime(this.getValue(this.getBusinessStartDate()));
+			DateTime endDate = parseDateTime(this.getValue(this.getBusinessEndDate()));
+			return PerunUtil.isDateTimeRangeContained(startDate, endDate, parentStartDate, parentEndDate);
 		}
-
-		boolean afterStart = (startDate == null || now.compareTo(startDate) >= 0);
-		boolean beforeEnd = (endDate == null || now.compareTo(endDate) <= 0);
-
-		return afterStart && beforeEnd;
 	}
 
 	private static DateTime parseDateTime(Object value) {
@@ -1240,7 +1267,7 @@ public abstract class BaseObjectModel {
 			BaseObjectModel parentObj = ModelFactoryRegistry.createModel(parent);
 			if (parentObj != null && parentObj.from(obj.getParentId(), svr)) {
 				foundParent = true;
-				if (!isWithinBusinessPeriod(parentObj)) {
+				if (!obj.isWithinBusinessPeriod(parentObj)) {
 					return false;
 				}
 				if (obj.getParentBusinessPeriodDeepSearch()) {

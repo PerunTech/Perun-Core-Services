@@ -8,10 +8,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
-import java.util.Map.Entry;
 
 import javax.mail.Message;
 import javax.mail.PasswordAuthentication;
@@ -25,8 +25,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.joda.time.DateTime;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Polygon;
 
@@ -37,6 +36,7 @@ import com.prtech.perun.services.ws.CC;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.Sv;
 import com.prtech.svarog.SvConf;
+import com.prtech.svarog.SvConf.SvDbType;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvExecManager;
@@ -46,7 +46,6 @@ import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvSecurity;
 import com.prtech.svarog.SvUtil;
 import com.prtech.svarog.svCONST;
-import com.prtech.svarog.SvConf.SvDbType;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.ResponseHandler;
@@ -556,4 +555,26 @@ public class PerunUtil extends SvUtil {
 
 	}
 
+	/**
+	 * Determines whether the first date-time range is completely contained within
+	 * the second date-time range.
+	 * 
+	 * @param aFrom the start of the first date-time range (should not be null)
+	 * @param aTo   the end of the first date-time range
+	 * @param bFrom the start of the second date-time range (should not be null)
+	 * @param bTo   the end of the second date-time range (should not be null)
+	 * @return {@code true} if the first range [aFrom, aTo] is completely contained
+	 *         within the second range [bFrom, bTo], including edge cases;
+	 *         {@code false} otherwise or if any parameter other than aTo is null
+	 */
+	public static Boolean isDateTimeRangeContained(DateTime aFrom, DateTime aTo, DateTime bFrom, DateTime bTo) {
+		if (aFrom == null || bFrom == null || bTo == null) {
+			return false;
+		}
+
+		boolean aStartsAfterOrAtBStart = aFrom.compareTo(bFrom) >= 0;
+		boolean aEndsBeforeOrAtBEnd = aTo == null || aTo.compareTo(bTo) <= 0;
+
+		return aStartsAfterOrAtBStart && aEndsBeforeOrAtBEnd;
+	}
 }
