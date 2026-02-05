@@ -221,15 +221,16 @@ public class SeqPatternService {
 		if (seqPattern == null || seqPattern.isBlank()) {
 			throw new SeqPatternValidationError("SEQ_PATTERN cannot be null or empty");
 		}
-		if (!seqPattern.endsWith("{SvSeq}")) {
-			log4j.error("SEQ_PATTERN must end with {SvSeq}");
-			throw new SeqPatternValidationError("SEQ_PATTERN must end with {SvSeq}");
+		if (!seqPattern.matches(".*\\{\\d*SvSeq\\}$")) {
+			log4j.error("SEQ_PATTERN must end with SvSeq}");
+			throw new SeqPatternValidationError("SEQ_PATTERN must end with SvSeq}");
 		}
-		Pattern constCheck = Pattern.compile("\".+\".*\\{SvSeq\\}$");
+		Pattern constCheck = Pattern.compile(".+\\{\\d*SvSeq\\}$");
 		Matcher matcher = constCheck.matcher(seqPattern);
 		if (!matcher.find()) {
-			log4j.error("SEQ_PATTERN must have at least one constant in quotes before {SvSeq}");
-			throw new SeqPatternValidationError("SEQ_PATTERN must have at least one constant in quotes before {SvSeq}");
+			log4j.error("SEQ_PATTERN must have at least one constant before SvSeq}");
+			throw new SeqPatternValidationError(
+					"SEQ_PATTERN must have at least one constant before SvSeq}");
 		}
 	}
 
@@ -477,7 +478,8 @@ public class SeqPatternService {
 	 */
 	private static String replaceStandardKeys(String seqPattern, SvReader svr) throws SvException, SeqPatternError {
 		LocalDate today = LocalDate.now();
-		Map<String, String> standardValues = Map.of("{currYear}", String.valueOf(today.getYear()), "{currMonth}",
+		Map<String, String> standardValues = Map.of("{currYear}", String.valueOf(today.getYear()), "{currYear2}",
+				String.format("%02d", today.getYear() % 100), "{currMonth}",
 				String.format("%02d", today.getMonthValue()), "{currDay}",
 				String.format("%02d", today.getDayOfMonth()));
 		for (Map.Entry<String, String> entry : standardValues.entrySet()) {
@@ -499,10 +501,13 @@ public class SeqPatternService {
 		Pattern placeholderPattern = Pattern.compile("\\{([A-Za-z0-9_]+)\\}");
 		Matcher matcher = placeholderPattern.matcher(seqPattern);
 		StringBuffer sb = new StringBuffer();
+
 		while (matcher.find()) {
 			String placeholder = matcher.group(1);
-			if ("SvSeq".equals(placeholder)) {
-				matcher.appendReplacement(sb, "{SvSeq}");
+			Matcher svSeqMatcher = Pattern.compile("(\\d*)SvSeq").matcher(placeholder);
+			if (svSeqMatcher.matches()) {
+				int width = svSeqMatcher.group(1).isEmpty() ? 0 : Integer.parseInt(svSeqMatcher.group(1));
+				matcher.appendReplacement(sb, "{SvSeq" + width + "}");
 				continue;
 			}
 			Object value = row.getVal(placeholder);
@@ -511,6 +516,7 @@ public class SeqPatternService {
 			}
 			matcher.appendReplacement(sb, value.toString());
 		}
+
 		matcher.appendTail(sb);
 		return sb.toString();
 	}
@@ -534,11 +540,20 @@ public class SeqPatternService {
 		String seqPattern = selectedPattern.getVal(CC.SEQ_PATTERN).toString();
 		seqPattern = replaceStandardKeys(seqPattern, svr);
 		seqPattern = replaceBusinessKeys(seqPattern, row);
-		String sequenceKey = seqPattern.replace("{SvSeq}", "");
+		String sequenceKey = seqPattern.replaceAll("\\{SvSeq\\d*\\}", "");
 		Long nextSeq = SvSequence.getSeqNextVal(sequenceKey, svr);
-		String generatedId = seqPattern.replace("{SvSeq}", String.valueOf(nextSeq));
 
-		return generatedId;
+		Matcher matcher = Pattern.compile("\\{SvSeq(\\d*)\\}").matcher(seqPattern);
+		StringBuffer result = new StringBuffer();
+		while (matcher.find()) {
+			String widthStr = matcher.group(1);
+			int width = (widthStr == null || widthStr.isEmpty()) ? 0 : Integer.parseInt(widthStr);
+
+			String replacement = (width > 0) ? String.format("%0" + width + "d", nextSeq) : String.valueOf(nextSeq);
+			matcher.appendReplacement(result, replacement);
+		}
+		matcher.appendTail(result);
+		return result.toString();
 	}
 
 	/**
