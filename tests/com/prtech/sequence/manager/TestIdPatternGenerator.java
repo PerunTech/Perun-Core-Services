@@ -497,6 +497,10 @@ public class TestIdPatternGenerator {
 		}
 	}
 	
+	/**
+	 * Tests saving of a conditional, non-default sequence pattern for LabSample.
+	 * Ensures the pattern is correctly persisted and retrieved with its condition.
+	 */
 	@Test
 	public void testSaveNonDefaultSeqPatternforLabSample() throws Exception {
 		try (SvSecurity svc = new SvSecurity()) {
@@ -530,7 +534,10 @@ public class TestIdPatternGenerator {
 		}
 	}
 	
-	
+	/**
+	 * Tests creation of a default 5-digit sequence pattern for LabSample.
+	 * Ensures the pattern is saved and retrieved with correct configuration.
+	 */
 	@Test
 	public void testCreateDefaultSeqPatternForLabSample() throws Exception {
 		try (SvSecurity svc = new SvSecurity()) {
@@ -564,6 +571,10 @@ public class TestIdPatternGenerator {
 		}
 	}
 	
+	/**
+	 * Tests creation of a default 5-digit sequence pattern for SampleEvent.
+	 * Ensures the pattern is saved and retrieved with correct configuration.
+	 */
 	@Test
 	public void testCreateDefaultSeqPatternForSampleEvent() throws Exception {
 		try (SvSecurity svc = new SvSecurity()) {
