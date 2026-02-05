@@ -496,4 +496,115 @@ public class TestIdPatternGenerator {
 			}
 		}
 	}
+	
+	/**
+	 * Tests saving of a conditional, non-default sequence pattern for LabSample.
+	 * Ensures the pattern is correctly persisted and retrieved with its condition.
+	 */
+	@Test
+	public void testSaveNonDefaultSeqPatternforLabSample() throws Exception {
+		try (SvSecurity svc = new SvSecurity()) {
+			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
+			try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
+				setAutoCommit(Arrays.asList(svr, svw), false);
+				JsonObject data = new JsonObject();
+				data.addProperty(CC.SEQ_PATTERN_ID, "LAB_SAMPLE_SV_SEQ");
+				data.addProperty(CC.CONF_TABLE, "LAB_SAMPLE");
+				data.addProperty(CC.DEST_FIELD, "SAMPLE_ID");
+				data.addProperty(CC.SEQ_PATTERN, "\"TEST-LAB\"-{currYear}-{SvSeq}");
+				data.addProperty(CC.IS_DEFAULT, false);
+				data.addProperty(CC.COND_FIELD, "SAMPLE_TYPE");
+				data.addProperty(CC.COND_OPERATOR, "EQUAL");
+				data.addProperty(CC.COND_VALUE, "URINE");
+				DbDataObject created = SeqPatternService.saveSeqPatternHelper(data, svr, svw);
+				assertNotNull(created);
+				assertTrue(created.getObjectId() > 0);
+				System.out.println(String.format("Created SEQ_PATTERN: objectId=%d, seqPatternId=%s",
+						created.getObjectId(), created.getVal(CC.SEQ_PATTERN_ID)));
+				DbDataObject read = SeqPatternService.getBySeqencePatternId("LAB_SAMPLE_SV_SEQ", svr);
+				assertNotNull(read);
+				assertEquals("LAB_SAMPLE", read.getVal(CC.CONF_TABLE));
+				assertEquals("SAMPLE_ID", read.getVal(CC.DEST_FIELD));
+				System.out.println(String.format(
+						"SEQ_PATTERN_ID=%s, CONF_TABLE=%s, DEST_FIELD=%s, SEQ_PATTERN=%s, IS_DEFAULT=%s, COND_FIELD=%s, COND_OPERATOR=%s, COND_VALUE=%s",
+						read.getVal(CC.SEQ_PATTERN_ID), read.getVal(CC.CONF_TABLE), read.getVal(CC.DEST_FIELD),
+						read.getVal(CC.SEQ_PATTERN), read.getVal(CC.IS_DEFAULT), read.getVal(CC.COND_FIELD),
+						read.getVal(CC.COND_OPERATOR), read.getVal(CC.COND_VALUE)));
+			}
+		}
+	}
+	
+	/**
+	 * Tests creation of a default 5-digit sequence pattern for LabSample.
+	 * Ensures the pattern is saved and retrieved with correct configuration.
+	 */
+	@Test
+	public void testCreateDefaultSeqPatternForLabSample() throws Exception {
+		try (SvSecurity svc = new SvSecurity()) {
+			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
+			try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
+				setAutoCommit(Arrays.asList(svr, svw), false);
+				JsonObject data = new JsonObject();
+				data.addProperty(CC.SEQ_PATTERN_ID, "LAB_SAMPLE_ID");
+				data.addProperty(CC.CONF_TABLE, "LAB_SAMPLE");
+				data.addProperty(CC.DEST_FIELD, "SAMPLE_ID");
+				data.addProperty(CC.SEQ_PATTERN, "LAB-{currYear2}-{5SvSeq}");
+				data.addProperty(CC.IS_DEFAULT, true);
+				DbDataObject created = SeqPatternService.saveSeqPatternHelper(data, svr, svw);
+				assertNotNull(created);
+				assertTrue(created.getObjectId() > 0);
+				System.out.println(String.format("Created SEQ_PATTERN: objectId=%d, seqPatternId=%s",
+						created.getObjectId(), created.getVal(CC.SEQ_PATTERN_ID)));
+				DbDataObject read = SeqPatternService.getBySeqencePatternId("LAB_SAMPLE_ID", svr);
+				assertNotNull(read);
+				assertEquals("LAB_SAMPLE", read.getVal(CC.CONF_TABLE));
+				assertEquals("SAMPLE_ID", read.getVal(CC.DEST_FIELD));
+				assertNull(read.getVal(CC.COND_FIELD));
+				assertNull(read.getVal(CC.COND_OPERATOR));
+				assertNull(read.getVal(CC.COND_VALUE));
+				System.out.println(String.format(
+						"SEQ_PATTERN_ID=%s, CONF_TABLE=%s, DEST_FIELD=%s, SEQ_PATTERN=%s, IS_DEFAULT=%s, COND_FIELD=%s, COND_OPERATOR=%s, COND_VALUE=%s",
+						read.getVal(CC.SEQ_PATTERN_ID), read.getVal(CC.CONF_TABLE), read.getVal(CC.DEST_FIELD),
+						read.getVal(CC.SEQ_PATTERN), read.getVal(CC.IS_DEFAULT), read.getVal(CC.COND_FIELD),
+						read.getVal(CC.COND_OPERATOR), read.getVal(CC.COND_VALUE)));
+			}
+		}
+	}
+	
+	/**
+	 * Tests creation of a default 5-digit sequence pattern for SampleEvent.
+	 * Ensures the pattern is saved and retrieved with correct configuration.
+	 */
+	@Test
+	public void testCreateDefaultSeqPatternForSampleEvent() throws Exception {
+		try (SvSecurity svc = new SvSecurity()) {
+			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
+			try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
+				setAutoCommit(Arrays.asList(svr, svw), false);
+				JsonObject data = new JsonObject();
+				data.addProperty(CC.SEQ_PATTERN_ID, "SAMPLE_EVENT_ID_SQ");
+				data.addProperty(CC.CONF_TABLE, "SAMPLE_EVENT");
+				data.addProperty(CC.DEST_FIELD, "EVENT_ID");
+				data.addProperty(CC.SEQ_PATTERN, "SE-{5SvSeq}");
+				data.addProperty(CC.IS_DEFAULT, true);
+				DbDataObject created = SeqPatternService.saveSeqPatternHelper(data, svr, svw);
+				assertNotNull(created);
+				assertTrue(created.getObjectId() > 0);
+				System.out.println(String.format("Created SEQ_PATTERN: objectId=%d, seqPatternId=%s",
+						created.getObjectId(), created.getVal(CC.SEQ_PATTERN_ID)));
+				DbDataObject read = SeqPatternService.getBySeqencePatternId("SAMPLE_EVENT_ID_SQ", svr);
+				assertNotNull(read);
+				assertEquals("SAMPLE_EVENT", read.getVal(CC.CONF_TABLE));
+				assertEquals("EVENT_ID", read.getVal(CC.DEST_FIELD));
+				assertNull(read.getVal(CC.COND_FIELD));
+				assertNull(read.getVal(CC.COND_OPERATOR));
+				assertNull(read.getVal(CC.COND_VALUE));
+				System.out.println(String.format(
+						"SEQ_PATTERN_ID=%s, CONF_TABLE=%s, DEST_FIELD=%s, SEQ_PATTERN=%s, IS_DEFAULT=%s, COND_FIELD=%s, COND_OPERATOR=%s, COND_VALUE=%s",
+						read.getVal(CC.SEQ_PATTERN_ID), read.getVal(CC.CONF_TABLE), read.getVal(CC.DEST_FIELD),
+						read.getVal(CC.SEQ_PATTERN), read.getVal(CC.IS_DEFAULT), read.getVal(CC.COND_FIELD),
+						read.getVal(CC.COND_OPERATOR), read.getVal(CC.COND_VALUE)));
+			}
+		}
+	}
 }
