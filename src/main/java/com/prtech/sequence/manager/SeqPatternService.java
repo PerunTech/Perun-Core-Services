@@ -211,12 +211,19 @@ public class SeqPatternService {
 	}
 
 	/**
-	 * Validates the SEQ_PATTERN string according to business rules: 1. Must end
-	 * with {SvSeq} 2. Must contain at least one constant in quotes before {SvSeq}
+	 * Validates the SEQ_PATTERN string and explains its sequence generation behavior.
+	 *
+	 * Rules and behavior:
+	 * 1. Must end with "{SvSeq}" or a variation with digit padding like "{5SvSeq}".
+	 * 2. Must contain at least one constant (literal string) before "{SvSeq}".
+	 * 3. Supports configurable digit padding:
+	 *    - Example: If the sequence number is 32 and the pattern is "{5SvSeq}", 
+	 *      the generated sequence will be padded to "00032".
 	 *
 	 * @param seqPattern the sequence pattern string to validate
 	 * @throws SeqPatternValidationError if validation fails
 	 */
+
 	public static void validateSeqPattern(String seqPattern) throws SeqPatternValidationError {
 		if (seqPattern == null || seqPattern.isBlank()) {
 			throw new SeqPatternValidationError("SEQ_PATTERN cannot be null or empty");
@@ -229,8 +236,7 @@ public class SeqPatternService {
 		Matcher matcher = constCheck.matcher(seqPattern);
 		if (!matcher.find()) {
 			log4j.error("SEQ_PATTERN must have at least one constant before SvSeq}");
-			throw new SeqPatternValidationError(
-					"SEQ_PATTERN must have at least one constant before SvSeq}");
+			throw new SeqPatternValidationError("SEQ_PATTERN must have at least one constant before SvSeq}");
 		}
 	}
 
