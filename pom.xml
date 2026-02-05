@@ -175,7 +175,8 @@
 							com.prtech.perun.services.ws,
 							com.prtech.menu.manager,
 							com.prtech.models,
-							com.prtech.form
+							com.prtech.form,
+							com.prtech.sequence.manager
 						</Export-Package>
 						<Import-Package>
 							com.eclipsesource.jaxrs.publisher;version=!,*
