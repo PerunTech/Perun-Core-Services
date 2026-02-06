@@ -27,6 +27,7 @@ import org.osgi.util.tracker.ServiceTracker;
 import com.prtech.menu.manager.WsMenu;
 import com.prtech.models.ModelFactory;
 import com.prtech.models.ModelFactoryRegistry;
+import com.prtech.models.WsModel;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog_interfaces.ISvExecutorGroup;
 
@@ -87,6 +88,7 @@ public class Activator implements BundleActivator {
 		list.add(PublicWs.class);
 		list.add(WsReporting.class);
 		list.add(WsMenu.class);
+		list.add(WsModel.class);
 		return list;
 
 	}
