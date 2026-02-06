@@ -4,10 +4,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -172,6 +175,62 @@ public class WsModel {
 	}
 
 	/**
+	 * Get summary for a table object. Need to provide the sessionId, table name and
+	 * the objectId as path parameters.
+	 * 
+	 * @param sessionId User's session id
+	 * @param tableName Name of the table
+	 * @param objectId  The object id in the DB
+	 * @return Response object
+	 */
+	@Path("/getObjectSummary/{sessionId}/{tableName}/{objectId}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getObjectSummary(@PathParam("sessionId") String sessionId, @PathParam("tableName") String tableName,
+			@PathParam("objectId") Long objectId, @Context HttpServletRequest httpRequest) {
+		ResponseHandler jrh = new ResponseHandler();
+		JsonObject data = new JsonObject();
+		if (Objects.isNull(tableName) || Objects.isNull(objectId)) {
+			jrh.create(MessageType.ERROR, I18n.getText("perun.error.missingParameters"), CC.EMPTY_STRING,
+					new JsonObject());
+			return Response.status(400).entity(jrh.getAll().toString()).build();
+		}
+
+		Boolean found = false;
+		String localeId = SvConf.getDefaultLocale();
+		BaseObjectModel obj = null;
+		LinkedHashMap<String, String> objData = null;
+		JsonArray jsonArray;
+		try (SvReader svr = new SvReader(sessionId)) {
+			localeId = svr.getUserLocaleId(svr.getInstanceUser());
+			obj = ModelFactoryRegistry.createModel(tableName);
+			if (obj != null) {
+				found = obj.from(objectId, svr);
+				if (found) {
+					objData = obj.getSummary(localeId, svr);
+					jsonArray = convertSummaryMapToJsonArray(objData);
+					data.add(CC.SHORT, jsonArray);
+
+					objData = obj.getDetails(localeId, svr);
+					jsonArray = convertSummaryMapToJsonArray(objData);
+					data.add(CC.DETAILED, jsonArray);
+				}
+			}
+			if (!found) {
+				jrh.create(MessageType.ERROR, I18n.getText("perun.error.objectTableNotFound"), CC.EMPTY_STRING,
+						new JsonObject());
+				return Response.ok(jrh.getAll().toString()).build();
+			}
+		} catch (Exception e) {
+			log4j.error("General error in getObjectSummary:", e);
+			return PerunUtil.handleException(e, jrh, "perun.error.generalError");
+		}
+
+		jrh.create(MessageType.SUCCESS, I18n.getText(localeId, "data.read"), null, data);
+		return Response.ok(jrh.getAll().toString()).build();
+	}
+
+	/**
 	 * Set the autoCommit flag of all SvCore elements in the list
 	 * 
 	 * @param svCoreList - List of SvCore instances
@@ -284,5 +343,16 @@ public class WsModel {
 			}
 		}
 		return dbo;
+	}
+
+	public static JsonArray convertSummaryMapToJsonArray(LinkedHashMap<String, String> objData) {
+		JsonArray result = new JsonArray();
+		for (Map.Entry<String, String> entry : objData.entrySet()) {
+			JsonObject obj = new JsonObject();
+			obj.addProperty(CC.LABEL_LC, entry.getKey());
+			obj.addProperty(CC.VALUE_LC, entry.getValue());
+			result.add(obj);
+		}
+		return result;
 	}
 }
