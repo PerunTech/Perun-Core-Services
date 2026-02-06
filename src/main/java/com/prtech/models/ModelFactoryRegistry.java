@@ -99,7 +99,7 @@ public class ModelFactoryRegistry {
 	 * @param obj JSON object to unnest
 	 * @return
 	 */
-	private static JsonObject unnest(JsonElement obj, String key, JsonObject target) {
+	public static JsonObject unnest(JsonElement obj, String key, JsonObject target) {
 		if (target == null) {
 			target = new JsonObject();
 		}

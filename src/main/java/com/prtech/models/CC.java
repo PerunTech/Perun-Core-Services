@@ -23,5 +23,11 @@ public class CC {
 	public static final String SORT_ORDER = "SORT_ORDER";
 	public static final String EMPTY_STRING = "";
 	public static final String CHECK_BUSINESS_PERIOD = "CHECK_BUSINESS_PERIOD";
+	public static final String SV_ISLABEL = "SV_ISLABEL";
+	public static final String REFERENTIAL_TABLE = "REFERENTIAL_TABLE";
+	public static final String REFERENTIAL_FIELD = "REFERENTIAL_FIELD";
+	public static final String REACT = "react";
+	public static final String GUI_METADATA = "GUI_METADATA";
+	public static final String DENORMALIZED_MNEMONIC = "denormalizedMnemonic";
 
 }
