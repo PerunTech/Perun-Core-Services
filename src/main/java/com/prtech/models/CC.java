@@ -29,5 +29,9 @@ public class CC {
 	public static final String REACT = "react";
 	public static final String GUI_METADATA = "GUI_METADATA";
 	public static final String DENORMALIZED_MNEMONIC = "denormalizedMnemonic";
+	public static final String LABEL_LC = "label";
+	public static final String VALUE_LC = "value";
+	public static final String SHORT = "SHORT";
+	public static final String DETAILED = "DETAILED";
 
 }
