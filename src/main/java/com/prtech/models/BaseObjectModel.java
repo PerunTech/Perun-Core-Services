@@ -2,6 +2,7 @@ package com.prtech.models;
 
 import java.lang.reflect.Field;
 import java.sql.Date;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1149,14 +1150,21 @@ public abstract class BaseObjectModel {
 				operand = DbCompareOperand.EQUAL;
 				value = primitive.getAsLong();
 			} else if (primitive.isString()) {
-				if (field.isIgnoreCase()) {
-					operand = DbCompareOperand.ILIKE;
+				String stringValue = primitive.getAsString();
+
+				if (isDateString(stringValue)) {
+					operand = DbCompareOperand.EQUAL;
+					value = stringValue;
 				} else {
-					operand = DbCompareOperand.LIKE;
-				}
-				value = primitive.getAsString();
-				if (field.getIncludePercent()) {
-					value = CC.PERCENT_OPERATOR + primitive.getAsString() + CC.PERCENT_OPERATOR;
+					if (field.isIgnoreCase()) {
+						operand = DbCompareOperand.ILIKE;
+					} else {
+						operand = DbCompareOperand.LIKE;
+					}
+					value = stringValue;
+					if (field.getIncludePercent()) {
+						value = CC.PERCENT_OPERATOR + stringValue + CC.PERCENT_OPERATOR;
+					}
 				}
 			}
 		}
@@ -1166,6 +1174,27 @@ public abstract class BaseObjectModel {
 			dbse.addDbSearchItem(dbc);
 			return true;
 		}
+		return false;
+	}
+
+	private boolean isDateString(String str) {
+		if (str == null || str.trim().isEmpty()) {
+			return false;
+		}
+
+		String[] datePatterns = { "yyyy-MM-dd", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss",
+				"yyyy-MM-dd'T'HH:mm:ss.SSS", "dd/MM/yyyy", "MM/dd/yyyy", "dd-MM-yyyy" };
+
+		for (String pattern : datePatterns) {
+			try {
+				SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+				sdf.setLenient(false);
+				sdf.parse(str);
+				return true;
+			} catch (Exception e) {
+			}
+		}
+
 		return false;
 	}
 
