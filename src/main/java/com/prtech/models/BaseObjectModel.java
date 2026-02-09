@@ -1224,6 +1224,9 @@ public abstract class BaseObjectModel {
 		}
 		DbDataObject row = getDbObj();
 		Object existingValue = this.getValue(destField);
+		if (existingValue instanceof String && ((String) existingValue).isBlank()) {
+			existingValue = null;
+		}
 		if (existingValue != null) {
 			return;
 		}
