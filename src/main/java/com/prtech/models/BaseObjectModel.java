@@ -1250,10 +1250,10 @@ public abstract class BaseObjectModel {
 
 		DateTime parentStartDate = null;
 		DateTime parentEndDate = null;
-		if (this.getBusinessStartDate() != null) {
-			parseDateTime(obj.getValue(obj.getBusinessStartDate()));
+		if (obj.getBusinessStartDate() != null) {
+			parentStartDate = parseDateTime(obj.getValue(obj.getBusinessStartDate()));
 		}
-		if (this.getBusinessEndDate() != null) {
+		if (obj.getBusinessEndDate() != null) {
 			parentEndDate = parseDateTime(obj.getValue(obj.getBusinessEndDate()));
 		}
 		Boolean compareWithCurrentDate = obj.getTerminalStatusList().contains(obj.getStatus());
