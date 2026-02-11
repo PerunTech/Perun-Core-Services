@@ -282,6 +282,14 @@ public class TestIdPatternGenerator {
 		}
 	}
 
+	/**
+	 * 
+	 * Calls the sequence generator and verifies that it generates a valid
+	 * identifier using the matching non-default pattern when the configured
+	 * conditions are met
+	 * 
+	 * @throws Exception
+	 */
 	@Test
 	public void testGenerateNonDefaultId() throws Exception {
 		try (SvSecurity svc = new SvSecurity()) {
@@ -346,6 +354,15 @@ public class TestIdPatternGenerator {
 			}
 		}
 	}
+
+	/**
+	 * 
+	 * Calls the sequence generator and verifies that it generates a valid
+	 * identifier using the matching non-default pattern (with additional standard
+	 * and business keys) when the configured conditions are met
+	 * 
+	 * @throws Exception
+	 */
 
 	@Test
 	public void testGenerateNonDefaultIdWithOfficeCode() throws Exception {
@@ -425,6 +442,14 @@ public class TestIdPatternGenerator {
 		}
 	}
 
+	/**
+	 * Calls the sequence generator and verifies that it generates a valid
+	 * identifier using the matching default pattern
+	 * 
+	 * Verifies that the appended sequence value matches the expected increment
+	 * 
+	 * @throws Exception
+	 */
 	@Test
 	public void testGenerateDefaultPatternwithDateIdCheckSvSeq() throws Exception {
 		try (SvSecurity svc = new SvSecurity()) {
@@ -485,6 +510,15 @@ public class TestIdPatternGenerator {
 		}
 	}
 
+	/**
+	 * 
+	 * Calls the sequence generator and verifies that it generates a valid
+	 * identifier using the matching default pattern
+	 * 
+	 * Verifies that the appended sequence value matches the expected increment
+	 * 
+	 * @throws Exception
+	 */
 	@Test
 	public void testGenerateDefaultIdCheckSvSeq() throws Exception {
 		try (SvSecurity svc = new SvSecurity()) {
@@ -507,6 +541,16 @@ public class TestIdPatternGenerator {
 		}
 	}
 
+	/**
+	 * 
+	 * Calls the sequence generator and verifies that it generates a valid
+	 * identifier using the matching non-default pattern when the configured
+	 * conditions are met
+	 * 
+	 * Verifies that the appended sequence value matches the expected increment
+	 * 
+	 * @throws Exception
+	 */
 	@Test
 	public void testGenerateNonDefaultIdcheckSvSeq() throws Exception {
 		try (SvSecurity svc = new SvSecurity()) {
