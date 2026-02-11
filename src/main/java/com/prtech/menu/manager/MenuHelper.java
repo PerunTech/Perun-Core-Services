@@ -473,7 +473,7 @@ final class MenuHelper {
 	static void updateCache(String tableName, String cacheAlias, String uniqueCacheId) throws SvException {
 		DbSearchCriterion search = new DbSearchCriterion(CC.STATUS, DbCompareOperand.EQUAL, CC.VALID);
 		SvRelationCache src = new SvRelationCache(SvCore.getDbtByName(tableName), search, cacheAlias, null, null, null,
-				null);
+				new DateTime());
 		SvComplexCache.addRelationCache(uniqueCacheId, src, true);
 	}
 
