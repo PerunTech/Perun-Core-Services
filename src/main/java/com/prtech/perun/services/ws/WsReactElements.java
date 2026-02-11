@@ -4497,6 +4497,37 @@ public class WsReactElements {
 		}
 	}
 
+	public DbDataArray getObjectsByLink(String sessionId, Long objectId, String tableName, String linkName)
+			throws SvException {
+		String[] tablesUsedArray = new String[1];
+		Boolean[] tableShowArray = new Boolean[1];
+		SvReader svr = null;
+		Long obj1Type = 0L;
+		Boolean isReverse = true;
+		DbDataArray vData = null;
+		Long tableID = findTableType(tableName);
+		try {
+			svr = new SvReader(sessionId);
+			tablesUsedArray[0] = getTableNameById(tableID, svr);
+			tableShowArray[0] = true;
+			DbDataObject dbLink = findLinkWithAdditionalCheck(getTableNameById(tableID, svr), linkName, objectId, svr);
+			if (dbLink != null) {
+				if (tableID.equals(dbLink.getVal(Rc.LINK_OBJECT_TYPE1))) {
+					isReverse = true;
+					obj1Type = (Long) dbLink.getVal(Rc.LINK_OBJECT_TYPE2);
+				} else {
+					isReverse = false;
+					obj1Type = (Long) dbLink.getVal(Rc.LINK_OBJECT_TYPE1);
+				}
+				vData = svr.getObjectsByLinkedId(objectId, obj1Type, dbLink, SvCore.getTypeIdByName(tablesUsedArray[0]),
+						isReverse, null, 0, 0, null);
+			}
+		} finally {
+			releaseAll(svr);
+		}
+		return vData;
+	}
+
 	@Path("/getObjectsByLinkPerStatuses/{sessionId}/{objectId}/{statuses}/{table_name}/{linkName}/{rowLimit}/{link_status}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
@@ -4825,7 +4856,9 @@ public class WsReactElements {
 					jData.add(Rc.REQUIRED, element);
 				}
 			}
-		} catch (SvException e) {
+		} catch (
+
+		SvException e) {
 			return PerunUtil.handleException(e, "Error getting Table JSON Schema");
 		} finally {
 			releaseAll(svr);
@@ -9086,5 +9119,4 @@ public class WsReactElements {
 			return PerunUtil.handleException(e, "Error getting Linked Objects");
 		}
 	}
-
 }
