@@ -8106,7 +8106,7 @@ public class WsReactElements {
 			DbDataObject tableObject = SvCore.getDbtByName(tableName);
 			jData.addProperty(Rc.TITLE, I18n.getText(getLocaleId(svr), tableObject.getVal(Rc.LABEL_CODE).toString()));
 			jData.addProperty(Rc.TYPE, Rc.OBJECT);
-			JsonObject jFields = getTableSearchJSONSchemaFields(tableName, svr);
+			JsonObject jFields = getTableSearchJSONSchemaFields(tableName, false, svr);
 			jData.add(Rc.PROPERTIES, jFields);
 		} catch (SvException e) {
 			return PerunUtil.handleException(e, "Error getting Search JSON Schema");
@@ -8154,7 +8154,8 @@ public class WsReactElements {
 		return Response.status(200).entity(jsonResponse.toString()).build();
 	}
 
-	private JsonObject getTableSearchJSONSchemaFields(String tableName, SvReader svr) throws SvException {
+	private JsonObject getTableSearchJSONSchemaFields(String tableName, Boolean shouldGroupFields, SvReader svr)
+			throws SvException {
 		JsonObject jLeaf = null;
 		DbDataObject tableObject = SvCore.getDbtByName(tableName);
 		DbDataArray dboFieldsPerTable = SvCore.getFields(tableObject.getObjectId());
@@ -8180,7 +8181,11 @@ public class WsReactElements {
 					jLeaf.addProperty("searchTable", jsonreactGUI.get("searchTable").getAsString());
 
 				jLeaf = prepareFormJsonCodeList1(tempDboField, jLeaf, svr);
-				jFields = prepareFormJsonGroup(tempDboField, jFields, jLeaf);
+				if (shouldGroupFields) {
+					jFields = prepareFormJsonGroup(tempDboField, jFields, jLeaf);
+				} else {
+					jFields.add(tmpField, jLeaf);
+				}
 
 				if (tempDboField.getVal(Rc.REFERENTIAL_TABLE) != null
 						&& tempDboField.getVal(Rc.REFERENTIAL_FIELD) != null && jsonreactGUI != null
