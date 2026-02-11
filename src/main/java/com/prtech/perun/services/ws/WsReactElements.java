@@ -4586,6 +4586,37 @@ public class WsReactElements {
 				isReverse, null, rowLimit, 0, linkStatus);
 	}
 
+	public DbDataArray getObjectsByLink(String sessionId, Long objectId, String tableName, String linkName)
+			throws SvException {
+		String[] tablesUsedArray = new String[1];
+		Boolean[] tableShowArray = new Boolean[1];
+		SvReader svr = null;
+		Long obj1Type = 0L;
+		Boolean isReverse = true;
+		DbDataArray vData = null;
+		Long tableID = findTableType(tableName);
+		try {
+			svr = new SvReader(sessionId);
+			tablesUsedArray[0] = getTableNameById(tableID, svr);
+			tableShowArray[0] = true;
+			DbDataObject dbLink = findLinkWithAdditionalCheck(getTableNameById(tableID, svr), linkName, objectId, svr);
+			if (dbLink != null) {
+				if (tableID.equals(dbLink.getVal(Rc.LINK_OBJECT_TYPE1))) {
+					isReverse = true;
+					obj1Type = (Long) dbLink.getVal(Rc.LINK_OBJECT_TYPE2);
+				} else {
+					isReverse = false;
+					obj1Type = (Long) dbLink.getVal(Rc.LINK_OBJECT_TYPE1);
+				}
+				vData = svr.getObjectsByLinkedId(objectId, obj1Type, dbLink, SvCore.getTypeIdByName(tablesUsedArray[0]),
+						isReverse, null, 0, 0, null);
+			}
+		} finally {
+			releaseAll(svr);
+		}
+		return vData;
+	}
+
 	public String prepareRetStringPerGetObjectsByLink(String sessionId, Long objectId, String statuses,
 			String tableName, String linkName, String linkStatus, Integer rowLimit) throws SvException {
 		String retString = "";
@@ -4825,7 +4856,9 @@ public class WsReactElements {
 					jData.add(Rc.REQUIRED, element);
 				}
 			}
-		} catch (SvException e) {
+		} catch (
+
+		SvException e) {
 			return PerunUtil.handleException(e, "Error getting Table JSON Schema");
 		} finally {
 			releaseAll(svr);
@@ -9084,6 +9117,48 @@ public class WsReactElements {
 			return Response.status(200).entity(vData.toString()).build();
 		} catch (Exception e) {
 			return PerunUtil.handleException(e, "Error getting Linked Objects");
+		}
+	}
+
+	@Path("/children/{sessionId}/{parentId}/{objectName}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getChildObjectsAsCleanJson(@PathParam("sessionId") String sessionId,
+			@PathParam("parentId") Long parentId, @PathParam("objectName") String objectName) {
+		SvReader svr = null;
+		try {
+			if (parentId == null || parentId <= 0)
+				return Response.status(400).entity("{\"error\":\"Invalid parentId\"}").build();
+			if (objectName == null || objectName.isBlank())
+				return Response.status(400).entity("{\"error\":\"Invalid objectName\"}").build();
+			svr = new SvReader(sessionId);
+			Long objectTypeId = findTableType(objectName);
+			DbDataArray children = svr.getObjectsByParentId(parentId, objectTypeId, null, 0, 0);
+			return Response.ok(children.toJson().toString()).build();
+		} catch (SvException e) {
+			return PerunUtil.handleException(e, "Error fetching children");
+		} finally {
+			releaseAll(svr);
+		}
+	}
+
+	@Path("/linkedObjects/{sessionId}/{objectId}/{table_name}/{linkName}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getObjectsByLinkPerStatuses(@PathParam("sessionId") String sessionId,
+			@PathParam("objectId") Long objectId, @PathParam("table_name") String tableName,
+			@PathParam("linkName") String linkName) {
+		try {
+			if (objectId == null || objectId <= 0)
+				return Response.status(400).entity("{\"error\":\"Invalid objectId\"}").build();
+			if (tableName == null || tableName.isBlank())
+				return Response.status(400).entity("{\"error\":\"Invalid table_name\"}").build();
+			if (linkName == null || linkName.isBlank())
+				return Response.status(400).entity("{\"error\":\"Invalid linkName\"}").build();
+			DbDataArray linkedObjects = getObjectsByLink(sessionId, objectId, tableName, linkName);
+			return Response.ok(linkedObjects.toJson().toString()).build();
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error getting Objects By Link Per Statuses");
 		}
 	}
 
