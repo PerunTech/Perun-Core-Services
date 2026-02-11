@@ -16,6 +16,7 @@ import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.ResponseHandler;
 import com.prtech.svarog_common.ResponseHandler.MessageType;
 
+@Path("/WsCore")
 public class WsCore {
 
 	@Path("/object/{sessionId}/{objectId}/{objectName}")
