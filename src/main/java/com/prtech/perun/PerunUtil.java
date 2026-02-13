@@ -577,4 +577,18 @@ public class PerunUtil extends SvUtil {
 
 		return aStartsAfterOrAtBStart && aEndsBeforeOrAtBEnd;
 	}
+
+	/**
+	 * Set the autoCommit flag of all SvCore elements in the list
+	 * 
+	 * @param svCoreList - List of SvCore instances
+	 * @param autoCommit
+	 * @throws SvException
+	 */
+	public static void setAutoCommit(List<SvCore> svCoreList, Boolean autoCommit) throws SvException {
+		for (SvCore core : svCoreList) {
+			core.setAutoCommit(autoCommit);
+			core.dbSetAutoCommit(autoCommit);
+		}
+	}
 }
