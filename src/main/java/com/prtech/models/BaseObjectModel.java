@@ -1199,6 +1199,19 @@ public abstract class BaseObjectModel {
 	}
 
 	/**
+	 * Default business key resolver
+	 * 
+	 * @param placeholder
+	 * @param row
+	 * @param svr
+	 * @return
+	 * @throws SvException
+	 */
+	public Object resolveBusinessKey(String placeholder, DbDataObject row, SvReader svr) throws SvException {
+		return null;
+	}
+
+	/**
 	 * This function generates a unique sequence ID for the current record based on
 	 * a configured pattern.
 	 * 
@@ -1230,7 +1243,7 @@ public abstract class BaseObjectModel {
 		if (existingValue != null) {
 			return;
 		}
-		String generatedValue = SeqPatternService.generateSequenceId(row, this.getTableName(), destField, svr);
+		String generatedValue = SeqPatternService.generateSequenceId(row, this.getTableName(), destField, svr, this);
 		this.setValue(destField, generatedValue);
 	}
 

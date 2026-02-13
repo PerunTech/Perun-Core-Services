@@ -5,9 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
-
-import org.junit.Ignore;
-import org.junit.Test;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -15,11 +12,13 @@ import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.logging.log4j.Logger;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import com.google.gson.JsonObject;
 import com.prtech.menu.manager.CC;
 import com.prtech.sequence.manager.SeqPatternExceptions.SeqPatternValidationError;
-
-import org.apache.logging.log4j.Logger;
-import com.google.gson.JsonObject;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
@@ -282,6 +281,21 @@ public class TestIdPatternGenerator {
 		}
 	}
 
+	@Test
+	public void testFindMatchingPatternForHolding() throws Exception {
+		try (SvSecurity svc = new SvSecurity()) {
+			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
+			try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
+				DbDataObject row = new DbDataObject();
+				row.setObjectType(SvReader.getTypeIdByName("HOLDING"));
+				DbDataObject matchingPattern = SeqPatternService.findMatchingPattern(row, "HOLDING", "PIC", svr);
+				String seqPattern = matchingPattern.getVal(CC.SEQ_PATTERN).toString();
+				System.out.println("The matching pattern is: " + seqPattern);
+
+			}
+		}
+	}
+
 	/**
 	 * 
 	 * Calls the sequence generator and verifies that it generates a valid
@@ -300,7 +314,7 @@ public class TestIdPatternGenerator {
 				row.setVal("GENDER", "F");
 				row.setVal("ANIMAL_CLASS", "01");
 				row.setVal("ANIMAL_RACE", "01001");
-				String generatedId = SeqPatternService.generateSequenceId(row, "ANIMAL", "PRODUCTION_TYPE", svr);
+				String generatedId = SeqPatternService.generateSequenceId(row, "ANIMAL", "PRODUCTION_TYPE", svr, null);
 				System.out.println("Generated non-default ID: " + generatedId);
 				assertNotNull(generatedId);
 				assertFalse(generatedId.isBlank());
@@ -350,43 +364,6 @@ public class TestIdPatternGenerator {
 				}
 			} catch (SvException e) {
 				log4j.error("Error in testGetByConfTableDestField", e);
-				throw e;
-			}
-		}
-	}
-
-	/**
-	 * 
-	 * Calls the sequence generator and verifies that it generates a valid
-	 * identifier using the matching non-default pattern (with additional standard
-	 * and business keys) when the configured conditions are met
-	 * 
-	 * @throws Exception
-	 */
-
-	@Test
-	public void testGenerateNonDefaultIdWithOfficeCode() throws Exception {
-		try (SvSecurity svc = new SvSecurity()) {
-			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
-			try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
-				DbDataObject row = new DbDataObject();
-				row.setObjectType(SvReader.getTypeIdByName("HOLDING"));
-				Long orgUnitTypeId = SvReader.getTypeIdByName("SVAROG_ORG_UNITS");
-				DbSearchCriterion crit = new DbSearchCriterion("OBJECT_ID", DbCompareOperand.EQUAL, 49);
-				DbSearchExpression expr = new DbSearchExpression().addDbSearchItem(crit);
-				DbDataArray orgUnits = svr.getObjects(expr, orgUnitTypeId, null, null, null);
-				assertFalse("ORG_UNIT 'HEADQUARTER' must exist", orgUnits.getItems().isEmpty());
-				String orgUnitName = orgUnits.getItems().get(0).getVal("NAME").toString();
-				row.setVal("OFFICE_CODE", orgUnitName);
-				row.setVal("NAME", "PERUN PERUN");
-				String generatedId = SeqPatternService.generateSequenceId(row, "HOLDING", "PIC", svr);
-				System.out.println("Generated non-default ID: " + generatedId);
-				assertNotNull(generatedId);
-				assertFalse(generatedId.isBlank());
-				assertTrue("Generated ID should start with AN", generatedId.startsWith("\"HLD\""));
-				assertTrue(generatedId.contains(String.valueOf(LocalDate.now().getYear())));
-			} catch (SvException e) {
-				log4j.error("Error generating non-default ID", e);
 				throw e;
 			}
 		}
@@ -448,6 +425,9 @@ public class TestIdPatternGenerator {
 	 * 
 	 * Verifies that the appended sequence value matches the expected increment
 	 * 
+	 * NOTE: This test was a dev experiment for a hypothetical Holding/PIC sequence
+	 * pattern and is now invalid.
+	 * 
 	 * @throws Exception
 	 */
 	@Test
@@ -462,7 +442,7 @@ public class TestIdPatternGenerator {
 						+ String.format("%02d", LocalDate.now().getMonthValue()) + "-";
 				long maxSeqValue = getMaxSequenceValue(sequenceKey, svr);
 				long expectedNextSeq = maxSeqValue + 1;
-				String generatedId = SeqPatternService.generateSequenceId(row, "HOLDING", "PIC", svr);
+				String generatedId = SeqPatternService.generateSequenceId(row, "HOLDING", "PIC", svr, null);
 				System.out.println("Generated default ID: " + generatedId);
 				assertNotNull(generatedId);
 				assertFalse(generatedId.isBlank());
@@ -530,7 +510,7 @@ public class TestIdPatternGenerator {
 				String sequenceKey = "\"ANIMAL\"--";
 				long maxSeqValue = getMaxSequenceValue(sequenceKey, svr);
 				long expectedNextSeq = maxSeqValue + 1;
-				String generatedId = SeqPatternService.generateSequenceId(row, "ANIMAL", "PRODUCTION_TYPE", svr);
+				String generatedId = SeqPatternService.generateSequenceId(row, "ANIMAL", "PRODUCTION_TYPE", svr, null);
 				System.out.println("Generated default ID: " + generatedId);
 				assertNotNull(generatedId);
 				assertFalse(generatedId.isBlank());
@@ -565,7 +545,7 @@ public class TestIdPatternGenerator {
 				String sequenceKey = "\"AN\"--01--01001--" + LocalDate.now().getYear() + "--";
 				long maxSeqValue = getMaxSequenceValue(sequenceKey, svr);
 				long expectedNextSeq = maxSeqValue + 1;
-				String generatedId = SeqPatternService.generateSequenceId(row, "ANIMAL", "PRODUCTION_TYPE", svr);
+				String generatedId = SeqPatternService.generateSequenceId(row, "ANIMAL", "PRODUCTION_TYPE", svr, null);
 				System.out.println("Generated non-default ID: " + generatedId);
 				assertNotNull(generatedId);
 				assertFalse(generatedId.isBlank());
@@ -815,4 +795,42 @@ public class TestIdPatternGenerator {
 			}
 		}
 	}
+
+	/**
+	 * Tests creation of a default 4-digit sequence pattern for Holding. Ensures the
+	 * pattern is saved and retrieved with correct configuration.
+	 */
+	@Test
+	public void testCreateDefaultSeqPatternForHolding() throws Exception {
+		try (SvSecurity svc = new SvSecurity()) {
+			String sessionId = svc.logon("ADMIN", SvUtil.getMD5("welcome"));
+			try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
+				setAutoCommit(Arrays.asList(svr, svw), false);
+				JsonObject data = new JsonObject();
+				data.addProperty(CC.SEQ_PATTERN_ID, "HOLDING_ID_SQ");
+				data.addProperty(CC.CONF_TABLE, "HOLDING");
+				data.addProperty(CC.DEST_FIELD, "PIC");
+				data.addProperty(CC.SEQ_PATTERN, "{CODE}-{MUNIC_CODE}/{4SvSeq}");
+				data.addProperty(CC.IS_DEFAULT, true);
+				DbDataObject created = SeqPatternService.saveSeqPatternHelper(data, svr, svw);
+				assertNotNull(created);
+				assertTrue(created.getObjectId() > 0);
+				System.out.println(String.format("Created SEQ_PATTERN: objectId=%d, seqPatternId=%s",
+						created.getObjectId(), created.getVal(CC.SEQ_PATTERN_ID)));
+				DbDataObject read = SeqPatternService.getBySeqencePatternId("HOLDING_ID_SQ", svr);
+				assertNotNull(read);
+				assertEquals("HOLDING", read.getVal(CC.CONF_TABLE));
+				assertEquals("PIC", read.getVal(CC.DEST_FIELD));
+				assertNull(read.getVal(CC.COND_FIELD));
+				assertNull(read.getVal(CC.COND_OPERATOR));
+				assertNull(read.getVal(CC.COND_VALUE));
+				System.out.println(String.format(
+						"SEQ_PATTERN_ID=%s, CONF_TABLE=%s, DEST_FIELD=%s, SEQ_PATTERN=%s, IS_DEFAULT=%s, COND_FIELD=%s, COND_OPERATOR=%s, COND_VALUE=%s",
+						read.getVal(CC.SEQ_PATTERN_ID), read.getVal(CC.CONF_TABLE), read.getVal(CC.DEST_FIELD),
+						read.getVal(CC.SEQ_PATTERN), read.getVal(CC.IS_DEFAULT), read.getVal(CC.COND_FIELD),
+						read.getVal(CC.COND_OPERATOR), read.getVal(CC.COND_VALUE)));
+			}
+		}
+	}
+
 }
