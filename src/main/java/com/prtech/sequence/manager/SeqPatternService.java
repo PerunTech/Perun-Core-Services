@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.JsonObject;
 import com.prtech.menu.manager.CC;
+import com.prtech.models.BaseObjectModel;
 import com.prtech.sequence.manager.SeqPatternExceptions.SeqPatternDuplicateError;
 import com.prtech.sequence.manager.SeqPatternExceptions.SeqPatternError;
 import com.prtech.sequence.manager.SeqPatternExceptions.SeqPatternValidationError;
@@ -211,14 +212,14 @@ public class SeqPatternService {
 	}
 
 	/**
-	 * Validates the SEQ_PATTERN string and explains its sequence generation behavior.
+	 * Validates the SEQ_PATTERN string and explains its sequence generation
+	 * behavior.
 	 *
-	 * Rules and behavior:
-	 * 1. Must end with "{SvSeq}" or a variation with digit padding like "{5SvSeq}".
-	 * 2. Must contain at least one constant (literal string) before "{SvSeq}".
-	 * 3. Supports configurable digit padding:
-	 *    - Example: If the sequence number is 32 and the pattern is "{5SvSeq}", 
-	 *      the generated sequence will be padded to "00032".
+	 * Rules and behavior: 1. Must end with "{SvSeq}" or a variation with digit
+	 * padding like "{5SvSeq}". 2. Must contain at least one constant (literal
+	 * string) before "{SvSeq}". 3. Supports configurable digit padding: - Example:
+	 * If the sequence number is 32 and the pattern is "{5SvSeq}", the generated
+	 * sequence will be padded to "00032".
 	 *
 	 * @param seqPattern the sequence pattern string to validate
 	 * @throws SeqPatternValidationError if validation fails
@@ -500,10 +501,14 @@ public class SeqPatternService {
 	 * 
 	 * @param seqPattern selected matching pattern string
 	 * @param row        the business table row to take values from
+	 * @param confTable  table name
+	 * @param svr        Svarog reader
+	 * @param model      optional business model to resolve placeholders
 	 * @return the pattern string with business keys replaced (SvSeq remains intact)
 	 * @throws SeqPatternError
 	 */
-	public static String replaceBusinessKeys(String seqPattern, DbDataObject row) throws SeqPatternError {
+	public static String replaceBusinessKeys(String seqPattern, DbDataObject row, String confTable, SvReader svr,
+			BaseObjectModel model) throws SeqPatternError {
 		Pattern placeholderPattern = Pattern.compile("\\{([A-Za-z0-9_]+)\\}");
 		Matcher matcher = placeholderPattern.matcher(seqPattern);
 		StringBuffer sb = new StringBuffer();
@@ -517,6 +522,16 @@ public class SeqPatternService {
 				continue;
 			}
 			Object value = row.getVal(placeholder);
+			if (value == null) {
+				value = resolveForeignKey(placeholder, row, confTable, svr);
+			}
+			if (value == null && model != null) {
+				try {
+					value = model.resolveBusinessKey(placeholder, row, svr);
+				} catch (SvException e) {
+					throw new SeqPatternError("Error resolving placeholder " + placeholder + ": " + e.getMessage());
+				}
+			}
 			if (value == null) {
 				throw new SeqPatternError("Missing column '" + placeholder + "' in row for generating ID");
 			}
@@ -540,12 +555,12 @@ public class SeqPatternService {
 	 * @throws SvException
 	 * @throws SeqPatternError
 	 */
-	public static String generateSequenceId(DbDataObject row, String confTable, String destField, SvReader svr)
-			throws SvException, SeqPatternError {
+	public static String generateSequenceId(DbDataObject row, String confTable, String destField, SvReader svr,
+			BaseObjectModel model) throws SvException, SeqPatternError {
 		DbDataObject selectedPattern = findMatchingPattern(row, confTable, destField, svr);
 		String seqPattern = selectedPattern.getVal(CC.SEQ_PATTERN).toString();
 		seqPattern = replaceStandardKeys(seqPattern, svr);
-		seqPattern = replaceBusinessKeys(seqPattern, row);
+		seqPattern = replaceBusinessKeys(seqPattern, row, confTable, svr, model);
 		String sequenceKey = seqPattern.replaceAll("\\{SvSeq\\d*\\}", "");
 		Long nextSeq = SvSequence.getSeqNextVal(sequenceKey, svr);
 
@@ -583,6 +598,34 @@ public class SeqPatternService {
 			}
 		}
 		return new ArrayList<>(destFieldSet);
+	}
+
+	/**
+	 * Attempts to resolve a placeholder value from related (foreign) objects.
+	 *
+	 * This is a hook for future extensions. The default core implementation does
+	 * not resolve any foreign keys and simply returns null.
+	 *
+	 * The expected resolution order in replaceBusinessKeys is: 1. Try value from
+	 * the current row (row.getVal) 2. If null → call this method 3. If still null →
+	 * throw SeqPatternError
+	 *
+	 * @param placeholder the placeholder name from the pattern (without braces)
+	 * @param row         the business row being processed
+	 * @param confTable   the configured business table name
+	 * @param svr         Svarog reader
+	 * @return resolved value or null if not found
+	 */
+	protected static Object resolveForeignKey(String placeholder, DbDataObject row, String confTable, SvReader svr) {
+
+		if (placeholder == null || placeholder.isBlank()) {
+			return null;
+		}
+
+		if (row == null) {
+			return null;
+		}
+		return null;
 	}
 
 }
