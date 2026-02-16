@@ -9,12 +9,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
@@ -31,6 +33,8 @@ import com.prtech.menu.manager.MenuExceptions.MenuError;
 import com.prtech.menu.manager.MenuExceptions.UserNotAuthorizedError;
 import com.prtech.perun.PerunUtil;
 import com.prtech.perun.services.ws.DbReader;
+import com.prtech.svarog.I18n;
+import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvWriter;
 import com.prtech.svarog_common.DbDataObject;
@@ -365,7 +369,7 @@ public class WsMenu {
 	@Consumes(MediaType.MULTIPART_FORM_DATA)
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response uploadMenu(@PathParam("sid") String sessionId, @FormDataParam("file") InputStream fileInput,
-			@FormDataParam("file") FormDataContentDisposition fileDetail) {
+			@FormDataParam("file") FormDataContentDisposition fileDetail, @Context HttpServletRequest request) {
 		byte[] data;
 		String fileData = null;
 		JsonObject menuJson = new JsonObject();
@@ -375,53 +379,43 @@ public class WsMenu {
 			try {
 				data = IOUtils.toByteArray(fileInput);
 			} catch (IOException e) {
-				log4j.error("Error reading file: ", e);
-				jrh.create(MessageType.ERROR, "Error reading uploaded file", null, new JsonObject());
-				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
+				throw new SvException("perun.error.read_failed", svr.getInstanceUser(), e);
 			}
 
 			try {
 				fileData = new String(data, StandardCharsets.UTF_8);
 			} catch (Exception e) {
-				jrh.create(MessageType.ERROR, "File is not in UTF-8 format", null, new JsonObject());
-				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
-			}
-
-			if (data.length > 5 * 1024 * 1024) {
-				jrh.create(MessageType.ERROR, "File is bigger than the allowed size of 5MB", null, new JsonObject());
-				return Response.status(Response.Status.REQUEST_ENTITY_TOO_LARGE).entity(jrh.getAll().toString())
-						.build();
+				throw new SvException("perun.error.invalid_encoding", svr.getInstanceUser(), e);
 			}
 
 			if (fileData != null) {
 				try {
 					menuJson = new Gson().fromJson(fileData, JsonObject.class);
 				} catch (Exception e) {
-					jrh.create(MessageType.ERROR, "File does not contain valid JSON", null, new JsonObject());
-					return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
+					throw new SvException("perun.error.invalid_json_format", svr.getInstanceUser(), e);
 				}
 			}
 			if (menuJson != null && menuJson.size() != 0) {
 				menuDbo = MenuHelper.saveMenuHelper(menuJson, svr);
 				if (menuDbo != null) {
 					svw.saveObject(menuDbo);
-					jrh.create(MessageType.SUCCESS, "Menu item successfully uploaded", null, menuDbo.toSimpleJson());
+					jrh.create(MessageType.SUCCESS, I18n.getText("perun.success.upload_menu"), null,
+							menuDbo.toSimpleJson());
 					return Response.ok(jrh.getAll().toString()).build();
 				} else {
-					jrh.create(MessageType.ERROR, "The item couldn't be saved", null, new JsonObject());
-					return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
+					throw new SvException("perun.error.save_failed", svr.getInstanceUser());
 				}
 			} else {
-				jrh.create(MessageType.ERROR, "Input JSON is empty", null, new JsonObject());
-				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
+				throw new SvException("perun.error.empty_json", svr.getInstanceUser());
 			}
 		} catch (MenuError e) {
 			log4j.error("Error while uploading menu: ", e);
-			jrh.create(MessageType.ERROR, "Error while uploading menu", e.getMessage(), new JsonObject());
+			jrh.create(MessageType.ERROR, I18n.getText("perun.error.upload_menu_failed"), e.getMessage(),
+					new JsonObject());
 			return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 		} catch (Exception e) {
 			log4j.error("Error while uploading menu: ", e);
-			return PerunUtil.handleException(e, "Error while uploading menu");
+			return PerunUtil.handleException(e, "Error while uploading menu", null, 400);
 		}
 	}
 }
