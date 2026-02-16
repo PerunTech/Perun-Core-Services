@@ -23,7 +23,6 @@ import com.prtech.menu.manager.MenuExceptions.ImportedMenuNotFoundError;
 import com.prtech.menu.manager.MenuExceptions.MenuDeleteConstraintError;
 import com.prtech.menu.manager.MenuExceptions.MenuError;
 import com.prtech.menu.manager.MenuExceptions.MenuInvalidConfigError;
-import com.prtech.menu.manager.MenuExceptions.MenuNotFoundError;
 import com.prtech.menu.manager.MenuExceptions.MenuSaveError;
 import com.prtech.menu.manager.MenuExceptions.UserNotAuthorizedError;
 import com.prtech.perun.services.ws.DbReader;
@@ -675,33 +674,18 @@ final class MenuHelper {
 	static DbDataObject saveMenuHelper(JsonObject requestData, SvReader svr)
 			throws SvException, MenuError, UserNotAuthorizedError {
 		DbDataObject menuDbo;
-		Long objectId = -1l;
 
 		String menuCodeStr = requestData.has(CC.MENU_CODE) ? requestData.get(CC.MENU_CODE).getAsString() : null;
 		if (menuCodeStr == null || menuCodeStr.isBlank()) {
 			throw new MenuSaveError("Missing required key MENU_CODE");
 		}
 
-		if (requestData.has(CC.OBJECT_ID)) {
-			objectId = requestData.get(CC.OBJECT_ID).getAsLong();
-		}
-		if (objectId == 0) {
-			menuDbo = new DbDataObject();
-			menuDbo.setObjectType(SvReader.getTypeIdByName(CC.PERUN_MENU));
-		} else if (objectId > 0) {
-			menuDbo = svr.getObjectById(objectId, SvReader.getTypeIdByName(CC.PERUN_MENU), null);
-			if (menuDbo == null) {
-				throw new MenuNotFoundError(String.format("The menu with object_id: %d was not found", objectId));
-			}
-		} else {
-			menuDbo = findMenuByCode(requestData.get(CC.MENU_CODE).getAsString(), svr);
-			if (menuDbo == null) {
-				menuDbo = new DbDataObject();
-				menuDbo.setObjectType(SvReader.getTypeIdByName(CC.PERUN_MENU));
-			}
+		menuDbo = svr.getObjectByUnqConfId(requestData.get(CC.MENU_CODE).getAsString(), CC.PERUN_MENU);
+		if (menuDbo == null) {
+			menuDbo = new DbDataObject(SvReader.getTypeIdByName(CC.PERUN_MENU));
 		}
 
-		if (menuDbo != null && menuDbo.getObjectId() > 0) {
+		if (menuDbo.getObjectId() > 0) {
 			if (!checkUserHasPermission(menuDbo, Arrays.asList("FULL", "WRITE"), svr)) {
 				throw new UserNotAuthorizedError("User does not have permission to edit this menu");
 			}

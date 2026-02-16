@@ -51,5 +51,4 @@ public class CC {
 	public static final String COND_OPERATOR = "COND_OPERATOR";
 	public static final String COND_VALUE = "COND_VALUE";
 	public static final String IS_DEFAULT = "IS_DEFAULT";
-	
 }
