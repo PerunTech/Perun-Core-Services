@@ -87,6 +87,30 @@ public class PerunUtil extends SvUtil {
 		return handleException(e, new ResponseHandler(), message);
 	}
 
+	public static Response handleException(Exception e, String message, String description, int responseCode) {
+		ResponseHandler jrh = new ResponseHandler();
+		if (e instanceof SvException) {
+			SvException sve = (SvException) e;
+
+			if (sve.getLabelCode().equals(Sv.INVALID_SESSION)) {
+				jrh.create(MessageType.ERROR, I18n.getText(Sv.INVALID_SESSION), I18n.getLongText(Sv.INVALID_SESSION),
+						new JsonObject());
+				responseCode = 401;
+			} else if (sve.getLabelCode().equals(Sv.Exceptions.NOT_AUTHORISED)) {
+				jrh.create(MessageType.ERROR, I18n.getText(Sv.Exceptions.NOT_AUTHORISED),
+						I18n.getLongText(Sv.Exceptions.NOT_AUTHORISED), new JsonObject());
+				responseCode = 403;
+			} else
+				jrh.create(MessageType.ERROR, I18n.getText(sve.getLabelCode()), I18n.getText(sve.getLabelCode()),
+						I18n.getText(sve.getLabelCode()));
+		} else {
+			log4j.error(e.getMessage(), e);
+			jrh.create(MessageType.ERROR, I18n.getText(message),
+					description != null ? I18n.getText(description) : description, new JsonObject());
+		}
+		return Response.status(responseCode).entity(jrh.getAll().toString()).build();
+	}
+
 	/**
 	 * method to generate frontEnd host-name so we can make web address/link to our
 	 * web service, if there is parameter "frontend.gui_host" in system param we use
@@ -576,6 +600,75 @@ public class PerunUtil extends SvUtil {
 		boolean aEndsBeforeOrAtBEnd = (aTo == null && bTo == null) || aTo == null || aTo.compareTo(bTo) <= 0;
 
 		return aStartsAfterOrAtBStart && aEndsBeforeOrAtBEnd;
+	}
+
+	/**
+	 * Decodes a raw code value from a specific table field into its localized
+	 * representation.
+	 * 
+	 * @param tableId   Object ID of the table.
+	 * @param fieldName Name of the field from the table.
+	 * @param value     The specific code value to be translated.
+	 * @param localeId  Locale string for localisation.
+	 * @param svr       SvReader instance for database operations.
+	 * @return translated code value for the given field, or a "Not Available"
+	 *         constant if not found.
+	 * @throws SvException
+	 */
+	public static String decodeCodeValue(Long tableId, String fieldName, String value, String localeId, SvReader svr)
+			throws SvException {
+		String translatedValue = CC.NOT_AVAILABLE_NA;
+		DbDataObject dboTable = svr.getObjectById(tableId, svCONST.OBJECT_TYPE_TABLE, null);
+		if (dboTable != null && value != null) {
+			DbDataArray fields = svr.getObjectsByParentId(dboTable.getObjectId(), svCONST.OBJECT_TYPE_FIELD, null, 0,
+					0);
+			DbDataObject fieldObj = null;
+			if (fields != null && !fields.getItems().isEmpty()) {
+				for (DbDataObject currField : fields.getItems()) {
+					if (currField.getVal(CC.FIELD_NAME).equals(fieldName)) {
+						fieldObj = currField;
+						break;
+					}
+				}
+				if (fieldObj != null && fieldObj.getVal(CC.CODE_LIST_ID) != null) {
+					Long codeListId = fieldObj.getAsLong(CC.CODE_LIST_ID);
+					translatedValue = translateCodeValueForField(codeListId, value, localeId, svr);
+				}
+			}
+		}
+		return translatedValue;
+	}
+
+	/**
+	 * Translates a specific value from a code list into a localized label.
+	 * 
+	 * @param codeListId The unique identifier of the code list object.
+	 * @param value      The specific code value to be translated.
+	 * @param localeId   Locale string for localisation.
+	 * @param svr        SvReader instance used for database operations.
+	 * @return The localized label for the code value, or a "Not Available" constant
+	 *         if no match is found.
+	 * @throws SvException
+	 */
+	public static String translateCodeValueForField(Long codeListId, String value, String localeId, SvReader svr)
+			throws SvException {
+		String translatedCodeValue = CC.NOT_AVAILABLE_NA;
+		DbDataObject codeListObj = svr.getObjectById(codeListId, svCONST.OBJECT_TYPE_CODE, null);
+		if (codeListObj != null && value != null && !value.trim().equals("")) {
+			DbDataArray codeListItems = svr.getObjectsByParentId(codeListObj.getObjectId(), svCONST.OBJECT_TYPE_CODE,
+					null, 0, 0);
+			if (codeListItems != null && !codeListItems.getItems().isEmpty()) {
+				for (DbDataObject currCodeListItem : codeListItems.getItems()) {
+					if (currCodeListItem.getVal(CC.CODE_VALUE) != null
+							&& currCodeListItem.getVal(CC.CODE_VALUE).equals(value)
+							&& currCodeListItem.getVal(CC.LABEL_CODE) != null) {
+						translatedCodeValue = I18n.getText(localeId, currCodeListItem.getAsString(CC.LABEL_CODE));
+						break;
+					}
+				}
+			}
+		}
+		return translatedCodeValue;
 	}
 
 	/**
