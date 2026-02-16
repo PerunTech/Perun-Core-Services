@@ -602,6 +602,19 @@ public class PerunUtil extends SvUtil {
 		return aStartsAfterOrAtBStart && aEndsBeforeOrAtBEnd;
 	}
 
+	/**
+	 * Decodes a raw code value from a specific table field into its localized
+	 * representation.
+	 * 
+	 * @param tableId   Object ID of the table.
+	 * @param fieldName Name of the field from the table.
+	 * @param value     The specific code value to be translated.
+	 * @param localeId  Locale string for localisation.
+	 * @param svr       SvReader instance for database operations.
+	 * @return translated code value for the given field, or a "Not Available"
+	 *         constant if not found.
+	 * @throws SvException
+	 */
 	public static String decodeCodeValue(Long tableId, String fieldName, String value, String localeId, SvReader svr)
 			throws SvException {
 		String translatedValue = CC.NOT_AVAILABLE_NA;
@@ -626,6 +639,17 @@ public class PerunUtil extends SvUtil {
 		return translatedValue;
 	}
 
+	/**
+	 * Translates a specific value from a code list into a localized label.
+	 * 
+	 * @param codeListId The unique identifier of the code list object.
+	 * @param value      The specific code value to be translated.
+	 * @param localeId   Locale string for localisation.
+	 * @param svr        SvReader instance used for database operations.
+	 * @return The localized label for the code value, or a "Not Available" constant
+	 *         if no match is found.
+	 * @throws SvException
+	 */
 	public static String translateCodeValueForField(Long codeListId, String value, String localeId, SvReader svr)
 			throws SvException {
 		String translatedCodeValue = CC.NOT_AVAILABLE_NA;
