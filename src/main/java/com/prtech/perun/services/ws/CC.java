@@ -18,5 +18,10 @@ public class CC {
 	public static final String SAML_SLO_RESPONSE_URL = "SAML_SLO_RESPONSE_URL";
 	public static final String SAML_SLO_REQUEST_URL = "SAML_SLO_REQUEST_URL";
 	public static final String SSO_REQUEST_KEY = "SSO_REQUEST_KEY";
+	public static final String NOT_AVAILABLE_NA = "N/A";
+	public static final String CODE_VALUE = "CODE_VALUE";
+	public static final String LABEL_CODE = "LABEL_CODE";
+	public static final String FIELD_NAME = "FIELD_NAME";
+	public static final String CODE_LIST_ID = "CODE_LIST_ID";
 
 }
