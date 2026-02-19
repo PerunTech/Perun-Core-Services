@@ -1057,6 +1057,14 @@ public abstract class BaseObjectModel {
 	}
 
 	/**
+	 * @return List containing the field visibility dependencies for this object
+	 *         type.
+	 */
+	public List<FieldDependency> getFieldDependencies() {
+		return new ArrayList<FieldDependency>();
+	}
+
+	/**
 	 * Checks if fields in the model are annotated and validates them
 	 * 
 	 * @param localeId
