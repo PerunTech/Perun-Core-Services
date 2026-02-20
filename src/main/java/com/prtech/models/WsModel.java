@@ -11,6 +11,7 @@ import java.util.Objects;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -228,6 +229,35 @@ public class WsModel {
 
 		jrh.create(MessageType.SUCCESS, I18n.getText(localeId, "data.read"), null, data);
 		return Response.ok(jrh.getAll().toString()).build();
+	}
+
+	@Path("/getModelJsonSchema/{tableName}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getModelJsonSchema(@HeaderParam("sessionId") String sessionId,
+			@PathParam("tableName") String tableName, @Context HttpServletRequest httpRequest) {
+		ResponseHandler jrh = new ResponseHandler();
+		String localeId = SvConf.getDefaultLocale();
+		JsonObject jsonSchema = new JsonObject();
+		try (SvReader svr = new SvReader(sessionId)) {
+			localeId = svr.getUserLocaleId(svr.getInstanceUser());
+			BaseObjectModel obj = ModelFactoryRegistry.createModel(tableName);
+			if (obj != null) {
+				DependencyBuilder builder = new DependencyBuilder(obj);
+				jsonSchema = obj.getTableJsonSchema(localeId, svr);
+				JsonElement dependencies = builder.build(jsonSchema, localeId, svr);
+				if (dependencies != null) {
+					JsonArray dependenciesArr = dependencies.getAsJsonArray();
+					if (!dependenciesArr.isEmpty()) {
+						jsonSchema.add("allOf", dependenciesArr);
+					}
+				}
+			}
+		} catch (Exception e) {
+			log4j.error(e);
+			return PerunUtil.handleException(e, jrh, "perun.error.generalError");
+		}
+		return Response.ok(jsonSchema.toString()).build();
 	}
 
 	/**
