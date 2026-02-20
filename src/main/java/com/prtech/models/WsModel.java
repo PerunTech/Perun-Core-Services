@@ -236,28 +236,14 @@ public class WsModel {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getModelJsonSchema(@HeaderParam("sessionId") String sessionId,
 			@PathParam("tableName") String tableName, @Context HttpServletRequest httpRequest) {
-		ResponseHandler jrh = new ResponseHandler();
-		String localeId = SvConf.getDefaultLocale();
-		JsonObject jsonSchema = new JsonObject();
-		try (SvReader svr = new SvReader(sessionId)) {
-			localeId = svr.getUserLocaleId(svr.getInstanceUser());
-			BaseObjectModel obj = ModelFactoryRegistry.createModel(tableName);
-			if (obj != null) {
-				DependencyBuilder builder = new DependencyBuilder(obj);
-				jsonSchema = obj.getTableJsonSchema(localeId, svr);
-				JsonElement dependencies = builder.build(jsonSchema, localeId, svr);
-				if (dependencies != null) {
-					JsonArray dependenciesArr = dependencies.getAsJsonArray();
-					if (!dependenciesArr.isEmpty()) {
-						jsonSchema.add("allOf", dependenciesArr);
-					}
-				}
-			}
+		try {
+			JsonSchemaServiceImpl schemaService = new JsonSchemaServiceImpl();
+			JsonObject jsonSchema = schemaService.buildSchema(tableName, sessionId);
+			return Response.ok(jsonSchema.toString()).build();
 		} catch (Exception e) {
 			log4j.error(e);
-			return PerunUtil.handleException(e, jrh, "perun.error.generalError");
+			return PerunUtil.handleException(e, null, "perun.error.generalError");
 		}
-		return Response.ok(jsonSchema.toString()).build();
 	}
 
 	/**
