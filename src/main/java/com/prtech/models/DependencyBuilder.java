@@ -1,8 +1,5 @@
 package com.prtech.models;
 
-import java.time.Instant;
-import java.time.LocalDate;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -21,10 +18,14 @@ public class DependencyBuilder {
 	static final Gson GSON = new Gson();
 
 	private BaseObjectModel objectModel;
+	final private String localeId;
+	final private SvReader svr;
 
-	public DependencyBuilder(BaseObjectModel objectModel) {
+	public DependencyBuilder(BaseObjectModel objectModel, String localeId, SvReader svr) {
 		super();
 		this.objectModel = objectModel;
+		this.localeId = localeId;
+		this.svr = svr;
 	}
 
 	public BaseObjectModel getObjectModel() {
@@ -35,11 +36,11 @@ public class DependencyBuilder {
 		this.objectModel = objectModel;
 	}
 
-	public JsonElement build(JsonObject jsonSchema, String localeId, SvReader svr) {
+	public JsonElement build(JsonObject jsonSchema) {
 		JsonArray allOf = new JsonArray();
 
 		for (FieldDependency entry : this.objectModel.getFieldDependencies()) {
-			JsonObject conditionalSchema = buildConditionalSchema(entry, jsonSchema, localeId, svr);
+			JsonObject conditionalSchema = buildConditionalSchema(entry, jsonSchema);
 
 			if (conditionalSchema != null) {
 				allOf.add(conditionalSchema);
@@ -59,8 +60,7 @@ public class DependencyBuilder {
 	 * @param svr            SvReader instance
 	 * @return JsonObject containing if-then conditional schema
 	 */
-	private JsonObject buildConditionalSchema(FieldDependency dependency, JsonObject jsonSchema, String localeId,
-			SvReader svr) {
+	private JsonObject buildConditionalSchema(FieldDependency dependency, JsonObject jsonSchema) {
 
 		JsonObject conditional = new JsonObject();
 
@@ -77,11 +77,11 @@ public class DependencyBuilder {
 			JsonObject ifCondition = buildIfCondition(dependency, sourceFieldDbo);
 			conditional.add("if", ifCondition);
 
-			JsonObject thenSchema = buildThenSchema(dependency.getFieldName(), dependentFieldDbo, localeId);
+			JsonObject thenSchema = buildThenSchema(dependency.getFieldName(), dependentFieldDbo);
 			conditional.add("then", thenSchema);
 
 			if (ifCondition.size() > 0 && thenSchema.size() > 0) {
-				String groupPath = getFieldGroupPath(dependentFieldDbo);
+				String groupPath = JsonSchemaUtils.getFieldGroupPath(dependentFieldDbo);
 				if (groupPath != null) {
 					JsonObject groupObj = jsonSchema.getAsJsonObject(CC.PROPERTIES).getAsJsonObject(groupPath);
 					JsonObject groupProp = groupObj != null ? groupObj.getAsJsonObject(CC.PROPERTIES) : null;
@@ -111,12 +111,12 @@ public class DependencyBuilder {
 	 * @param sourceFieldDbo the source field metadata
 	 * @return JsonObject representing the if condition
 	 */
-	private static JsonObject buildIfCondition(FieldDependency dependency, DbDataObject sourceFieldDbo) {
+	private JsonObject buildIfCondition(FieldDependency dependency, DbDataObject sourceFieldDbo) {
 
 		JsonObject ifCondition = new JsonObject();
 		JsonObject properties = new JsonObject();
 
-		String groupPath = getFieldGroupPath(sourceFieldDbo);
+		String groupPath = JsonSchemaUtils.getFieldGroupPath(sourceFieldDbo);
 		if (groupPath != null) {
 			JsonObject groupObj = new JsonObject();
 			JsonObject groupProperties = new JsonObject();
@@ -148,13 +148,13 @@ public class DependencyBuilder {
 	 * @param localeId          user locale identifier
 	 * @return JsonObject representing the then schema
 	 */
-	private static JsonObject buildThenSchema(String dependentField, DbDataObject dependentFieldDbo, String localeId) {
+	private JsonObject buildThenSchema(String dependentField, DbDataObject dependentFieldDbo) {
 
 		JsonObject thenSchema = new JsonObject();
 		JsonObject properties = new JsonObject();
 
 		JsonObject fieldSchema = new JsonObject();
-		fieldSchema = addFieldTypeToJsonObject(dependentFieldDbo, fieldSchema);
+		fieldSchema = JsonSchemaUtils.addFieldTypeToJsonObject(dependentFieldDbo, fieldSchema);
 		fieldSchema.addProperty(CC.TITLE_LC,
 				I18n.getText(localeId, dependentFieldDbo.getVal(CC.LABEL_CODE).toString()));
 
@@ -164,7 +164,9 @@ public class DependencyBuilder {
 			fieldSchema.addProperty("maxLength", (Long) dependentFieldDbo.getVal(CC.FIELD_SIZE));
 		}
 
-		String groupPath = getFieldGroupPath(dependentFieldDbo);
+		JsonSchemaUtils.prepareFormJsonCodeList1(dependentFieldDbo, fieldSchema, localeId, svr);
+
+		String groupPath = JsonSchemaUtils.getFieldGroupPath(dependentFieldDbo);
 		if (groupPath != null) {
 			JsonObject groupObj = new JsonObject();
 			JsonObject groupProperties = new JsonObject();
@@ -177,117 +179,5 @@ public class DependencyBuilder {
 
 		thenSchema.add("properties", properties);
 		return thenSchema;
-	}
-
-	/**
-	 * Extracts the groupPath from a field's GUI metadata.
-	 * 
-	 * @param fieldDbo the field metadata
-	 * @return groupPath string or null if not found
-	 */
-	private static String getFieldGroupPath(DbDataObject fieldDbo) {
-		if (fieldDbo.getVal(CC.GUI_METADATA) == null) {
-			return null;
-		}
-
-		try {
-			JsonObject guiMetadata = GSON.fromJson(fieldDbo.getVal(CC.GUI_METADATA).toString(), JsonObject.class);
-			if (guiMetadata.has(CC.REACT)) {
-				JsonObject reactJson = guiMetadata.getAsJsonObject(CC.REACT);
-				if (reactJson.has(CC.GROUPPATH)) {
-					return reactJson.get(CC.GROUPPATH).getAsString();
-				}
-			}
-		} catch (Exception e) {
-			log4j.debug("Error parsing GUI_METADATA for field: " + fieldDbo.getVal(CC.FIELD_NAME), e);
-		}
-
-		return null;
-	}
-
-	/**
-	 * Method to add JSONSchema values into the JSON schema object
-	 * 
-	 * @param fieldType DbDataObject one field that we like to add to the JSON
-	 *                  Schema
-	 * @param jLeaf     JsonObject Object that already has some of the fields that
-	 *                  are in same table/form
-	 * 
-	 * @return JsonObject with new type of field added
-	 */
-	private static JsonObject addFieldTypeToJsonObject(DbDataObject fieldType, JsonObject jLeaf) {
-		JsonObject jsonreactGUI = null;
-		JsonObject guiMetadata = null;
-		switch (fieldType.getVal(CC.FIELD_TYPE).toString()) {
-		case CC.NVARCHAR:
-			jLeaf.addProperty(CC.TYPE_LC, CC.STRING_LC);
-			break;
-		case "TEXT":
-			jLeaf.addProperty(CC.TYPE_LC, CC.STRING_LC);
-			jLeaf.addProperty("format", "file");
-			break;
-		case CC.NUMERIC:
-			Long tmpL = (Long) fieldType.getVal(CC.FIELD_SCALE);
-			if (tmpL != null && tmpL > 0) {
-				jLeaf.addProperty(CC.TYPE_LC, "number");
-			} else {
-				jLeaf.addProperty(CC.TYPE_LC, "integer");
-			}
-			break;
-		case CC.DATE:
-			jLeaf.addProperty(CC.TYPE_LC, CC.STRING_LC);
-			jLeaf.addProperty("format", "date");
-			jLeaf.addProperty("datetype", "shortdate");
-			break;
-		case CC.TIMESTAMP:
-		case CC.DATETIME:
-			jLeaf.addProperty(CC.TYPE_LC, CC.STRING_LC);
-			jLeaf.addProperty("format", "date-time");
-			jLeaf.addProperty("datetype", "longdate");
-			break;
-		case CC.BOOLEAN:
-			jLeaf.addProperty(CC.TYPE_LC, "boolean");
-			break;
-		default:
-		}
-		try {
-			if (fieldType.getVal(CC.GUI_METADATA) != null)
-				guiMetadata = GSON.fromJson(fieldType.getVal(CC.GUI_METADATA).toString(), JsonObject.class);
-		} catch (Exception e) {
-			log4j.debug(e);
-		}
-		if (guiMetadata != null && guiMetadata.has(CC.REACT)) {
-			jsonreactGUI = (JsonObject) guiMetadata.get(CC.REACT);
-		}
-		String fieldTypeStr = fieldType.getVal(CC.FIELD_TYPE).toString();
-		if (jsonreactGUI != null && jsonreactGUI.has("default"))
-			switch (fieldTypeStr) {
-			case CC.NUMERIC:
-				Long tmpL = (Long) fieldType.getVal(CC.FIELD_SCALE);
-				if (tmpL != null && tmpL > 0) {
-					jLeaf.addProperty("default", jsonreactGUI.get("default").getAsNumber());
-				} else {
-					jLeaf.addProperty("default", jsonreactGUI.get("default").getAsInt());
-				}
-				break;
-			case CC.NVARCHAR:
-				jLeaf.addProperty("default", jsonreactGUI.get("default").getAsString());
-				break;
-			case CC.DATE:
-			case CC.TIMESTAMP:
-			case CC.DATETIME:
-				String defaultValue = jsonreactGUI.get("default").getAsString();
-				if (defaultValue.equals("{TODAY}")) {
-					defaultValue = fieldTypeStr.equals(CC.DATE) ? LocalDate.now().toString() : Instant.now().toString();
-				}
-				jLeaf.addProperty("default", defaultValue);
-				break;
-			case CC.BOOLEAN:
-				jLeaf.addProperty("default", jsonreactGUI.get("default").getAsBoolean());
-				break;
-			default:
-				jLeaf.addProperty("default", jsonreactGUI.get("default").getAsString());
-			}
-		return jLeaf;
 	}
 }
