@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -47,6 +49,24 @@ import com.prtech.svarog_common.ResponseHandler.MessageType;
 @Path("/WsModel")
 public class WsModel {
 	static final Logger log4j = LogManager.getLogger(WsModel.class.getName());
+
+	private final Function<String, BaseObjectModel> createModel;
+	private final BiFunction<String, JsonObject, BaseObjectModel> createModelForSave;
+
+	public WsModel(Function<String, BaseObjectModel> createModel,
+			BiFunction<String, JsonObject, BaseObjectModel> createModelForSave) {
+		this.createModel = createModel;
+		this.createModelForSave = createModelForSave;
+	}
+
+	public WsModel(Function<String, BaseObjectModel> createModel) {
+		this.createModel = createModel;
+		this.createModelForSave = null;
+	}
+
+	public WsModel() {
+		this(ModelFactoryRegistry::createModel, ModelFactoryRegistry::createObject);
+	}
 
 	/**
 	 * Save objects using the BaseObjectModel architecture.
@@ -93,7 +113,7 @@ public class WsModel {
 			}
 			if (requestData.has(CC.TABLE_NAME)) {
 				tableName = requestData.get(CC.TABLE_NAME).getAsString();
-				obj = ModelFactoryRegistry.createObject(tableName, requestData);
+				obj = createModelForSave.apply(tableName, requestData);
 				if (obj != null) {
 					obj.setSkipCheck(false);
 					if (checkParentBusinessPeriod != null) {
@@ -157,7 +177,7 @@ public class WsModel {
 			}
 
 			String tableName = requestData.get(CC.TABLE_NAME).getAsString();
-			obj = ModelFactoryRegistry.createModel(tableName);
+			obj = createModel.apply(tableName);
 
 			records = obj.searchObjects(requestData, svr);
 			result = convertDbDataArrayToJsonArray(records, tableName, false, svr);
@@ -204,7 +224,7 @@ public class WsModel {
 		JsonArray jsonArray;
 		try (SvReader svr = new SvReader(sessionId)) {
 			localeId = svr.getUserLocaleId(svr.getInstanceUser());
-			obj = ModelFactoryRegistry.createModel(tableName);
+			obj = createModel.apply(tableName);
 			if (obj != null) {
 				found = obj.from(objectId, svr);
 				if (found) {
