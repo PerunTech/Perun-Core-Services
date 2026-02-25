@@ -32,10 +32,10 @@ public class JsonSchemaUtils {
 	static final Logger log4j = LogManager.getLogger(JsonSchemaUtils.class.getName());
 	static final Gson GSON = new Gson();
 
-	public static JsonObject prepareFormJsonCodeList1(DbDataObject tmpField, JsonObject jsonObj, String localeId,
-			SvReader svr) {
+	public static JsonObject prepareFormJsonCodeList1(DbDataObject tmpField, JsonObject jsonObj,
+			List<String> filterItems, String localeId, SvReader svr) {
 		if (tmpField.getVal(CC.CODE_LIST_ID) != null && (long) tmpField.getVal(CC.CODE_LIST_ID) > 0)
-			return prepareFormJsonCodeListByID(tmpField, jsonObj, localeId, svr);
+			return prepareFormJsonCodeListByID(tmpField, jsonObj, filterItems, localeId, svr);
 		else if (tmpField.getVal(CC.GUI_METADATA) != null)
 			return prepareFormJsonCodeListByMetadata(tmpField.getVal(CC.GUI_METADATA).toString(), jsonObj, localeId,
 					svr);
@@ -81,8 +81,8 @@ public class JsonSchemaUtils {
 		return jsonObj;
 	}
 
-	private static JsonObject prepareFormJsonCodeListByID(DbDataObject fieldDbo, JsonObject jsonObj, String locale,
-			SvReader svr) {
+	private static JsonObject prepareFormJsonCodeListByID(DbDataObject fieldDbo, JsonObject jsonObj,
+			List<String> filterItems, String locale, SvReader svr) {
 		String fieldType = fieldDbo.getVal(CC.FIELD_TYPE).toString();
 
 		List<Object> values = new ArrayList<>();
@@ -98,6 +98,10 @@ public class JsonSchemaUtils {
 					.sorted(Map.Entry.comparingByValue(String.CASE_INSENSITIVE_ORDER)).collect(Collectors.toList());
 
 			for (Map.Entry<String, String> entry : sortedEntries) {
+				if (filterItems != null && !filterItems.contains(entry.getKey())) {
+					continue;
+				}
+
 				labels.add(entry.getValue());
 
 				if ("true".equalsIgnoreCase(entry.getKey())) {
