@@ -772,6 +772,7 @@ final class MenuHelper {
 	public static DbDataObject findMenuCodeForObject(JsonObject requestData, SvReader svr) throws SvException {
 		DbDataObject result = null;
 		DbDataObject perunMenuConfDbo = null;
+		DbDataObject defaultMenuConfDbo = null;
 		DbDataArray perunMenuConfArr = new DbDataArray();
 		String tableName = CC.EMPTY_STRING;
 		Long objectType = 0l;
@@ -793,11 +794,18 @@ final class MenuHelper {
 		}
 
 		for (DbDataObject dbo : perunMenuConfArr.getItems()) {
+			if (dbo.getVal(CC.CDL_NAME) == null && dbo.getVal(CC.REF_TABLE_NAME) == null) {
+				defaultMenuConfDbo = dbo;
+			}
 			if ((dbo.getVal(CC.CDL_NAME) != null && checkObjectByCdlItemName(requestData, dbo))
 					|| (dbo.getVal(CC.REF_TABLE_NAME) != null && checkObjectByRefField(requestData, dbo, svr))) {
 				perunMenuConfDbo = dbo;
 				break;
 			}
+		}
+
+		if (perunMenuConfDbo == null && defaultMenuConfDbo != null) {
+			perunMenuConfDbo = defaultMenuConfDbo;
 		}
 
 		if (perunMenuConfDbo != null) {
