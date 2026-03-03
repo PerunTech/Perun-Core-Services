@@ -289,7 +289,7 @@ public class DbInit implements IDbInit {
 		dbf7.setDbFieldName(CC.CDL_ITEM_NAME);
 		dbf7.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf7.setDbFieldSize(50);
-		dbf7.setIsNull(false);
+		dbf7.setIsNull(true);
 		dbf7.setLabel_code("perun_menu_conf.cdl_item_name");
 
 		DbDataField dbf8 = new DbDataField();
@@ -371,7 +371,7 @@ public class DbInit implements IDbInit {
 		dbe.setDbTableFields(dbTableFields);
 		return dbe;
 	}
-	
+
 	// Create Sequence Pattern Configuration Table
 	private static DbDataTable createSequencePattern() {
 		DbDataTable dbe = new DbDataTable();
@@ -391,7 +391,7 @@ public class DbInit implements IDbInit {
 		dbf1.setDbFieldScale(0);
 		dbf1.setIsNull(false);
 		dbf1.setLabel_code("sv_id_seq_pattern.pkid");
-		
+
 		DbDataField dbf2 = new DbDataField();
 		dbf2.setDbFieldName(CC.SEQ_PATTERN_ID);
 		dbf2.setDbFieldType(DbFieldType.NVARCHAR);
