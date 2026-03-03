@@ -38,6 +38,7 @@ import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvReader;
+import com.prtech.svarog.SvWorkflow;
 import com.prtech.svarog.SvWriter;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
@@ -69,12 +70,13 @@ public class WsModel {
 	}
 
 	/**
-	 * Save objects using the BaseObjectModel architecture.
+	 * Saves an object to the database. Accepts JSON with objectId, parentId,
+	 * tableName, and optional checkBusinessPeriod flag.
 	 *
-	 * @param sessionId
-	 * @param formVals
-	 * @param httpRequest
-	 * @return
+	 * @param sessionId   User session ID (path param)
+	 * @param entity      JSON request body
+	 * @param httpRequest HTTP servlet request
+	 * @return JSON response with saved object or error details
 	 */
 	@Path("/saveObject/{sessionId}")
 	@POST
@@ -141,11 +143,61 @@ public class WsModel {
 	}
 
 	/**
-	 * General search endpoint to search for objects
-	 * 
-	 * @param sessionId
-	 * @param httpRequest
-	 * @return
+	 * Changes the status of an existing object via workflow transition.
+	 *
+	 * @param sessionId   User session ID (header param)
+	 * @param tableName   Name of the target table
+	 * @param objectId    ID of the object to update
+	 * @param newStatus   The new status value to transition to
+	 * @param httpRequest HTTP servlet request
+	 * @return JSON response with updated object or error details
+	 */
+	@Path("/status-change/{tableName}/{objectId}/{newStatus}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response changeStatus(@HeaderParam("sessionId") String sessionId, @PathParam("tableName") String tableName,
+			@PathParam("objectId") Long objectId, @PathParam("newStatus") String newStatus,
+			@Context HttpServletRequest httpRequest) {
+		String localeId = SvConf.getDefaultLocale();
+		ResponseHandler jrh = new ResponseHandler();
+		BaseObjectModel obj = null;
+		List<String> errors = new ArrayList<String>(0);
+		try (SvReader svr = new SvReader(sessionId);
+				SvWriter svw = new SvWriter(svr);
+				SvWorkflow sww = new SvWorkflow(svw)) {
+			setAutoCommit(Arrays.asList(svr, svw), false);
+			localeId = svr.getUserLocaleId(svr.getInstanceUser());
+			obj = createModel.apply(tableName);
+			if (obj != null && obj.from(objectId, svr)) {
+				errors = obj.changeStatus(newStatus, false, svr, svw, sww);
+				if (errors.isEmpty()) {
+					sww.dbCommit();
+					jrh.create(MessageType.SUCCESS, I18n.getText(localeId, "perun.success.changeStatus"),
+							CC.EMPTY_STRING, obj.getJsonRepresentation());
+				} else {
+					jrh.create(MessageType.ERROR, I18n.getText(localeId, "perun.error.changeStatus"), errors.toString(),
+							new JsonObject());
+				}
+			} else {
+				jrh.create(MessageType.ERROR, I18n.getText(localeId, "perun.error.objectTableNotFound"),
+						CC.EMPTY_STRING, new JsonObject());
+			}
+		} catch (Exception e) {
+			log4j.error(e);
+			return PerunUtil.handleException(e, jrh, "perun.error.generalError");
+		}
+		return Response.ok(jrh.getAll().toString()).build();
+	}
+
+	/**
+	 * Searches for objects matching criteria provided in the request body. Requires
+	 * tableName in the JSON payload; returns matching records or an info message if
+	 * none are found.
+	 *
+	 * @param sessionId   User session ID (path param)
+	 * @param entity      JSON request body containing search criteria
+	 * @param httpRequest HTTP servlet request
+	 * @return JSON response with matching records or error details
 	 */
 	@Path("/search/{sessionId}")
 	@POST
@@ -196,13 +248,13 @@ public class WsModel {
 	}
 
 	/**
-	 * Get summary for a table object. Need to provide the sessionId, table name and
-	 * the objectId as path parameters.
-	 * 
-	 * @param sessionId User's session id
-	 * @param tableName Name of the table
-	 * @param objectId  The object id in the DB
-	 * @return Response object
+	 * Returns a short summary and detailed view of a single object.
+	 *
+	 * @param sessionId   User session ID
+	 * @param tableName   Name of the target table
+	 * @param objectId    ID of the object to summarize
+	 * @param httpRequest HTTP servlet request
+	 * @return JSON response with summary and detail arrays, or error if not found
 	 */
 	@Path("/getObjectSummary/{sessionId}/{tableName}/{objectId}")
 	@GET
@@ -251,6 +303,14 @@ public class WsModel {
 		return Response.ok(jrh.getAll().toString()).build();
 	}
 
+	/**
+	 * Returns the JSON schema for a given table model.
+	 *
+	 * @param sessionId   User session ID (header param)
+	 * @param tableName   Name of the target table
+	 * @param httpRequest HTTP servlet request
+	 * @return JSON schema object or error details
+	 */
 	@Path("/getModelJsonSchema/{tableName}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
