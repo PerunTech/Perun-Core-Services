@@ -575,6 +575,8 @@ public class WsReactElements {
 					DbDataObject tableObject = jsonreactGUI.has(Rc.IDTABLE)
 							? SvCore.getDbtByName(jsonreactGUI.get(Rc.IDTABLE).getAsString())
 							: null;
+					DbDataObject getFieldObject = SvCore.getFieldByName(jsonreactGUI.get(Rc.IDTABLE).getAsString(),
+							jsonreactGUI.get(Rc.IDGETFIELD).getAsString());
 					// TODO replace try catch with joson.has
 					try {
 						DbSearchCriterion critU = new DbSearchCriterion(jsonreactGUI.get("idfield").getAsString(),
@@ -613,14 +615,18 @@ public class WsReactElements {
 									jLeaf.addProperty(Rc.ID, Long.parseLong(tmpString));
 									jLeaf.addProperty(Rc.VALUE_LC, Long.parseLong(tmpString));
 								}
-								tmpString = tmpStrValue.equalsIgnoreCase(Rc.LABEL_CODE)
+								tmpString = (tmpStrValue.equalsIgnoreCase(Rc.LABEL_CODE)
+										|| (getFieldObject != null && getFieldObject.getVal("SV_ISLABEL") != null
+										&& getFieldObject.getVal("SV_ISLABEL").equals(true)))
 										? I18n.getText(tmpLocale, item.getVal(tmpStrValue).toString())
 										: item.getVal(tmpStrValue).toString();
 								jLeaf.addProperty(Rc.TITLE, tmpString);
 								jLeaf.addProperty(Rc.TEXT, tmpString);
 								jarr.add(jLeaf);
 							} else {
-								if (jsonreactGUI.get(Rc.IDGETFIELD).getAsString().equalsIgnoreCase(Rc.LABEL_CODE)) {
+								if (jsonreactGUI.get(Rc.IDGETFIELD).getAsString().equalsIgnoreCase(Rc.LABEL_CODE)
+								|| (getFieldObject != null && getFieldObject.getVal("SV_ISLABEL") != null
+										&& getFieldObject.getVal("SV_ISLABEL").equals(true))) {
 									enumName = I18n.getText(getLocaleId(svr),
 											item.getVal(jsonreactGUI.get(Rc.IDGETFIELD).getAsString()).toString());
 								} else {
@@ -868,6 +874,8 @@ public class WsReactElements {
 			DbDataObject tableObject = jsonreactGUI.has(Rc.IDTABLE)
 					? SvCore.getDbtByName(jsonreactGUI.get(Rc.IDTABLE).getAsString())
 					: null;
+			DbDataObject getFieldObject = SvCore.getFieldByName(jsonreactGUI.get(Rc.IDTABLE).getAsString(),
+					jsonreactGUI.get(Rc.IDGETFIELD).getAsString());
 			if (jsonreactGUI.has("idfield") && jsonreactGUI.has("idvalue")) {
 				try {
 					DbSearchCriterion critU = new DbSearchCriterion(jsonreactGUI.get("idfield").getAsString(),
@@ -900,7 +908,9 @@ public class WsReactElements {
 						listNames.add(I18n.getText(getLocaleId(svr),
 								item.getVal(jsonreactGUI.get(Rc.IDGETFIELD).getAsString()).toString()));
 					} else {
-						if (jsonreactGUI.get(Rc.IDGETFIELD).getAsString().equalsIgnoreCase(Rc.LABEL_CODE)) {
+						if (jsonreactGUI.get(Rc.IDGETFIELD).getAsString().equalsIgnoreCase(Rc.LABEL_CODE)
+								|| (getFieldObject != null && getFieldObject.getVal("SV_ISLABEL") != null
+										&& getFieldObject.getVal("SV_ISLABEL").equals(true))) {
 							enumName = I18n.getText(getLocaleId(svr),
 									item.getVal(jsonreactGUI.get(Rc.IDGETFIELD).getAsString()).toString());
 						} else {
