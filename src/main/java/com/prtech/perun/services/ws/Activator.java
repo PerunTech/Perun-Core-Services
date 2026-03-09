@@ -24,6 +24,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
 
+import com.prtech.menu.manager.MenuExporter;
 import com.prtech.menu.manager.WsMenu;
 import com.prtech.models.ModelFactory;
 import com.prtech.models.ModelFactoryRegistry;
@@ -90,6 +91,7 @@ public class Activator implements BundleActivator {
 		list.add(WsMenu.class);
 		list.add(WsModel.class);
 		list.add(WsCore.class);
+		list.add(MenuExporter.class);
 		return list;
 
 	}
