@@ -752,12 +752,16 @@ final class MenuHelper {
 		}
 		menuJson.add(CC.MENU_CONF, menuConf);
 
+		return removeRepoData(menuJson);
+	}
+
+	public static JsonObject removeRepoData(JsonObject obj) throws Exception {
 		for (char[] repoField : DbDataObject.repoFieldNames) {
 			String repoFieldStr = new String(repoField);
-			menuJson.remove(repoFieldStr.toLowerCase());
+			obj.remove(repoFieldStr.toLowerCase());
 		}
 
-		return menuJson;
+		return obj;
 	}
 
 	/**
