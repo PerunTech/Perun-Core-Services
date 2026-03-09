@@ -3,7 +3,13 @@ package com.prtech.menu.manager;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.time.LocalDate;
 import java.util.HashSet;
+
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
 
 import org.apache.logging.log4j.Logger;
 import org.junit.Ignore;
@@ -179,6 +185,29 @@ public class TestMenu {
 			assertTrue(hasImportMenu);
 		} catch (Exception e) {
 			fail(e.getMessage());
+		}
+	}
+
+	@Test
+	public void testExportMenu() {
+		String sessionId = getUserSessionIdForTestPurpose();
+		MenuExporter menuExporter = new MenuExporter();
+		Response res = menuExporter.exportMenu(sessionId, null);
+
+		try {
+			StreamingOutput streamingOutput = (StreamingOutput) res.getEntity();
+			String fileName = String.format("menu_export_%s.json", LocalDate.now().toString());
+			File outputFile = new File(fileName);
+
+			try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+				streamingOutput.write(fos);
+			}
+
+			System.out.println("Menu export saved to: " + outputFile.getAbsolutePath());
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			res.close();
 		}
 	}
 }
