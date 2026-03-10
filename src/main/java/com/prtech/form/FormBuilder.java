@@ -613,6 +613,19 @@ public class FormBuilder {
 
 			if (dboField.getVal(CC.GUI_METADATA) != null)
 				jsonGuiMetadata = GSON.fromJson(dboField.getVal(CC.GUI_METADATA).toString(), JsonObject.class);
+
+			if (section.getExtendedParams() != null && section.getExtendedParams().has(fieldName)) {
+				JsonObject extFieldParams = section.getExtendedParams().getAsJsonObject(fieldName);
+				if (extFieldParams.has(CC.REPLACE_LC) && extFieldParams.has(CC.GUI_METADATA_CC)) {
+					String replace = extFieldParams.get(CC.REPLACE_LC).getAsString();
+					if (replace.equals("FULL")) {
+						jsonGuiMetadata = extFieldParams.getAsJsonObject(CC.GUI_METADATA_CC);
+					} else if (replace.equals("REPLACE")) {
+						Utils.deepMerge(extFieldParams.getAsJsonObject(CC.GUI_METADATA_CC), jsonGuiMetadata);
+					}
+				}
+			}
+
 			if (jsonGuiMetadata != null && jsonGuiMetadata.has(CC.REACT))
 				jsonReact = (JsonObject) jsonGuiMetadata.get(CC.REACT);
 			if (jsonReact != null && jsonReact.has(CC.UISCHEMA))
