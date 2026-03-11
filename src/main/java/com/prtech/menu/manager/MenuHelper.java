@@ -299,10 +299,9 @@ final class MenuHelper {
 			cleanMenuItem(obj);
 		}
 
-		if (obj.has(CC.LABEL)) {
-			String labelCode = obj.get(CC.LABEL).getAsString();
-			String labelText = I18n.getText(localeId, labelCode);
-			obj.addProperty(CC.LABEL, labelText);
+		String[] labelProperties = { CC.LABEL, "promptTitle", "promptMessage" };
+		for (String property : labelProperties) {
+			decodeProperty(obj, property, localeId);
 		}
 
 		if (obj.has("objectConfiguration")) {
