@@ -617,16 +617,16 @@ public class WsReactElements {
 								}
 								tmpString = (tmpStrValue.equalsIgnoreCase(Rc.LABEL_CODE)
 										|| (getFieldObject != null && getFieldObject.getVal("SV_ISLABEL") != null
-										&& getFieldObject.getVal("SV_ISLABEL").equals(true)))
-										? I18n.getText(tmpLocale, item.getVal(tmpStrValue).toString())
-										: item.getVal(tmpStrValue).toString();
+												&& getFieldObject.getVal("SV_ISLABEL").equals(true)))
+														? I18n.getText(tmpLocale, item.getVal(tmpStrValue).toString())
+														: item.getVal(tmpStrValue).toString();
 								jLeaf.addProperty(Rc.TITLE, tmpString);
 								jLeaf.addProperty(Rc.TEXT, tmpString);
 								jarr.add(jLeaf);
 							} else {
 								if (jsonreactGUI.get(Rc.IDGETFIELD).getAsString().equalsIgnoreCase(Rc.LABEL_CODE)
-								|| (getFieldObject != null && getFieldObject.getVal("SV_ISLABEL") != null
-										&& getFieldObject.getVal("SV_ISLABEL").equals(true))) {
+										|| (getFieldObject != null && getFieldObject.getVal("SV_ISLABEL") != null
+												&& getFieldObject.getVal("SV_ISLABEL").equals(true))) {
 									enumName = I18n.getText(getLocaleId(svr),
 											item.getVal(jsonreactGUI.get(Rc.IDGETFIELD).getAsString()).toString());
 								} else {
@@ -759,6 +759,18 @@ public class WsReactElements {
 		CodeList cl = null;
 		JsonObject jsonObjRet = jsonObj;
 		HashMap<String, String> listMap = null;
+		boolean skipSort = false;
+		try {
+			if (tmpField.getVal(Rc.GUI_METADATA) != null) {
+				JsonObject guiMetaJson = gson.fromJson(tmpField.getVal(Rc.GUI_METADATA).toString(), JsonObject.class);
+				if (guiMetaJson.has("react") && guiMetaJson.getAsJsonObject("react").has("uischema")
+						&& guiMetaJson.getAsJsonObject("react").getAsJsonObject("uischema").has("sortCodesBy")) {
+					skipSort = true;
+				}
+			}
+		} catch (Exception e) {
+			debugException(e);
+		}
 		try {
 			cl = new CodeList(svr);
 
@@ -770,7 +782,7 @@ public class WsReactElements {
 			}
 			// do not sort these types of dropdowns they will stay sorted by
 			// sort order
-			if (!tmpField.getVal(Rc.LABEL_CODE).toString().toLowerCase().contains(".month_milk")
+			if (!skipSort && !tmpField.getVal(Rc.LABEL_CODE).toString().toLowerCase().contains(".month_milk")
 					&& !tmpField.getVal(Rc.LABEL_CODE).toString().toLowerCase().contains(".month_laying_hens"))
 				Collections.sort(sortList);
 		} catch (SvException e) {
