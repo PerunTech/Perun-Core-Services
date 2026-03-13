@@ -1162,7 +1162,7 @@ public abstract class BaseObjectModel {
 
 				if (isDateString(stringValue)) {
 					operand = DbCompareOperand.EQUAL;
-					value = stringValue;
+					value = new DateTime(stringValue);
 				} else {
 					if (field.isIgnoreCase()) {
 						operand = DbCompareOperand.ILIKE;
