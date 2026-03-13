@@ -123,7 +123,7 @@ public class WsReactElements {
 	 * @param svr SvReader instance
 	 */
 
-	protected static String getLocaleId(SvReader svr) {
+	public static String getLocaleId(SvReader svr) {
 		String locale = SvConf.getDefaultLocale();
 		try {
 			DbDataObject dboLocale = svr.getUserLocale(svr.getInstanceUser());
@@ -974,7 +974,7 @@ public class WsReactElements {
 	 * 
 	 * @return JsonObject with new added list
 	 */
-	private JsonObject prepareFormJsonCodeList1(DbDataObject tmpFiled, JsonObject jsonObj, SvReader svr) {
+	public JsonObject prepareFormJsonCodeList1(DbDataObject tmpFiled, JsonObject jsonObj, SvReader svr) {
 		// prepare the list from LIST_ID on the field, or from GUI_METADATA
 		if (tmpFiled.getVal(Rc.CODE_LIST_ID) != null && (long) tmpFiled.getVal(Rc.CODE_LIST_ID) > 0)
 			return prepareFormJsonCodeListByID(tmpFiled, jsonObj, svr);
@@ -2288,7 +2288,7 @@ public class WsReactElements {
 	 * @return JsonObject with new type of field added
 	 */
 
-	private JsonObject addFieldTypeToJsonObject(DbDataObject fieldType, JsonObject jLeaf, Boolean isTable) {
+	public JsonObject addFieldTypeToJsonObject(DbDataObject fieldType, JsonObject jLeaf, Boolean isTable) {
 		// if numeric field is part of table, we have to check the scale, so we
 		// know if its integer or float, and if its form, we set to float all
 		// the time
@@ -9145,52 +9145,5 @@ public class WsReactElements {
 		} catch (Exception e) {
 			return PerunUtil.handleException(e, "Error getting Linked Objects");
 		}
-	}
-
-	@Path("/getSvarogUsersSearchJSONSchema/{sessionId}/{table_name}")
-	@GET
-	@Produces("application/json")
-	public Response getSvarogUsersSearchJSONSchema(@PathParam("sessionId") String sessionId,
-			@PathParam("table_name") String tableName, @Context HttpServletRequest httpRequest) {
-		JsonObject jData = new JsonObject();
-		SvReader svr = null;
-
-		try {
-			svr = new SvReader(sessionId);
-			DbDataObject tableObject = SvCore.getDbtByName(tableName);
-			jData.addProperty(Rc.TITLE, I18n.getText(getLocaleId(svr), tableObject.getVal(Rc.LABEL_CODE).toString()));
-			jData.addProperty(Rc.TYPE, Rc.OBJECT);
-			JsonObject jFields = getSvarogUsersSearchJSONSchemaFields(tableName, false, svr);
-			jData.add(Rc.PROPERTIES, jFields);
-		} catch (SvException e) {
-			return PerunUtil.handleException(e, "Error getting Search JSON Schema");
-		} finally {
-			releaseAll(svr);
-		}
-		return Response.status(200).entity(jData.toString()).build();
-	}
-
-	private JsonObject getSvarogUsersSearchJSONSchemaFields(String tableName, Boolean shouldGroupFields, SvReader svr)
-			throws SvException {
-		JsonObject jFields = new JsonObject();
-		if (!"SVAROG_USERS".equals(tableName))
-			return jFields;
-		DbDataObject tableObject = SvCore.getDbtByName(tableName);
-		DbDataArray dboFieldsPerTable = SvCore.getFields(tableObject.getObjectId());
-		Set<String> allowedFields = Set.of("USER_TYPE", "USER_NAME", "PIN");
-		for (DbDataObject tempDboField : dboFieldsPerTable.getItems()) {
-			String fieldName = tempDboField.getVal(Rc.FIELD_NAME).toString();
-			if (!allowedFields.contains(fieldName))
-				continue;
-			JsonObject jLeaf = new JsonObject();
-			jLeaf = addFieldTypeToJsonObject(tempDboField, jLeaf, true);
-			jLeaf.addProperty(Rc.TITLE, I18n.getText(getLocaleId(svr), tempDboField.getVal(Rc.LABEL_CODE).toString()));
-			JsonObject jsonSearchGUI = getReactSearchGuiDataByField(tempDboField);
-			if (jsonSearchGUI != null && jsonSearchGUI.has("minLength"))
-				jLeaf.addProperty("minLength", jsonSearchGUI.get("minLength").getAsNumber());
-			jLeaf = prepareFormJsonCodeList1(tempDboField, jLeaf, svr);
-			jFields.add(fieldName, jLeaf);
-		}
-		return jFields;
 	}
 }
