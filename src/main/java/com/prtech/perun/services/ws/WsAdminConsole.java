@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -1719,6 +1720,55 @@ public class WsAdminConsole {
 			return PerunUtil.handleException(e, "Error getting users with filter");
 		}
 		return Response.status(200).entity(retString).build();
+	}
+
+	@Path("/getSvarogUsersSearchJSONSchema/{sessionId}/{table_name}")
+	@GET
+	@Produces("application/json")
+	public Response getSvarogUsersSearchJSONSchema(@PathParam("sessionId") String sessionId,
+			@PathParam("table_name") String tableName, @Context HttpServletRequest httpRequest) {
+		JsonObject jData = new JsonObject();
+		SvReader svr = null;
+		try {
+			svr = new SvReader(sessionId);
+			DbDataObject tableObject = SvCore.getDbtByName(tableName);
+			jData.addProperty(Rc.TITLE,
+					I18n.getText(WsReactElements.getLocaleId(svr), tableObject.getVal(Rc.LABEL_CODE).toString()));
+			jData.addProperty(Rc.TYPE, Rc.OBJECT);
+			JsonObject jFields = getSvarogUsersSearchJSONSchemaFields(tableName, false, svr);
+			jData.add(Rc.PROPERTIES, jFields);
+		} catch (SvException e) {
+			return PerunUtil.handleException(e, "Error getting Search JSON Schema");
+		} finally {
+			WsReactElements.releaseAll(svr);
+		}
+		return Response.status(200).entity(jData.toString()).build();
+	}
+
+	private JsonObject getSvarogUsersSearchJSONSchemaFields(String tableName, Boolean shouldGroupFields, SvReader svr)
+			throws SvException {
+		JsonObject jFields = new JsonObject();
+		WsReactElements wsr = new WsReactElements();
+		if (!"SVAROG_USERS".equals(tableName))
+			return jFields;
+		DbDataObject tableObject = SvCore.getDbtByName(tableName);
+		DbDataArray dboFieldsPerTable = SvCore.getFields(tableObject.getObjectId());
+		Set<String> allowedFields = Set.of("USER_TYPE", "USER_NAME", "PIN");
+		for (DbDataObject tempDboField : dboFieldsPerTable.getItems()) {
+			String fieldName = tempDboField.getVal(Rc.FIELD_NAME).toString();
+			if (!allowedFields.contains(fieldName))
+				continue;
+			JsonObject jLeaf = new JsonObject();
+			jLeaf = wsr.addFieldTypeToJsonObject(tempDboField, jLeaf, true);
+			jLeaf.addProperty(Rc.TITLE,
+					I18n.getText(WsReactElements.getLocaleId(svr), tempDboField.getVal(Rc.LABEL_CODE).toString()));
+			JsonObject jsonSearchGUI = wsr.getReactSearchGuiDataByField(tempDboField);
+			if (jsonSearchGUI != null && jsonSearchGUI.has("minLength"))
+				jLeaf.addProperty("minLength", jsonSearchGUI.get("minLength").getAsNumber());
+			jLeaf = wsr.prepareFormJsonCodeList1(tempDboField, jLeaf, svr);
+			jFields.add(fieldName, jLeaf);
+		}
+		return jFields;
 	}
 
 }
