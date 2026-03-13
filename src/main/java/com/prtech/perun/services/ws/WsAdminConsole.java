@@ -245,7 +245,7 @@ public class WsAdminConsole {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
+
 	/**
 	 * edit user
 	 */
@@ -266,7 +266,7 @@ public class WsAdminConsole {
 						JsonObject jobj = new JsonObject();
 						Gson gs = new Gson();
 						jobj = gs.fromJson(key, JsonObject.class);
-						
+
 						if (svr.isAdmin()) {
 							DbDataObject dboUser = svr.getObjectById(objectId, svCONST.OBJECT_TYPE_USER, null);
 
@@ -319,7 +319,7 @@ public class WsAdminConsole {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
+
 	@Path("/getUsersTableUISchema/{session_id}")
 	@GET
 	@Produces("application/json")
@@ -360,11 +360,10 @@ public class WsAdminConsole {
 		ResponseHandler jrh = new ResponseHandler();
 		try (SvReader svr = new SvReader(session);
 				SvWriter svw = new SvWriter(session);
-				SvSecurity svs = new SvSecurity(svr);){
+				SvSecurity svs = new SvSecurity(svr);) {
 
 			DbDataArray dboUserGroup = new DbDataArray();
 			DbDataObject dboDefaultUserGroup = new DbDataObject();
-
 
 			DbDataObject dboUser = svr.getObjectById(user_obj, SvReader.getTypeIdByName("SVAROG_USERS"), null);
 
@@ -447,7 +446,7 @@ public class WsAdminConsole {
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
-		} 
+		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
 
@@ -459,59 +458,59 @@ public class WsAdminConsole {
 	@GET
 	@Produces("application/json")
 	public Response getLinkedUsers(@PathParam("session_id") String session, @PathParam("object_id") Long objectId,
-	        @Context HttpServletRequest httpRequest) throws SvException {
-	    ResponseHandler jrh = new ResponseHandler();
-	    JsonArray jsonArray = new JsonArray();
-	    DbDataArray dbArray = new DbDataArray();
-	    try (SvReader svr = new SvReader(session); SvLink svlink = new SvLink(svr)) {
-	    	String[] tablesUsedArray = new String[1];
+			@Context HttpServletRequest httpRequest) throws SvException {
+		ResponseHandler jrh = new ResponseHandler();
+		JsonArray jsonArray = new JsonArray();
+		DbDataArray dbArray = new DbDataArray();
+		try (SvReader svr = new SvReader(session); SvLink svlink = new SvLink(svr)) {
+			String[] tablesUsedArray = new String[1];
 			Boolean[] tableShowArray = new Boolean[1];
 			int tablesusedCount = 1;
-	        DbDataObject defaultGroup = SvCore.getLinkType("USER_DEFAULT_GROUP", SvCore.getTypeIdByName("SVAROG_USERS"),
-	                SvCore.getTypeIdByName("SVAROG_USER_GROUPS"));
+			DbDataObject defaultGroup = SvCore.getLinkType("USER_DEFAULT_GROUP", SvCore.getTypeIdByName("SVAROG_USERS"),
+					SvCore.getTypeIdByName("SVAROG_USER_GROUPS"));
 
-	        DbDataObject additionalGroup = SvCore.getLinkType("USER_GROUP", SvCore.getTypeIdByName("SVAROG_USERS"),
-	                SvCore.getTypeIdByName("SVAROG_USER_GROUPS"));
+			DbDataObject additionalGroup = SvCore.getLinkType("USER_GROUP", SvCore.getTypeIdByName("SVAROG_USERS"),
+					SvCore.getTypeIdByName("SVAROG_USER_GROUPS"));
 
-	        DbDataArray dbaDefaultGroupUsers = svr.getObjectsByLinkedId(objectId,
-	                SvCore.getTypeIdByName("SVAROG_USER_GROUPS"), defaultGroup, SvCore.getTypeIdByName("SVAROG_USERS"),
-	                true, null, null, null);
+			DbDataArray dbaDefaultGroupUsers = svr.getObjectsByLinkedId(objectId,
+					SvCore.getTypeIdByName("SVAROG_USER_GROUPS"), defaultGroup, SvCore.getTypeIdByName("SVAROG_USERS"),
+					true, null, null, null);
 
-	        DbDataArray dbaAdditionalGroupUsers = svr.getObjectsByLinkedId(objectId,
-	                SvCore.getTypeIdByName("SVAROG_USER_GROUPS"), additionalGroup,
-	                SvCore.getTypeIdByName("SVAROG_USERS"), true, null, null, null);
+			DbDataArray dbaAdditionalGroupUsers = svr.getObjectsByLinkedId(objectId,
+					SvCore.getTypeIdByName("SVAROG_USER_GROUPS"), additionalGroup,
+					SvCore.getTypeIdByName("SVAROG_USERS"), true, null, null, null);
 
-	        if ((dbaDefaultGroupUsers != null && !dbaDefaultGroupUsers.isEmpty())
-	                || (dbaAdditionalGroupUsers != null && !dbaAdditionalGroupUsers.isEmpty())) {
-	            if (dbaDefaultGroupUsers != null && !dbaDefaultGroupUsers.isEmpty()) {
-	                for (DbDataObject dboDefaultGroupUser : dbaDefaultGroupUsers.getItems()) {
-	                    dboDefaultGroupUser.setVal("USER_UID", null);
-	                    dboDefaultGroupUser.setVal("PASSWORD_HASH", null);
-	                    dboDefaultGroupUser.setVal("CONFIRM_PASSWORD_HASH", null);
-	                    dbArray.addDataItem(dboDefaultGroupUser);
-	                }
-	            }
-	            if (dbaAdditionalGroupUsers != null && !dbaAdditionalGroupUsers.isEmpty()) {
-	                for (DbDataObject dboAdditionalGroupUser : dbaAdditionalGroupUsers.getItems()) {
-	                    dboAdditionalGroupUser.setVal("USER_UID", null);
-	                    dboAdditionalGroupUser.setVal("PASSWORD_HASH", null);
-	                    dboAdditionalGroupUser.setVal("CONFIRM_PASSWORD_HASH", null);
-	                    dbArray.addDataItem(dboAdditionalGroupUser);
-	                }
-	            }
-	            tablesUsedArray[0] = Rc.SVAROG_USERS;
+			if ((dbaDefaultGroupUsers != null && !dbaDefaultGroupUsers.isEmpty())
+					|| (dbaAdditionalGroupUsers != null && !dbaAdditionalGroupUsers.isEmpty())) {
+				if (dbaDefaultGroupUsers != null && !dbaDefaultGroupUsers.isEmpty()) {
+					for (DbDataObject dboDefaultGroupUser : dbaDefaultGroupUsers.getItems()) {
+						dboDefaultGroupUser.setVal("USER_UID", null);
+						dboDefaultGroupUser.setVal("PASSWORD_HASH", null);
+						dboDefaultGroupUser.setVal("CONFIRM_PASSWORD_HASH", null);
+						dbArray.addDataItem(dboDefaultGroupUser);
+					}
+				}
+				if (dbaAdditionalGroupUsers != null && !dbaAdditionalGroupUsers.isEmpty()) {
+					for (DbDataObject dboAdditionalGroupUser : dbaAdditionalGroupUsers.getItems()) {
+						dboAdditionalGroupUser.setVal("USER_UID", null);
+						dboAdditionalGroupUser.setVal("PASSWORD_HASH", null);
+						dboAdditionalGroupUser.setVal("CONFIRM_PASSWORD_HASH", null);
+						dbArray.addDataItem(dboAdditionalGroupUser);
+					}
+				}
+				tablesUsedArray[0] = Rc.SVAROG_USERS;
 				tableShowArray[0] = true;
 
-				jsonArray = WsReactElements.prapareTableQueryData(dbArray, tablesUsedArray,
-						tableShowArray, tablesusedCount, true, svr, true, null);
-	        } else {
-	            jrh.create(MessageType.WARNING, I18n.getText("console.warning.usersNotFound"),
-	                    I18n.getText("console.warning.usersNotFound"), new JsonObject());
-	        }
-	    } catch (Exception e) {
-	        return PerunUtil.handleException(e, "Error in getLinkedUsers");
-	    }
-	    return Response.status(200).entity(jsonArray.toString()).build();
+				jsonArray = WsReactElements.prapareTableQueryData(dbArray, tablesUsedArray, tableShowArray,
+						tablesusedCount, true, svr, true, null);
+			} else {
+				jrh.create(MessageType.WARNING, I18n.getText("console.warning.usersNotFound"),
+						I18n.getText("console.warning.usersNotFound"), new JsonObject());
+			}
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error in getLinkedUsers");
+		}
+		return Response.status(200).entity(jsonArray.toString()).build();
 	}
 
 	@Path("/Users/ByUserGroup/sid/{sid}/groupName/{groupName}")
@@ -659,23 +658,24 @@ public class WsAdminConsole {
 
 			if (dboUser != null) {
 				dboUserGroup = svr.getAllUserGroups(dboUser, false);
-				dboUserDefaultGroup = svr.getDefaultUserGroup();
+				DbDataArray dba = svr.getAllUserGroups(dboUser, true);
+				dboUserDefaultGroup = (dba.size() > 0 ? dba.get(0) : new DbDataObject());
 				defaultUserGroup = dboUserDefaultGroup.getObjectId().toString();
 			}
 
 			if (dboUserGroup != null && !dboUserGroup.isEmpty()) {
 				tablesUsedArray[0] = Rc.SVAROG_USER_GROUPS;
 				tableShowArray[0] = true;
-				jsonArray = WsReactElements.prapareTableQueryData(dboUserGroup, tablesUsedArray,
-						tableShowArray, tablesusedCount, true, svr, true, null);
-				
+				jsonArray = WsReactElements.prapareTableQueryData(dboUserGroup, tablesUsedArray, tableShowArray,
+						tablesusedCount, true, svr, true, null);
+
 				Iterator<JsonElement> iterator = jsonArray.iterator();
 				while (iterator.hasNext()) {
 					JsonObject obj = iterator.next().getAsJsonObject();
 					String objectIdString = obj.get(Rc.SVAROG_USER_GROUPS + ".OBJECT_ID").getAsString();
 					if (dboUserDefaultGroup != null && defaultUserGroup != null
 							&& defaultUserGroup.equals(objectIdString))
-					obj.addProperty("DEFAULTGROUP", true);
+						obj.addProperty("DEFAULTGROUP", true);
 				}
 
 			} else {
@@ -700,7 +700,8 @@ public class WsAdminConsole {
 		ResponseHandler jrh = new ResponseHandler();
 		try (SvReader svr = new SvReader(session); SvWriter svw = new SvWriter(svr);) {
 			JsonArray jsonArray = new JsonArray();
-			DbDataArray dboAllUserGroup = svr.getObjects(null, SvReader.getTypeIdByName("SVAROG_USER_GROUPS"), null, 0, 0);
+			DbDataArray dboAllUserGroup = svr.getObjects(null, SvReader.getTypeIdByName("SVAROG_USER_GROUPS"), null, 0,
+					0);
 			if (dboAllUserGroup != null && !dboAllUserGroup.isEmpty()) {
 				for (DbDataObject dboG : dboAllUserGroup.getItems()) {
 					JsonObject jsonObj = new JsonObject();
@@ -832,10 +833,10 @@ public class WsAdminConsole {
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
-		} 
+		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
+
 	/**
 	 * assign object to org_unit
 	 */
@@ -866,7 +867,7 @@ public class WsAdminConsole {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
+
 	/**
 	 * objects by type with POA link to ORG UNIT
 	 */
@@ -877,7 +878,8 @@ public class WsAdminConsole {
 			@PathParam("tableName") String tableName, @Context HttpServletRequest httpRequest) {
 		ResponseHandler jrh = new ResponseHandler();
 		try (SvReader svr = new SvReader(sid)) {
-			DbDataObject dbl = SvCore.getLinkType("POA", svCONST.OBJECT_TYPE_ORG_UNITS, SvCore.getTypeIdByName(tableName));
+			DbDataObject dbl = SvCore.getLinkType("POA", svCONST.OBJECT_TYPE_ORG_UNITS,
+					SvCore.getTypeIdByName(tableName));
 			DbDataArray dboAllObjectsByOU = svr.getObjectsByLinkedId(objectIdOU, svCONST.OBJECT_TYPE_ORG_UNITS, dbl,
 					SvCore.getTypeIdByName(tableName), false, null, null, null);
 
@@ -894,10 +896,10 @@ public class WsAdminConsole {
 					I18n.getText("console.success.loadObjectORGUNIT"), jsonArray);
 		} catch (SvException e) {
 			return PerunUtil.handleException(e, "Error getting linked objects");
-		} 
+		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
+
 	/**
 	 * remove object from ORG UNIT
 	 */
@@ -908,8 +910,9 @@ public class WsAdminConsole {
 			@PathParam("objectId") Long objectId, @PathParam("tableName") String tableName,
 			@Context HttpServletRequest httpRequest) {
 		ResponseHandler jrh = new ResponseHandler();
-		try (SvReader svr = new SvReader(sid);SvWriter svw = new SvWriter(svr)) {
-			DbDataObject dbl = SvCore.getLinkType("POA", svCONST.OBJECT_TYPE_ORG_UNITS, SvCore.getTypeIdByName(tableName));
+		try (SvReader svr = new SvReader(sid); SvWriter svw = new SvWriter(svr)) {
+			DbDataObject dbl = SvCore.getLinkType("POA", svCONST.OBJECT_TYPE_ORG_UNITS,
+					SvCore.getTypeIdByName(tableName));
 			DbDataObject linkObj = DbReader.findLink(objectIdOU, objectId, dbl.getObjectId(), svr);
 
 			if (linkObj != null)
@@ -984,7 +987,7 @@ public class WsAdminConsole {
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
-		} 
+		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
 
@@ -1000,7 +1003,9 @@ public class WsAdminConsole {
 		DbDataObject group = new DbDataObject();
 		ResponseHandler jrh = new ResponseHandler();
 		String[] listAcl = null;
-		try (SvReader svr = new SvReader(session); SvWriter svw = new SvWriter(svr); SvSecurity svc = new SvSecurity(svr);) {
+		try (SvReader svr = new SvReader(session);
+				SvWriter svw = new SvWriter(svr);
+				SvSecurity svc = new SvSecurity(svr);) {
 			if (formVals != null) {
 				for (Entry<String, List<String>> entry : formVals.entrySet()) {
 					if (entry.getKey() != null && !entry.getKey().isEmpty()) {
@@ -1050,7 +1055,7 @@ public class WsAdminConsole {
 			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
 					new JsonObject());
 			return Response.status(200).entity(jrh.getAll().toString()).build();
-		} 
+		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
 
@@ -1207,9 +1212,6 @@ public class WsAdminConsole {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
-	
-	
 
 	/**
 	 * return all ACLs for a given group OBJECT_ID
@@ -1218,9 +1220,8 @@ public class WsAdminConsole {
 	@Path("/get-acl-by-group/sid/{session_id}/group_object_id/{group_id}")
 	@GET
 	@Produces("application/json")
-	public Response getAclByGroup(@PathParam("session_id") String session, @PathParam("group_id") Long group_id, 
-			@Context HttpServletRequest httpRequest)
-			throws SvException {
+	public Response getAclByGroup(@PathParam("session_id") String session, @PathParam("group_id") Long group_id,
+			@Context HttpServletRequest httpRequest) throws SvException {
 		ResponseHandler jrh = new ResponseHandler();
 		try (SvReader svr = new SvReader(session)) {
 			JsonArray responseArray = new JsonArray();
@@ -1240,9 +1241,9 @@ public class WsAdminConsole {
 			DbQueryObject dbtAcl = new DbQueryObject(SvCore.getDbtByName("SVAROG_ACL"), null, DbJoinType.LEFT, null,
 					LinkType.CUSTOM_FREETEXT, null, null);
 			SvDbType dbType = SvConf.getDbType();
-			String timestamp = dbType.equals(SvDbType.ORACLE)? "sysdate" : "current_timestamp";
-			dbtAcl.setCustomFreeTextJoin(
-					" on (tbl2.object_id = tbl1.acl_object_id and "+timestamp+" between tbl2.dt_insert and tbl2.dt_delete) or tbl2.object_id is null");
+			String timestamp = dbType.equals(SvDbType.ORACLE) ? "sysdate" : "current_timestamp";
+			dbtAcl.setCustomFreeTextJoin(" on (tbl2.object_id = tbl1.acl_object_id and " + timestamp
+					+ " between tbl2.dt_insert and tbl2.dt_delete) or tbl2.object_id is null");
 			DbQueryObject dbtTable = new DbQueryObject(SvCore.getDbtByName("SVAROG_TABLES"), null, DbJoinType.INNER,
 					null, null, null, null);
 			DbQueryExpression q = new DbQueryExpression();
@@ -1278,8 +1279,7 @@ public class WsAdminConsole {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
-	
+
 	private JsonArray filterFields(JsonArray responseArray, String[] stringFields, String[] longFields) {
 		JsonArray tmpJsonArrayResponse = new JsonArray();
 		for (int i = 0; i < responseArray.size(); i++) {
@@ -1294,7 +1294,7 @@ public class WsAdminConsole {
 			tmpJsonArrayResponse.add(newObject);
 		}
 		return tmpJsonArrayResponse;
-		
+
 	}
 
 	/**
@@ -1304,9 +1304,8 @@ public class WsAdminConsole {
 	@Path("/get-acl-by-group-field-list/sid/{session_id}")
 	@GET
 	@Produces("application/json")
-	public Response getAclByGroupFieldList(@PathParam("session_id") String session, 
-			@Context HttpServletRequest httpRequest)
-			throws SvException {
+	public Response getAclByGroupFieldList(@PathParam("session_id") String session,
+			@Context HttpServletRequest httpRequest) throws SvException {
 		ResponseHandler jrh = new ResponseHandler();
 		try (SvReader svr = new SvReader(session)) {
 			int tablesusedCount = 3;
@@ -1333,7 +1332,7 @@ public class WsAdminConsole {
 							String tmpS = temp.get("key").getAsString().toUpperCase();
 							if ("SVAROG_SID_ACL.ACL_OBJECT_ID".equals(tmpS) || "SVAROG_ACL.ACCESS_TYPE".equals(tmpS)
 									|| "SVAROG_ACL.LABEL_CODE".equals(tmpS) || "SVAROG_TABLES.TABLE_NAME".equals(tmpS)
-									|| "SVAROG_TABLES.LABEL_CODE".equals(tmpS) ) {
+									|| "SVAROG_TABLES.LABEL_CODE".equals(tmpS)) {
 								temp.addProperty("visible", true);
 								if (temp.has("width"))
 									temp.remove("width");
@@ -1357,10 +1356,6 @@ public class WsAdminConsole {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
-	
-	
-
 
 	/**
 	 * return all ACLs for a given user OBJECT_ID
@@ -1369,9 +1364,8 @@ public class WsAdminConsole {
 	@Path("/get-acl-by-user/sid/{session_id}/user_object_id/{object_id}")
 	@GET
 	@Produces("application/json")
-	public Response getAclByUser(@PathParam("session_id") String session, @PathParam("object_id") Long object_id, 
-			@Context HttpServletRequest httpRequest)
-			throws SvException {
+	public Response getAclByUser(@PathParam("session_id") String session, @PathParam("object_id") Long object_id,
+			@Context HttpServletRequest httpRequest) throws SvException {
 		ResponseHandler jrh = new ResponseHandler();
 		try (SvReader svr = new SvReader(session)) {
 			JsonArray responseArray = new JsonArray();
@@ -1379,7 +1373,7 @@ public class WsAdminConsole {
 			int tablesusedCount = 6;
 			String[] tablesUsedArray = new String[tablesusedCount];
 			Boolean[] tableShowArray = new Boolean[tablesusedCount];
-			
+
 			tablesUsedArray[0] = ("SVAROG_LINK");
 			tablesUsedArray[1] = ("SVAROG_LINK_TYPE");
 			tablesUsedArray[2] = ("SVAROG_USER_GROUPS");
@@ -1387,44 +1381,42 @@ public class WsAdminConsole {
 			tablesUsedArray[4] = ("SVAROG_ACL");
 			tablesUsedArray[5] = ("SVAROG_TABLES");
 			Arrays.fill(tableShowArray, true);
-			
+
 			DbSearch dbUserObjectId = new DbSearchCriterion("link_obj_id_1", DbCompareOperand.EQUAL, object_id);
-			
+
 			DbQueryObject dbtLink = new DbQueryObject(SvCore.getDbtByName("SVAROG_LINK"), dbUserObjectId,
 					DbJoinType.INNER, null, LinkType.CUSTOM, null, null);
 			dbtLink.addCustomJoinLeft("link_type_id");
 			dbtLink.addCustomJoinRight("object_id");
-			
-			
+
 			DbQueryObject dbtLinkType = new DbQueryObject(SvCore.getDbtByName("SVAROG_LINK_TYPE"), null,
 					DbJoinType.INNER, null, LinkType.CUSTOM_FREETEXT, null, null);
-			dbtLinkType.setCustomFreeTextJoin(
-					" on tbl0.link_obj_id_2 = tbl2.object_id ");
-			
+			dbtLinkType.setCustomFreeTextJoin(" on tbl0.link_obj_id_2 = tbl2.object_id ");
+
 			DbQueryObject dbtUserGroups = new DbQueryObject(SvCore.getDbtByName("SVAROG_USER_GROUPS"), null,
 					DbJoinType.INNER, null, LinkType.CUSTOM, null, null);
 			dbtUserGroups.addCustomJoinLeft("object_id");
 			dbtUserGroups.addCustomJoinRight("sid_object_id");
 
-			DbQueryObject dbtSidAcl = new DbQueryObject(SvCore.getDbtByName("SVAROG_SID_ACL"), null,
-					DbJoinType.INNER, null, LinkType.CUSTOM, null, null);
+			DbQueryObject dbtSidAcl = new DbQueryObject(SvCore.getDbtByName("SVAROG_SID_ACL"), null, DbJoinType.INNER,
+					null, LinkType.CUSTOM, null, null);
 			dbtSidAcl.addCustomJoinLeft("acl_object_id");
 			dbtSidAcl.addCustomJoinRight("object_id");
 
 			DbQueryObject dbtAcl = new DbQueryObject(SvCore.getDbtByName("SVAROG_ACL"), null, DbJoinType.LEFT, null,
 					LinkType.CUSTOM_FREETEXT, null, null);
 			SvDbType dbType = SvConf.getDbType();
-			String timestamp = dbType.equals(SvDbType.ORACLE)? "sysdate" : "current_timestamp";
-			dbtAcl.setCustomFreeTextJoin(
-					" on (tbl5.object_id = tbl4.acl_object_id and "+timestamp+" between tbl5.dt_insert and tbl5.dt_delete) or tbl5.object_id is null");
+			String timestamp = dbType.equals(SvDbType.ORACLE) ? "sysdate" : "current_timestamp";
+			dbtAcl.setCustomFreeTextJoin(" on (tbl5.object_id = tbl4.acl_object_id and " + timestamp
+					+ " between tbl5.dt_insert and tbl5.dt_delete) or tbl5.object_id is null");
 			DbQueryObject dbtTable = new DbQueryObject(SvCore.getDbtByName("SVAROG_TABLES"), null, DbJoinType.INNER,
 					null, null, null, null);
 			DbQueryExpression q = new DbQueryExpression();
-			
+
 			q.addItem(dbtLink);
 			q.addItem(dbtLinkType);
 			q.addItem(dbtUserGroups);
-			
+
 			q.addItem(dbtSidAcl);
 			q.addItem(dbtAcl);
 			q.addItem(dbtTable);
@@ -1444,7 +1436,7 @@ public class WsAdminConsole {
 				stringFields[5] = ("SVAROG_TABLES.LABEL_CODE");
 
 				longFields[0] = ("SVAROG_SID_ACL.ACL_OBJECT_ID");
-				
+
 				responseArray = filterFields(tmpResponseArray, stringFields, longFields);
 			}
 			jrh.create(MessageType.SUCCESS, I18n.getText("console.success.defaultUsers"),
@@ -1461,7 +1453,6 @@ public class WsAdminConsole {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
 
 	/**
 	 * return all ACLs for a given group OBJECT_ID, field list for the show grid
@@ -1470,16 +1461,15 @@ public class WsAdminConsole {
 	@Path("/get-acl-by-user-field-list/sid/{session_id}")
 	@GET
 	@Produces("application/json")
-	public Response getAclByUserFieldList(@PathParam("session_id") String session, 
-			@Context HttpServletRequest httpRequest)
-			throws SvException {
+	public Response getAclByUserFieldList(@PathParam("session_id") String session,
+			@Context HttpServletRequest httpRequest) throws SvException {
 		ResponseHandler jrh = new ResponseHandler();
 		try (SvReader svr = new SvReader(session)) {
 			int tablesusedCount = 6;
 			String[] tablesUsedArray = new String[tablesusedCount];
 			Boolean[] svarogShowArray = new Boolean[tablesusedCount];
 			Boolean[] tableShowArray = new Boolean[tablesusedCount];
-			
+
 			tablesUsedArray[0] = ("SVAROG_LINK");
 			tablesUsedArray[1] = ("SVAROG_LINK_TYPE");
 			tablesUsedArray[2] = ("SVAROG_USER_GROUPS");
@@ -1502,7 +1492,8 @@ public class WsAdminConsole {
 							String tmpS = temp.get("key").getAsString().toUpperCase();
 							if ("SVAROG_LINK.STATUS".equals(tmpS) || "SVAROG_ACL.ACCESS_TYPE".equals(tmpS)
 									|| "SVAROG_ACL.LABEL_CODE".equals(tmpS) || "SVAROG_TABLES.TABLE_NAME".equals(tmpS)
-									|| "SVAROG_TABLES.LABEL_CODE".equals(tmpS) || "SVAROG_USER_GROUPS.GROUP_NAME".equals(tmpS)   ) {
+									|| "SVAROG_TABLES.LABEL_CODE".equals(tmpS)
+									|| "SVAROG_USER_GROUPS.GROUP_NAME".equals(tmpS)) {
 								temp.addProperty("visible", true);
 								if (temp.has("width"))
 									temp.remove("width");
@@ -1526,7 +1517,7 @@ public class WsAdminConsole {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
+
 	/*
 	 * Method to changePassword for currently logged in user
 	 * 
@@ -1594,7 +1585,7 @@ public class WsAdminConsole {
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
+
 	@Path("/get-configuration/sid/{sid}/component-name/{componentName}")
 	@GET
 	@Produces("text/html;charset=utf-8")
@@ -1621,7 +1612,7 @@ public class WsAdminConsole {
 				I18n.getText("success.get_configuration"), jarr);
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
+
 	@Path("/searchUsers/{sessionId}")
 	@POST
 	@Produces("application/json")
@@ -1669,5 +1660,5 @@ public class WsAdminConsole {
 		}
 		return Response.status(200).entity(retString).build();
 	}
-	
+
 }
