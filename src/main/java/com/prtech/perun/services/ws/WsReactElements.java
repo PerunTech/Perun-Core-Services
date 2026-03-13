@@ -123,7 +123,7 @@ public class WsReactElements {
 	 * @param svr SvReader instance
 	 */
 
-	protected static String getLocaleId(SvReader svr) {
+	public static String getLocaleId(SvReader svr) {
 		String locale = SvConf.getDefaultLocale();
 		try {
 			DbDataObject dboLocale = svr.getUserLocale(svr.getInstanceUser());
@@ -974,7 +974,7 @@ public class WsReactElements {
 	 * 
 	 * @return JsonObject with new added list
 	 */
-	private JsonObject prepareFormJsonCodeList1(DbDataObject tmpFiled, JsonObject jsonObj, SvReader svr) {
+	public JsonObject prepareFormJsonCodeList1(DbDataObject tmpFiled, JsonObject jsonObj, SvReader svr) {
 		// prepare the list from LIST_ID on the field, or from GUI_METADATA
 		if (tmpFiled.getVal(Rc.CODE_LIST_ID) != null && (long) tmpFiled.getVal(Rc.CODE_LIST_ID) > 0)
 			return prepareFormJsonCodeListByID(tmpFiled, jsonObj, svr);
@@ -2288,7 +2288,7 @@ public class WsReactElements {
 	 * @return JsonObject with new type of field added
 	 */
 
-	private JsonObject addFieldTypeToJsonObject(DbDataObject fieldType, JsonObject jLeaf, Boolean isTable) {
+	public JsonObject addFieldTypeToJsonObject(DbDataObject fieldType, JsonObject jLeaf, Boolean isTable) {
 		// if numeric field is part of table, we have to check the scale, so we
 		// know if its integer or float, and if its form, we set to float all
 		// the time
