@@ -219,7 +219,7 @@ public class SeqPatternService {
 	 * padding like "{5SvSeq}". 2. Must contain at least one constant (literal
 	 * string) before "{SvSeq}". 3. Supports configurable digit padding: - Example:
 	 * If the sequence number is 32 and the pattern is "{5SvSeq}", the generated
-	 * sequence will be padded to "00032".
+	 * sequence will be padded to "00032". 4. The pattern cannot contain /
 	 *
 	 * @param seqPattern the sequence pattern string to validate
 	 * @throws SeqPatternValidationError if validation fails
@@ -228,6 +228,10 @@ public class SeqPatternService {
 	public static void validateSeqPattern(String seqPattern) throws SeqPatternValidationError {
 		if (seqPattern == null || seqPattern.isBlank()) {
 			throw new SeqPatternValidationError("SEQ_PATTERN cannot be null or empty");
+		}
+		if (seqPattern.contains("/")) {
+			log4j.error("SEQ_PATTERN cannot contain '/'");
+			throw new SeqPatternValidationError("SEQ_PATTERN cannot contain '/'");
 		}
 		if (!seqPattern.matches(".*\\{\\d*SvSeq\\}$")) {
 			log4j.error("SEQ_PATTERN must end with SvSeq}");

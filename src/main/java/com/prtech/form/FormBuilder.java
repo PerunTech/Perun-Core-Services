@@ -161,6 +161,12 @@ public class FormBuilder {
 			HashMap<String, String> listRequiredWithLink, Set<String> set1, Set<String> set2, String localeId,
 			SvReader svr) {
 		JsonObject jFields = new JsonObject();
+
+		Boolean shouldGroupFields = true;
+		if (section.getExtendedParams() != null && section.getExtendedParams().has("shouldGroupFields")) {
+			shouldGroupFields = section.getExtendedParams().get("shouldGroupFields").getAsBoolean();
+		}
+
 		for (String fieldName : section.getFieldNames()) {
 			try {
 				DbDataObject dboField = obj.getTableFields().get(fieldName);
@@ -191,7 +197,7 @@ public class FormBuilder {
 					if (dboField.getVal(CC.REFERENTIAL_TABLE) == null) {
 						listRequired.add(fieldName);
 						set2.add(fieldName);
-						if (reactJson != null && reactJson.has(CC.GROUPPATH)) {
+						if (reactJson != null && reactJson.has(CC.GROUPPATH) && shouldGroupFields) {
 							String pathString = reactJson.get(CC.GROUPPATH).getAsString();
 							set1.add(pathString);
 							listRequiredWithLink.put(fieldName, pathString);
@@ -240,7 +246,7 @@ public class FormBuilder {
 					jLeaf.addProperty("readOnly", true);
 				}
 
-				jFields = prepareFormJsonGroup(dboField, jFields, jLeaf);
+				jFields = prepareFormJsonGroup(dboField, jFields, jLeaf, shouldGroupFields);
 
 				if (dboField.getVal(CC.REFERENTIAL_TABLE) != null && dboField.getVal(CC.REFERENTIAL_FIELD) != null
 						&& reactJson != null && reactJson.has(CC.DENORMALIZED_MNEMONIC)) {
@@ -266,7 +272,7 @@ public class FormBuilder {
 							jLeaf.addProperty("readOnly", true);
 						}
 
-						jFields = prepareFormJsonGroup(tmpDenormalizedField, jFields, jLeaf);
+						jFields = prepareFormJsonGroup(tmpDenormalizedField, jFields, jLeaf, shouldGroupFields);
 					}
 
 				}
@@ -547,7 +553,8 @@ public class FormBuilder {
 		return jsonObjRet;
 	}
 
-	private static JsonObject prepareFormJsonGroup(DbDataObject tmpObject, JsonObject jFields, JsonObject jLeaf) {
+	private static JsonObject prepareFormJsonGroup(DbDataObject tmpObject, JsonObject jFields, JsonObject jLeaf,
+			Boolean shouldGroupFields) {
 		String tmpField = tmpObject.getVal(CC.FIELD_NAME).toString();
 		Boolean grouppathfound = false;
 		JsonObject jsonreactGUI = null;
@@ -555,6 +562,12 @@ public class FormBuilder {
 		JsonObject groupValues = new JsonObject();
 		JsonObject groupProperties;
 		JsonObject guiMetadata = null;
+
+		if (!shouldGroupFields) {
+			jFields.add(tmpField, jLeaf);
+			return jFields;
+		}
+
 		try {
 			if (tmpObject.getVal(CC.GUI_METADATA) != null)
 				guiMetadata = GSON.fromJson(tmpObject.getVal(CC.GUI_METADATA).toString(), JsonObject.class);
@@ -600,6 +613,19 @@ public class FormBuilder {
 
 			if (dboField.getVal(CC.GUI_METADATA) != null)
 				jsonGuiMetadata = GSON.fromJson(dboField.getVal(CC.GUI_METADATA).toString(), JsonObject.class);
+
+			if (section.getExtendedParams() != null && section.getExtendedParams().has(fieldName)) {
+				JsonObject extFieldParams = section.getExtendedParams().getAsJsonObject(fieldName);
+				if (extFieldParams.has(CC.REPLACE_LC) && extFieldParams.has(CC.GUI_METADATA_CC)) {
+					String replace = extFieldParams.get(CC.REPLACE_LC).getAsString();
+					if (replace.equals("FULL")) {
+						jsonGuiMetadata = extFieldParams.getAsJsonObject(CC.GUI_METADATA_CC);
+					} else if (replace.equals("REPLACE")) {
+						Utils.deepMerge(extFieldParams.getAsJsonObject(CC.GUI_METADATA_CC), jsonGuiMetadata);
+					}
+				}
+			}
+
 			if (jsonGuiMetadata != null && jsonGuiMetadata.has(CC.REACT))
 				jsonReact = (JsonObject) jsonGuiMetadata.get(CC.REACT);
 			if (jsonReact != null && jsonReact.has(CC.UISCHEMA))

@@ -299,10 +299,9 @@ final class MenuHelper {
 			cleanMenuItem(obj);
 		}
 
-		if (obj.has(CC.LABEL)) {
-			String labelCode = obj.get(CC.LABEL).getAsString();
-			String labelText = I18n.getText(localeId, labelCode);
-			obj.addProperty(CC.LABEL, labelText);
+		String[] labelProperties = { CC.LABEL, "promptTitle", "promptMessage" };
+		for (String property : labelProperties) {
+			decodeProperty(obj, property, localeId);
 		}
 
 		if (obj.has("objectConfiguration")) {
@@ -752,12 +751,16 @@ final class MenuHelper {
 		}
 		menuJson.add(CC.MENU_CONF, menuConf);
 
+		return removeRepoData(menuJson);
+	}
+
+	public static JsonObject removeRepoData(JsonObject obj) throws Exception {
 		for (char[] repoField : DbDataObject.repoFieldNames) {
 			String repoFieldStr = new String(repoField);
-			menuJson.remove(repoFieldStr.toLowerCase());
+			obj.remove(repoFieldStr.toLowerCase());
 		}
 
-		return menuJson;
+		return obj;
 	}
 
 	/**
@@ -772,6 +775,7 @@ final class MenuHelper {
 	public static DbDataObject findMenuCodeForObject(JsonObject requestData, SvReader svr) throws SvException {
 		DbDataObject result = null;
 		DbDataObject perunMenuConfDbo = null;
+		DbDataObject defaultMenuConfDbo = null;
 		DbDataArray perunMenuConfArr = new DbDataArray();
 		String tableName = CC.EMPTY_STRING;
 		Long objectType = 0l;
@@ -793,11 +797,18 @@ final class MenuHelper {
 		}
 
 		for (DbDataObject dbo : perunMenuConfArr.getItems()) {
+			if (dbo.getVal(CC.CDL_NAME) == null && dbo.getVal(CC.REF_TABLE_NAME) == null) {
+				defaultMenuConfDbo = dbo;
+			}
 			if ((dbo.getVal(CC.CDL_NAME) != null && checkObjectByCdlItemName(requestData, dbo))
 					|| (dbo.getVal(CC.REF_TABLE_NAME) != null && checkObjectByRefField(requestData, dbo, svr))) {
 				perunMenuConfDbo = dbo;
 				break;
 			}
+		}
+
+		if (perunMenuConfDbo == null && defaultMenuConfDbo != null) {
+			perunMenuConfDbo = defaultMenuConfDbo;
 		}
 
 		if (perunMenuConfDbo != null) {

@@ -77,8 +77,13 @@ public class DependencyBuilder {
 			JsonObject ifCondition = buildIfCondition(dependency, sourceFieldDbo);
 			conditional.add("if", ifCondition);
 
-			JsonObject thenSchema = buildThenSchema(dependency.getFieldName(), dependentFieldDbo);
+			JsonObject thenSchema = buildThenSchema(dependency, dependentFieldDbo);
 			conditional.add("then", thenSchema);
+
+			if (dependency.getElseStrategy() != null) {
+				JsonObject elseSchema = buildElseSchema(dependency, dependentFieldDbo);
+				conditional.add("else", elseSchema);
+			}
 
 			if (ifCondition.size() > 0 && thenSchema.size() > 0) {
 				String groupPath = JsonSchemaUtils.getFieldGroupPath(dependentFieldDbo);
@@ -148,7 +153,7 @@ public class DependencyBuilder {
 	 * @param localeId          user locale identifier
 	 * @return JsonObject representing the then schema
 	 */
-	private JsonObject buildThenSchema(String dependentField, DbDataObject dependentFieldDbo) {
+	private JsonObject buildThenSchema(FieldDependency dependency, DbDataObject dependentFieldDbo) {
 
 		JsonObject thenSchema = new JsonObject();
 		JsonObject properties = new JsonObject();
@@ -164,20 +169,65 @@ public class DependencyBuilder {
 			fieldSchema.addProperty("maxLength", (Long) dependentFieldDbo.getVal(CC.FIELD_SIZE));
 		}
 
-		JsonSchemaUtils.prepareFormJsonCodeList1(dependentFieldDbo, fieldSchema, localeId, svr);
+		JsonSchemaUtils.prepareFormJsonCodeList1(dependentFieldDbo, fieldSchema, dependency.getCodelistValues(),
+				localeId, svr);
 
 		String groupPath = JsonSchemaUtils.getFieldGroupPath(dependentFieldDbo);
 		if (groupPath != null) {
 			JsonObject groupObj = new JsonObject();
 			JsonObject groupProperties = new JsonObject();
-			groupProperties.add(dependentField, fieldSchema);
+			groupProperties.add(dependency.getFieldName(), fieldSchema);
 			groupObj.add("properties", groupProperties);
 			properties.add(groupPath, groupObj);
 		} else {
-			properties.add(dependentField, fieldSchema);
+			properties.add(dependency.getFieldName(), fieldSchema);
 		}
 
 		thenSchema.add("properties", properties);
 		return thenSchema;
+	}
+	
+	/**
+	 * Builds the ELSE part of the conditional schema.
+	 * 
+	 * @param section           the form section
+	 * @param dependentField    the dependent field name
+	 * @param dependentFieldDbo the dependent field metadata
+	 * @param localeId          user locale identifier
+	 * @return JsonObject representing the else schema
+	 */
+	private JsonObject buildElseSchema(FieldDependency dependency, DbDataObject dependentFieldDbo) {
+		JsonObject elseSchema = new JsonObject();
+		JsonObject properties = new JsonObject();
+
+		JsonObject fieldSchema = new JsonObject();
+		fieldSchema = JsonSchemaUtils.addFieldTypeToJsonObject(dependentFieldDbo, fieldSchema);
+		fieldSchema.addProperty(CC.TITLE_LC,
+				I18n.getText(localeId, dependentFieldDbo.getVal(CC.LABEL_CODE).toString()));
+
+		if (CC.NVARCHAR.equals(dependentFieldDbo.getVal(CC.FIELD_TYPE).toString())
+				&& ((Long) dependentFieldDbo.getVal(CC.FIELD_SIZE)) != null
+				&& ((Long) dependentFieldDbo.getVal(CC.FIELD_SIZE)) > 0) {
+			fieldSchema.addProperty("maxLength", (Long) dependentFieldDbo.getVal(CC.FIELD_SIZE));
+		}
+
+		if (dependency.getElseStrategy() == FieldDependency.ElseStrategy.FULL) {
+			JsonSchemaUtils.prepareFormJsonCodeList1(dependentFieldDbo, fieldSchema, null,
+				localeId, svr);
+		} 
+
+		String groupPath = JsonSchemaUtils.getFieldGroupPath(dependentFieldDbo);
+		if (groupPath != null) {
+			JsonObject groupObj = new JsonObject();
+			JsonObject groupProperties = new JsonObject();
+			groupProperties.add(dependency.getFieldName(), fieldSchema);
+			groupObj.add("properties", groupProperties);
+			properties.add(groupPath, groupObj);
+		} else {
+			properties.add(dependency.getFieldName(), fieldSchema);
+		}
+
+		elseSchema.add("properties", properties);
+		return elseSchema;
 	}
 }
