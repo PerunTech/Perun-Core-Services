@@ -61,7 +61,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
-import com.prtech.naits.services.Tc;
 import com.prtech.perun.PerunUtil;
 import com.prtech.svarog.CodeList;
 import com.prtech.svarog.I18n;
@@ -9174,7 +9173,7 @@ public class WsReactElements {
 	private JsonObject getSvarogUsersSearchJSONSchemaFields(String tableName, Boolean shouldGroupFields, SvReader svr)
 			throws SvException {
 		JsonObject jFields = new JsonObject();
-		if (!Tc.SVAROG_USERS.equals(tableName))
+		if (!"SVAROG_USERS".equals(tableName))
 			return jFields;
 		DbDataObject tableObject = SvCore.getDbtByName(tableName);
 		DbDataArray dboFieldsPerTable = SvCore.getFields(tableObject.getObjectId());
