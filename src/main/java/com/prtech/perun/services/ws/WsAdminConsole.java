@@ -635,6 +635,66 @@ public class WsAdminConsole {
 	 * return linked object for the assigned group
 	 * 
 	 */
+	@Path("/getLinkedGroups/{session_id}/{object_id}/{default_group}")
+	@GET
+	@Produces("application/json")
+	public Response getLinkedGroups(@PathParam("session_id") String session, @PathParam("object_id") Long object_id,
+			@PathParam("default_group") String defaultGroup, @Context HttpServletRequest httpRequest)
+			throws SvException {
+		JsonArray jsonArray = new JsonArray();
+		DbDataObject dboUser = null;
+		DbDataArray dboUserGroups = null;
+		DbDataObject dboUserDefaultGroup = null;
+
+		ResponseHandler jrh = new ResponseHandler();
+
+		try (SvReader svr = new SvReader(session); SvWriter svw = new SvWriter(session)) {
+			String[] tablesUsedArray = new String[1];
+			Boolean[] tableShowArray = new Boolean[1];
+			int tablesusedCount = 1;
+			dboUserDefaultGroup = new DbDataObject();
+
+			dboUser = svr.getObjectById(object_id, SvReader.getTypeIdByName("SVAROG_USERS"), null);
+
+			if (dboUser != null) {
+				dboUserGroups = svr.getAllUserGroups(dboUser, false);
+				DbDataArray dba = svr.getAllUserGroups(dboUser, true);
+
+				if (defaultGroup.toUpperCase().equals("Y"))
+					dboUserGroups = dba;
+				else {
+					Iterator<DbDataObject> it = dboUserGroups.getItems().iterator();
+					dboUserDefaultGroup = (dba.size() > 0 ? dba.get(0) : new DbDataObject());
+					while (it.hasNext()) {
+						DbDataObject dbo = it.next();
+						if (dbo.getObjectId().equals(dboUserDefaultGroup.getObjectId())) {
+							it.remove();
+							break;
+						}
+					}
+				}
+			}
+
+			if (dboUserGroups != null && !dboUserGroups.isEmpty()) {
+				tablesUsedArray[0] = Rc.SVAROG_USER_GROUPS;
+				tableShowArray[0] = true;
+				jsonArray = WsReactElements.prapareTableQueryData(dboUserGroups, tablesUsedArray, tableShowArray,
+						tablesusedCount, true, svr, true, null);
+
+			} else {
+				jrh.create(MessageType.WARNING, I18n.getText("console.warning.userGroupNotFound"),
+						I18n.getText("console.warning.userGroupNotFound"), new JsonObject());
+			}
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error in getLinkedGroups");
+		}
+		return Response.status(200).entity(jsonArray.toString()).build();
+	}
+
+	/**
+	 * return linked object for the assigned group
+	 * 
+	 */
 	@Path("/getLinkedGroups/{session_id}/{object_id}")
 	@GET
 	@Produces("application/json")
