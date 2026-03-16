@@ -8719,7 +8719,8 @@ public class WsReactElements {
 		WsReactElements wre = new WsReactElements();
 		try (SvReader svr = new SvReader(sessionId); SvNote svn = new SvNote(svr);) {
 			DbReader reader = new DbReader();
-			DbDataObject dboNote = reader.getDbaNotesAccordingParentIdAndNoteName(objectId, noteName, svr).get(0);
+			DbDataArray notesArr = reader.getDbaNotesAccordingParentIdAndNoteName(objectId, noteName, svr);
+			DbDataObject dboNote = notesArr.isEmpty() ? null : notesArr.get(0);
 			if (dboNote != null) {
 				noteObjectId = dboNote.getObjectId();
 				Response response = wre.getTableFormData(sessionId, noteObjectId, "SVAROG_NOTES", httpRequest);
