@@ -17,79 +17,85 @@
  */
 package com.lastpass.saml;
 
-import org.opensaml.Configuration;
-import org.opensaml.saml2.core.Response;
-import org.opensaml.saml2.core.SessionIndex;
-import org.opensaml.saml2.core.Status;
-import org.opensaml.saml2.core.Subject;
-import org.opensaml.saml2.core.Conditions;
-import org.opensaml.saml2.core.AuthnStatement;
-import org.opensaml.saml2.core.AuthnRequest;
-import org.opensaml.saml2.core.Assertion;
-import org.opensaml.saml2.core.EncryptedAssertion;
-import org.opensaml.saml2.core.Issuer;
-import org.opensaml.saml2.core.LogoutRequest;
-import org.opensaml.saml2.core.LogoutResponse;
-import org.opensaml.saml2.core.NameID;
-import org.opensaml.saml2.core.Audience;
-import org.opensaml.saml2.core.AudienceRestriction;
-import org.opensaml.saml2.core.StatusCode;
-import org.opensaml.saml2.core.SubjectConfirmation;
-import org.opensaml.saml2.core.SubjectConfirmationData;
-
-import org.opensaml.saml2.core.AttributeStatement;
-import org.opensaml.saml2.core.Attribute;
-
-import org.opensaml.saml2.encryption.Decrypter;
-
-import org.opensaml.common.SAMLObjectBuilder;
-
-import org.opensaml.xml.parse.BasicParserPool;
-import org.opensaml.xml.io.MarshallingException;
-import org.opensaml.xml.security.SecurityException;
-import org.opensaml.xml.security.SecurityHelper;
-import org.opensaml.xml.security.credential.BasicCredential;
-import org.opensaml.xml.signature.SignatureValidator;
-import org.opensaml.xml.signature.Signer;
-import org.opensaml.xml.signature.impl.SignatureBuilder;
-import org.opensaml.xml.signature.Signature;
-import org.opensaml.xml.signature.SignatureConstants;
-import org.opensaml.xml.signature.SignatureException;
-import org.opensaml.xml.encryption.InlineEncryptedKeyResolver;
-import org.opensaml.xml.encryption.DecryptionException;
-import org.opensaml.xml.security.credential.BasicCredential;
-import org.opensaml.xml.security.keyinfo.StaticKeyInfoCredentialResolver;
-import org.opensaml.xml.security.x509.BasicX509Credential;
-import org.opensaml.xml.validation.ValidationException;
-import org.opensaml.xml.XMLObjectBuilderFactory;
-import org.opensaml.xml.XMLObject;
+import org.opensaml.xmlsec.signature.support.SignatureValidator;
+import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
+import net.shibboleth.utilities.java.support.xml.BasicParserPool;
+import net.shibboleth.utilities.java.support.xml.XMLParserException;
 
 import org.joda.time.DateTime;
+
+import org.opensaml.core.xml.XMLObject;
+import org.opensaml.core.xml.XMLObjectBuilder;
+import org.opensaml.core.xml.XMLObjectBuilderFactory;
+import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
+import org.opensaml.core.xml.io.MarshallingException;
+import org.opensaml.core.xml.io.UnmarshallerFactory;
+import org.opensaml.core.xml.io.UnmarshallingException;
+
+import org.opensaml.saml.saml2.core.Assertion;
+import org.opensaml.saml.saml2.core.Attribute;
+import org.opensaml.saml.saml2.core.AttributeStatement;
+import org.opensaml.saml.saml2.core.Audience;
+import org.opensaml.saml.saml2.core.AudienceRestriction;
+import org.opensaml.saml.saml2.core.AuthnRequest;
+import org.opensaml.saml.saml2.core.AuthnStatement;
+import org.opensaml.saml.saml2.core.Conditions;
+import org.opensaml.saml.saml2.core.EncryptedAssertion;
+import org.opensaml.saml.saml2.core.Issuer;
+import org.opensaml.saml.saml2.core.LogoutRequest;
+import org.opensaml.saml.saml2.core.LogoutResponse;
+import org.opensaml.saml.saml2.core.NameID;
+import org.opensaml.saml.saml2.core.Response;
+import org.opensaml.saml.saml2.core.SessionIndex;
+import org.opensaml.saml.saml2.core.Status;
+import org.opensaml.saml.saml2.core.StatusCode;
+import org.opensaml.saml.saml2.core.Subject;
+import org.opensaml.saml.saml2.core.SubjectConfirmation;
+import org.opensaml.saml.saml2.core.SubjectConfirmationData;
+import org.opensaml.saml.saml2.encryption.Decrypter;
+
+import org.opensaml.security.SecurityException;
+import org.opensaml.security.credential.BasicCredential;
+import org.opensaml.security.x509.BasicX509Credential;
+
+import org.opensaml.xmlsec.SignatureSigningParameters;
+import org.opensaml.xmlsec.encryption.support.DecryptionException;
+import org.opensaml.xmlsec.encryption.support.InlineEncryptedKeyResolver;
+import org.opensaml.xmlsec.keyinfo.impl.StaticKeyInfoCredentialResolver;
+import org.opensaml.xmlsec.signature.Signature;
+import org.opensaml.xmlsec.signature.impl.SignatureBuilder;
+import org.opensaml.xmlsec.signature.support.SignatureConstants;
+import org.opensaml.xmlsec.signature.support.SignatureException;
+import org.opensaml.xmlsec.signature.support.SignatureSupport;
+import org.opensaml.xmlsec.signature.support.SignatureValidator;
+import org.opensaml.xmlsec.signature.support.Signer;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.ls.DOMImplementationLS;
 import org.w3c.dom.ls.LSSerializer;
 import org.xml.sax.InputSource;
-import java.io.StringReader;
+import org.xml.sax.SAXException;
+
+import javax.xml.bind.DatatypeConverter;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
-import java.io.IOException;
-
-import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.Deflater;
 
-import javax.xml.bind.DatatypeConverter;
-
+import org.opensaml.security.credential.BasicCredential;
+import org.opensaml.security.credential.CredentialSupport;
 /**
  * A SAMLClient acts as on behalf of a SAML Service Provider to generate
  * requests and process responses.
@@ -107,13 +113,14 @@ import javax.xml.bind.DatatypeConverter;
  * SDK.
  */
 public class SAMLClient {
+	
 	private SPConfig spConfig;
 	private IdPConfig idpConfig;
-	private SignatureValidator sigValidator;
 	private BasicParserPool parsers;
 	private X509Certificate entityCertificate;
 	private boolean requireSignedAssertion = true;
-
+	private BasicCredential idpCredential;	
+	
 	public boolean isRequireSignedAssertion() {
 		return requireSignedAssertion;
 	}
@@ -137,20 +144,27 @@ public class SAMLClient {
 	 * Create a new SAMLClient, using the IdPConfig for endpoints and validation.
 	 */
 	public SAMLClient(SPConfig spConfig, IdPConfig idpConfig) throws SAMLException {
-		this.spConfig = spConfig;
-		this.idpConfig = idpConfig;
+	    this.spConfig = spConfig;
+	    this.idpConfig = idpConfig;
 
-		BasicCredential cred = new BasicCredential();
-		cred.setEntityId(idpConfig.getEntityId());
-		cred.setPublicKey(idpConfig.getCert().getPublicKey());
+	    BasicCredential cred =
+	        CredentialSupport.getSimpleCredential(idpConfig.getCert().getPublicKey(), null);
+	    cred.setEntityId(idpConfig.getEntityId());
 
-		sigValidator = new SignatureValidator(cred);
+	    parsers = new BasicParserPool();
+	    parsers.setNamespaceAware(true);
 
-		// create xml parsers
-		parsers = new BasicParserPool();
-		parsers.setNamespaceAware(true);
+	    this.idpCredential =
+	    	    CredentialSupport.getSimpleCredential(idpConfig.getCert().getPublicKey(), null);
+	    	this.idpCredential.setEntityId(idpConfig.getEntityId());
+	    	
+	    try {
+	        parsers.initialize();
+	    } catch (ComponentInitializationException e) {
+	        throw new SAMLException(e);
+	    }
 	}
-
+	
 	public X509Certificate getEntityCertificate() {
 		return entityCertificate;
 	}
@@ -178,69 +192,63 @@ public class SAMLClient {
 	}
 
 	private Response parseResponse(String authnResponse) throws SAMLException {
-		try {
-			Document doc = parsers.getBuilder().parse(new InputSource(new StringReader(authnResponse)));
+	    try {
+	        Document doc = parsers.getBuilder().parse(new InputSource(new StringReader(authnResponse)));
+	        Element root = doc.getDocumentElement();
 
-			Element root = doc.getDocumentElement();
-			return (Response) Configuration.getUnmarshallerFactory().getUnmarshaller(root).unmarshall(root);
-		} catch (org.opensaml.xml.parse.XMLParserException e) {
-			throw new SAMLException(e);
-		} catch (org.opensaml.xml.io.UnmarshallingException e) {
-			throw new SAMLException(e);
-		} catch (org.xml.sax.SAXException e) {
-			throw new SAMLException(e);
-		} catch (java.io.IOException e) {
-			throw new SAMLException(e);
-		}
+	        UnmarshallerFactory unmarshallerFactory =
+	                XMLObjectProviderRegistrySupport.getUnmarshallerFactory();
+
+	        return (Response) unmarshallerFactory.getUnmarshaller(root).unmarshall(root);
+	    } catch (XMLParserException | UnmarshallingException | SAXException | IOException e) {
+	        throw new SAMLException(e);
+	    }
 	}
 
 	private LogoutResponse parseLogoutResponse(String authnResponse) throws SAMLException {
-		try {
-			Document doc = parsers.getBuilder().parse(new InputSource(new StringReader(authnResponse)));
+	    try {
+	        Document doc = parsers.getBuilder().parse(new InputSource(new StringReader(authnResponse)));
+	        Element root = doc.getDocumentElement();
 
-			Element root = doc.getDocumentElement();
-			return (LogoutResponse) Configuration.getUnmarshallerFactory().getUnmarshaller(root).unmarshall(root);
-		} catch (org.opensaml.xml.parse.XMLParserException e) {
-			throw new SAMLException(e);
-		} catch (org.opensaml.xml.io.UnmarshallingException e) {
-			throw new SAMLException(e);
-		} catch (org.xml.sax.SAXException e) {
-			throw new SAMLException(e);
-		} catch (java.io.IOException e) {
-			throw new SAMLException(e);
-		}
+	        UnmarshallerFactory unmarshallerFactory =
+	                XMLObjectProviderRegistrySupport.getUnmarshallerFactory();
+
+	        return (LogoutResponse) unmarshallerFactory.getUnmarshaller(root).unmarshall(root);
+	    } catch (XMLParserException | UnmarshallingException | SAXException | IOException e) {
+	        throw new SAMLException(e);
+	    }
 	}
 
 	private LogoutRequest parseLogoutRequest(String authnRequest) throws SAMLException {
-		try {
-			Document doc = parsers.getBuilder().parse(new InputSource(new StringReader(authnRequest)));
+	    try {
+	        Document doc = parsers.getBuilder().parse(new InputSource(new StringReader(authnRequest)));
+	        Element root = doc.getDocumentElement();
 
-			Element root = doc.getDocumentElement();
-			return (LogoutRequest) Configuration.getUnmarshallerFactory().getUnmarshaller(root).unmarshall(root);
-		} catch (org.opensaml.xml.parse.XMLParserException e) {
-			throw new SAMLException(e);
-		} catch (org.opensaml.xml.io.UnmarshallingException e) {
-			throw new SAMLException(e);
-		} catch (org.xml.sax.SAXException e) {
-			throw new SAMLException(e);
-		} catch (java.io.IOException e) {
-			throw new SAMLException(e);
-		}
+	        UnmarshallerFactory unmarshallerFactory =
+	                XMLObjectProviderRegistrySupport.getUnmarshallerFactory();
+
+	        return (LogoutRequest) unmarshallerFactory.getUnmarshaller(root).unmarshall(root);
+	    } catch (XMLParserException | UnmarshallingException | SAXException | IOException e) {
+	        throw new SAMLException(e);
+	    }
 	}
-
 	/**
 	 * Decrypt an assertion using the privkey stored in SPConfig.
 	 */
 	private Assertion decrypt(EncryptedAssertion encrypted) throws DecryptionException {
-		if (spConfig.getPrivateKey() == null)
-			throw new DecryptionException("Encrypted assertion found but no SP key available");
-		BasicCredential cred = new BasicCredential();
-		cred.setPrivateKey(spConfig.getPrivateKey());
-		StaticKeyInfoCredentialResolver resolver = new StaticKeyInfoCredentialResolver(cred);
-		Decrypter decrypter = new Decrypter(null, resolver, new InlineEncryptedKeyResolver());
-		decrypter.setRootInNewDocument(true);
+	    if (spConfig.getPrivateKey() == null) {
+	        throw new DecryptionException("Encrypted assertion found but no SP key available");
+	    }
+	    BasicCredential cred =
+	    	    CredentialSupport.getSimpleCredential(idpConfig.getCert().getPublicKey(), null);
+	    	cred.setEntityId(idpConfig.getEntityId());
+	    cred.setPrivateKey(spConfig.getPrivateKey());
 
-		return decrypter.decrypt(encrypted);
+	    StaticKeyInfoCredentialResolver resolver = new StaticKeyInfoCredentialResolver(cred);
+	    Decrypter decrypter = new Decrypter(null, resolver, new InlineEncryptedKeyResolver());
+	    decrypter.setRootInNewDocument(true);
+
+	    return decrypter.decrypt(encrypted);
 	}
 
 	/**
@@ -258,21 +266,21 @@ public class SAMLClient {
 		return assertions;
 	}
 
-	private void validateLogout(LogoutResponse response) throws ValidationException {
+	private void validateLogout(LogoutResponse response) throws SAMLException, SignatureException{
 		// response signature must match IdP's key, if present
 		Signature sig = response.getSignature();
 		if (sig != null)
-			sigValidator.validate(sig);
+			SignatureValidator.validate(sig, idpCredential);
 
 		// response must be successful
 		if (response.getStatus() == null || response.getStatus().getStatusCode() == null
-				|| !(StatusCode.SUCCESS_URI.equals(response.getStatus().getStatusCode().getValue()))) {
-			throw new ValidationException("Response has an unsuccessful status code");
+				|| !(StatusCode.SUCCESS.equals(response.getStatus().getStatusCode().getValue()))) {
+			throw new SAMLException("Response has an unsuccessful status code");
 		}
 
 		// response destination must match ACS
 		if (!spConfig.getLogoutResult().equals(response.getDestination()))
-			throw new ValidationException("Response is destined for a different endpoint");
+			throw new SAMLException("Response is destined for a different endpoint");
 
 		DateTime now = DateTime.now();
 
@@ -281,23 +289,23 @@ public class SAMLClient {
 
 		if (issueInstant != null) {
 			if (issueInstant.isBefore(now.minusSeconds(slack)))
-				throw new ValidationException("Response IssueInstant is in the past");
+				throw new SAMLException("Response IssueInstant is in the past");
 
 			if (issueInstant.isAfter(now.plusSeconds(slack)))
-				throw new ValidationException("Response IssueInstant is in the future");
+				throw new SAMLException("Response IssueInstant is in the future");
 		}
 
 	}
 
-	private void validateLogoutRequest(LogoutRequest request) throws ValidationException {
+	private void validateLogoutRequest(LogoutRequest request) throws SAMLException, SignatureException {
 		// response signature must match IdP's key, if present
 		Signature sig = request.getSignature();
 		if (sig != null)
-			sigValidator.validate(sig);
+			SignatureValidator.validate(sig, idpCredential);
 
 		// response destination must match ACS
 		if (!spConfig.getLogoutRequest().equals(request.getDestination()))
-			throw new ValidationException("Response is destined for a different endpoint");
+			throw new SAMLException("Response is destined for a different endpoint");
 
 		DateTime now = DateTime.now();
 
@@ -306,29 +314,29 @@ public class SAMLClient {
 
 		if (issueInstant != null) {
 			if (issueInstant.isBefore(now.minusSeconds(slack)))
-				throw new ValidationException("Response IssueInstant is in the past");
+				throw new SAMLException("Response IssueInstant is in the past");
 
 			if (issueInstant.isAfter(now.plusSeconds(slack)))
-				throw new ValidationException("Response IssueInstant is in the future");
+				throw new SAMLException("Response IssueInstant is in the future");
 		}
 
 	}
 
-	private void validate(Response response) throws ValidationException {
+	private void validate(Response response) throws SAMLException, SignatureException {
 		// response signature must match IdP's key, if present
 		Signature sig = response.getSignature();
 		if (sig != null)
-			sigValidator.validate(sig);
+			SignatureValidator.validate(sig, idpCredential);
 
 		// response must be successful
 		if (response.getStatus() == null || response.getStatus().getStatusCode() == null
-				|| !(StatusCode.SUCCESS_URI.equals(response.getStatus().getStatusCode().getValue()))) {
-			throw new ValidationException("Response has an unsuccessful status code");
+				|| !(StatusCode.SUCCESS.equals(response.getStatus().getStatusCode().getValue()))) {
+			throw new SAMLException("Response has an unsuccessful status code");
 		}
 
 		// response destination must match ACS
 		if (!spConfig.getAcs().equals(response.getDestination()))
-			throw new ValidationException("Response is destined for a different endpoint");
+			throw new SAMLException("Response is destined for a different endpoint");
 
 		DateTime now = DateTime.now();
 
@@ -337,55 +345,55 @@ public class SAMLClient {
 
 		if (issueInstant != null) {
 			if (issueInstant.isBefore(now.minusSeconds(slack)))
-				throw new ValidationException("Response IssueInstant is in the past");
+				throw new SAMLException("Response IssueInstant is in the past");
 
 			if (issueInstant.isAfter(now.plusSeconds(slack)))
-				throw new ValidationException("Response IssueInstant is in the future");
+				throw new SAMLException("Response IssueInstant is in the future");
 		}
 
 		List<Assertion> assertions = null;
 		try {
 			assertions = getAssertions(response);
 		} catch (DecryptionException e) {
-			throw new ValidationException(e);
+			throw new SAMLException(e);
 		}
 
 		for (Assertion assertion : assertions) {
 
 			// Assertion must be signed correctly
 			if (requireSignedAssertion && !assertion.isSigned())
-				throw new ValidationException("Assertion must be signed");
+				throw new SAMLException("Assertion must be signed");
 
 			sig = assertion.getSignature();
 			if (sig != null)
-				sigValidator.validate(sig);
+				SignatureValidator.validate(sig, idpCredential);
 
 			// Assertion must contain an authnstatement
 			// with an unexpired session
 			if (assertion.getAuthnStatements().isEmpty()) {
-				throw new ValidationException("Assertion should contain an AuthnStatement");
+				throw new SAMLException("Assertion should contain an AuthnStatement");
 			}
 			for (AuthnStatement as : assertion.getAuthnStatements()) {
 				DateTime sessionTime = as.getSessionNotOnOrAfter();
 				if (sessionTime != null) {
 					DateTime exp = sessionTime.plusSeconds(slack);
 					if (exp != null && (now.isEqual(exp) || now.isAfter(exp)))
-						throw new ValidationException("AuthnStatement has expired");
+						throw new SAMLException("AuthnStatement has expired");
 				}
 			}
 
 			if (assertion.getConditions() == null) {
-				throw new ValidationException("Assertion should contain conditions");
+				throw new SAMLException("Assertion should contain conditions");
 			}
 
 			// Assertion IssueInstant must be within a day
 			DateTime instant = assertion.getIssueInstant();
 			if (instant != null) {
 				if (instant.isBefore(now.minusSeconds(slack)))
-					throw new ValidationException("Response IssueInstant is in the past");
+					throw new SAMLException("Response IssueInstant is in the past");
 
 				if (instant.isAfter(now.plusSeconds(slack)))
-					throw new ValidationException("Response IssueInstant is in the future");
+					throw new SAMLException("Response IssueInstant is in the future");
 			}
 
 			// Conditions must be met by current time
@@ -394,16 +402,16 @@ public class SAMLClient {
 			DateTime notOnOrAfter = conditions.getNotOnOrAfter();
 
 			if (notBefore == null || notOnOrAfter == null)
-				throw new ValidationException("Assertion conditions must have limits");
+				throw new SAMLException("Assertion conditions must have limits");
 
 			notBefore = notBefore.minusSeconds(slack);
 			notOnOrAfter = notOnOrAfter.plusSeconds(slack);
 
 			if (now.isBefore(notBefore))
-				throw new ValidationException("Assertion conditions is in the future");
+				throw new SAMLException("Assertion conditions is in the future");
 
 			if (now.isEqual(notOnOrAfter) || now.isAfter(notOnOrAfter))
-				throw new ValidationException("Assertion conditions is in the past");
+				throw new SAMLException("Assertion conditions is in the past");
 
 			// If subjectConfirmationData is included, it must
 			// have a recipient that matches ACS, with a valid
@@ -419,7 +427,7 @@ public class SAMLClient {
 					if (scd.getNotOnOrAfter() != null) {
 						DateTime chkdate = scd.getNotOnOrAfter().plusSeconds(slack);
 						if (now.isEqual(chkdate) || now.isAfter(chkdate)) {
-							throw new ValidationException("SubjectConfirmationData is in the past");
+							throw new SAMLException("SubjectConfirmationData is in the past");
 						}
 					}
 
@@ -428,17 +436,17 @@ public class SAMLClient {
 				}
 
 				if (!foundRecipient)
-					throw new ValidationException("No SubjectConfirmationData found for ACS");
+					throw new SAMLException("No SubjectConfirmationData found for ACS");
 			}
 
 			// audience must include intended SP issuer
 			if (conditions.getAudienceRestrictions().isEmpty())
-				throw new ValidationException("Assertion conditions must have audience restrictions");
+				throw new SAMLException("Assertion conditions must have audience restrictions");
 
 			// only one audience restriction supported: we can only
 			// check against the single SP.
 			if (conditions.getAudienceRestrictions().size() > 1)
-				throw new ValidationException("Assertion contains multiple audience restrictions");
+				throw new SAMLException("Assertion contains multiple audience restrictions");
 
 			AudienceRestriction ar = conditions.getAudienceRestrictions().get(0);
 
@@ -449,7 +457,7 @@ public class SAMLClient {
 					foundSP = true;
 			}
 			if (!foundSP)
-				throw new ValidationException("Assertion audience does not include issuer");
+				throw new SAMLException("Assertion audience does not include issuer");
 		}
 	}
 
@@ -464,189 +472,210 @@ public class SAMLClient {
 	}
 
 	@SuppressWarnings("unchecked")
-	private String createLogoutRequest(String requestId, String nameId, String sessionIndex) throws SAMLException,
-			NoSuchAlgorithmException, InvalidKeySpecException, CertificateException, IOException, SecurityException {
-		XMLObjectBuilderFactory builderFactory = Configuration.getBuilderFactory();
-
-		SAMLObjectBuilder<LogoutRequest> builder = (SAMLObjectBuilder<LogoutRequest>) builderFactory
-				.getBuilder(LogoutRequest.DEFAULT_ELEMENT_NAME);
-
-		SAMLObjectBuilder<Issuer> issuerBuilder = (SAMLObjectBuilder<Issuer>) builderFactory
-				.getBuilder(Issuer.DEFAULT_ELEMENT_NAME);
-
-		SAMLObjectBuilder<NameID> nameIdBuilder = (SAMLObjectBuilder<NameID>) builderFactory
-				.getBuilder(NameID.DEFAULT_ELEMENT_NAME);
-
-		SAMLObjectBuilder<SessionIndex> sesIndexBuilder = (SAMLObjectBuilder<SessionIndex>) builderFactory
-				.getBuilder(SessionIndex.DEFAULT_ELEMENT_NAME);
-
-		LogoutRequest request = builder.buildObject();
-		request.setDestination(idpConfig.getLogoutUrl().toString());
-		request.setIssueInstant(new DateTime());
-		request.setID(requestId);
-
-		NameID n = nameIdBuilder.buildObject();
-		n.setValue(nameId);
-		request.setNameID(n);
-		SessionIndex s = sesIndexBuilder.buildObject();
-		s.setSessionIndex(sessionIndex);
-		request.getSessionIndexes().add(s);
-
-		Issuer issuer = issuerBuilder.buildObject();
-		issuer.setValue(spConfig.getEntityId());
-		request.setIssuer(issuer);
-		BasicX509Credential cred = new BasicX509Credential();
-		cred.setEntityId(spConfig.getEntityId());
-		cred.setPrivateKey(spConfig.getPrivateKey());
-		cred.setEntityCertificate(entityCertificate);
-
-		SignatureBuilder signFactory = new SignatureBuilder();
-		Signature signature = signFactory.buildObject(Signature.DEFAULT_ELEMENT_NAME);
-		signature.setCanonicalizationAlgorithm(SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
-		signature.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256);
-		signature.setSigningCredential(cred);
-		SecurityHelper.prepareSignatureParams(signature, cred, Configuration.getGlobalSecurityConfiguration(), null);
-		// set signature
-		request.setSignature(signature);
-
-		try {
-			// samlobject to xml dom object
-			Element elem = Configuration.getMarshallerFactory().getMarshaller(request).marshall(request);
-			try {
-				Signer.signObject(signature);
-			} catch (SignatureException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			// and to a string...
-			Document document = elem.getOwnerDocument();
-			DOMImplementationLS domImplLS = (DOMImplementationLS) document.getImplementation();
-			LSSerializer serializer = domImplLS.createLSSerializer();
-			serializer.getDomConfig().setParameter("xml-declaration", false);
-			return serializer.writeToString(elem);
-		} catch (MarshallingException e) {
-			throw new SAMLException(e);
-		}
+	private <T extends XMLObject> XMLObjectBuilder<T> getBuilder(javax.xml.namespace.QName elementName) throws SAMLException {
+	    XMLObjectBuilderFactory builderFactory = XMLObjectProviderRegistrySupport.getBuilderFactory();
+	    XMLObjectBuilder<T> builder = (XMLObjectBuilder<T>) builderFactory.getBuilder(elementName);
+	    if (builder == null) {
+	        throw new SAMLException("No builder found for " + elementName);
+	    }
+	    return builder;
 	}
 
-	@SuppressWarnings("unchecked")
-	private String createLogoutResponse(String requestId, String inResponseTo, String statusCode) throws SAMLException,
-			NoSuchAlgorithmException, InvalidKeySpecException, CertificateException, IOException, SecurityException {
-		XMLObjectBuilderFactory builderFactory = Configuration.getBuilderFactory();
-
-		SAMLObjectBuilder<LogoutResponse> builder = (SAMLObjectBuilder<LogoutResponse>) builderFactory
-				.getBuilder(LogoutResponse.DEFAULT_ELEMENT_NAME);
-
-		SAMLObjectBuilder<Issuer> issuerBuilder = (SAMLObjectBuilder<Issuer>) builderFactory
-				.getBuilder(Issuer.DEFAULT_ELEMENT_NAME);
-
-		SAMLObjectBuilder<Status> statusBuilder = (SAMLObjectBuilder<Status>) builderFactory
-				.getBuilder(Status.DEFAULT_ELEMENT_NAME);
-		SAMLObjectBuilder<StatusCode> statusCodeBuilder = (SAMLObjectBuilder<StatusCode>) builderFactory
-				.getBuilder(StatusCode.DEFAULT_ELEMENT_NAME);
-
-		LogoutResponse response = builder.buildObject();
-		response.setDestination(spConfig.getLogoutRequest().toString());
-		response.setIssueInstant(new DateTime());
-		response.setID(requestId);
-		response.setInResponseTo(inResponseTo);
-		Status s = statusBuilder.buildObject();
-		StatusCode code = statusCodeBuilder.buildObject();
-		code.setValue(statusCode);
-		s.setStatusCode(code);
-		response.setStatus(s);
-
-		Issuer issuer = issuerBuilder.buildObject();
-		issuer.setValue(spConfig.getEntityId());
-		response.setIssuer(issuer);
-		BasicX509Credential cred = new BasicX509Credential();
-		cred.setEntityId(spConfig.getEntityId());
-		cred.setPrivateKey(spConfig.getPrivateKey());
-		cred.setEntityCertificate(entityCertificate);
-
-		SignatureBuilder signFactory = new SignatureBuilder();
-		Signature signature = signFactory.buildObject(Signature.DEFAULT_ELEMENT_NAME);
-		signature.setCanonicalizationAlgorithm(SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
-		signature.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256);
-		signature.setSigningCredential(cred);
-		SecurityHelper.prepareSignatureParams(signature, cred, Configuration.getGlobalSecurityConfiguration(), null);
-		// set signature
-		response.setSignature(signature);
-
-		try {
-			// samlobject to xml dom object
-			Element elem = Configuration.getMarshallerFactory().getMarshaller(response).marshall(response);
-			try {
-				Signer.signObject(signature);
-			} catch (SignatureException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			// and to a string...
-			Document document = elem.getOwnerDocument();
-			DOMImplementationLS domImplLS = (DOMImplementationLS) document.getImplementation();
-			LSSerializer serializer = domImplLS.createLSSerializer();
-			serializer.getDomConfig().setParameter("xml-declaration", false);
-			return serializer.writeToString(elem);
-		} catch (MarshallingException e) {
-			throw new SAMLException(e);
-		}
+	private Element marshall(XMLObject xmlObject) throws SAMLException {
+	    try {
+	        return XMLObjectProviderRegistrySupport.getMarshallerFactory()
+	                .getMarshaller(xmlObject)
+	                .marshall(xmlObject);
+	    } catch (MarshallingException e) {
+	        throw new SAMLException(e);
+	    }
 	}
 
-	@SuppressWarnings("unchecked")
-	private String createAuthnRequest(String requestId) throws SAMLException, NoSuchAlgorithmException,
-			InvalidKeySpecException, CertificateException, IOException, SecurityException {
-		XMLObjectBuilderFactory builderFactory = Configuration.getBuilderFactory();
+	private String toXmlString(Element elem) {
+	    Document document = elem.getOwnerDocument();
+	    DOMImplementationLS domImplLS = (DOMImplementationLS) document.getImplementation();
+	    LSSerializer serializer = domImplLS.createLSSerializer();
+	    serializer.getDomConfig().setParameter("xml-declaration", false);
+	    return serializer.writeToString(elem);
+	}
+	
+	private Signature buildSignature(BasicX509Credential cred) throws SAMLException {
+	    try {
+	        SignatureBuilder signFactory = new SignatureBuilder();
+	        Signature signature = signFactory.buildObject(Signature.DEFAULT_ELEMENT_NAME);
 
-		SAMLObjectBuilder<AuthnRequest> builder = (SAMLObjectBuilder<AuthnRequest>) builderFactory
-				.getBuilder(AuthnRequest.DEFAULT_ELEMENT_NAME);
+	        SignatureSigningParameters signingParameters = new SignatureSigningParameters();
+	        signingParameters.setSigningCredential(cred);
+	        signingParameters.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256);
+	        signingParameters.setSignatureCanonicalizationAlgorithm(
+	                SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
 
-		SAMLObjectBuilder<Issuer> issuerBuilder = (SAMLObjectBuilder<Issuer>) builderFactory
-				.getBuilder(Issuer.DEFAULT_ELEMENT_NAME);
-
-		AuthnRequest request = builder.buildObject();
-		request.setAssertionConsumerServiceURL(spConfig.getAcs().toString());
-		request.setDestination(idpConfig.getLoginUrl().toString());
-		request.setIssueInstant(new DateTime());
-		request.setID(requestId);
-
-		Issuer issuer = issuerBuilder.buildObject();
-		issuer.setValue(spConfig.getEntityId());
-		request.setIssuer(issuer);
-		BasicX509Credential cred = new BasicX509Credential();
-		cred.setEntityId(spConfig.getEntityId());
-		cred.setPrivateKey(spConfig.getPrivateKey());
-		cred.setEntityCertificate(entityCertificate);
-
-		SignatureBuilder signFactory = new SignatureBuilder();
-		Signature signature = signFactory.buildObject(Signature.DEFAULT_ELEMENT_NAME);
-		signature.setCanonicalizationAlgorithm(SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
-		signature.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256);
-		signature.setSigningCredential(cred);
-		SecurityHelper.prepareSignatureParams(signature, cred, Configuration.getGlobalSecurityConfiguration(), null);
-		// set signature
-		request.setSignature(signature);
-
-		try {
-			// samlobject to xml dom object
-			Element elem = Configuration.getMarshallerFactory().getMarshaller(request).marshall(request);
-			try {
-				Signer.signObject(signature);
-			} catch (SignatureException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			// and to a string...
-			Document document = elem.getOwnerDocument();
-			DOMImplementationLS domImplLS = (DOMImplementationLS) document.getImplementation();
-			LSSerializer serializer = domImplLS.createLSSerializer();
-			serializer.getDomConfig().setParameter("xml-declaration", false);
-			return serializer.writeToString(elem);
-		} catch (MarshallingException e) {
-			throw new SAMLException(e);
-		}
+	        SignatureSupport.prepareSignatureParams(signature, signingParameters);
+	        return signature;
+	    } catch (SecurityException e) {
+	        throw new SAMLException(e);
+	    }
 	}
 
+	private BasicX509Credential buildSigningCredential() {
+	    BasicX509Credential cred = new BasicX509Credential(entityCertificate);
+	    cred.setPrivateKey(spConfig.getPrivateKey());	    
+	    cred.setEntityId(spConfig.getEntityId());
+	    cred.setPrivateKey(spConfig.getPrivateKey());
+	    cred.setEntityCertificate(entityCertificate);
+	    return cred;
+	}
+	
+	private String createLogoutRequest(String requestId, String nameId, String sessionIndex)
+	        throws SAMLException, NoSuchAlgorithmException, InvalidKeySpecException,
+	               CertificateException, IOException, SecurityException {
+
+	    XMLObjectBuilder<LogoutRequest> builder = getBuilder(LogoutRequest.DEFAULT_ELEMENT_NAME);
+	    XMLObjectBuilder<Issuer> issuerBuilder = getBuilder(Issuer.DEFAULT_ELEMENT_NAME);
+	    XMLObjectBuilder<NameID> nameIdBuilder = getBuilder(NameID.DEFAULT_ELEMENT_NAME);
+	    XMLObjectBuilder<SessionIndex> sesIndexBuilder = getBuilder(SessionIndex.DEFAULT_ELEMENT_NAME);
+
+	    LogoutRequest request = builder.buildObject(LogoutRequest.DEFAULT_ELEMENT_NAME);
+	    request.setDestination(idpConfig.getLogoutUrl().toString());
+	    request.setIssueInstant(new DateTime());
+	    request.setID(requestId);
+
+	    NameID n = nameIdBuilder.buildObject(NameID.DEFAULT_ELEMENT_NAME);
+	    n.setValue(nameId);
+	    request.setNameID(n);
+
+	    SessionIndex s = sesIndexBuilder.buildObject(SessionIndex.DEFAULT_ELEMENT_NAME);
+	    s.setSessionIndex(sessionIndex);
+	    request.getSessionIndexes().add(s);
+
+	    Issuer issuer = issuerBuilder.buildObject(Issuer.DEFAULT_ELEMENT_NAME);
+	    issuer.setValue(spConfig.getEntityId());
+	    request.setIssuer(issuer);
+
+	    BasicX509Credential cred = buildSigningCredential();
+	    Signature signature = buildSignature(cred);
+	    request.setSignature(signature);
+
+	    Element elem = marshall(request);
+
+	    try {
+	        Signer.signObject(signature);
+	    } catch (SignatureException e) {
+	        throw new SAMLException(e);
+	    }
+
+	    return toXmlString(elem);
+	}
+	
+	private String createLogoutResponse(String requestId, String inResponseTo, String statusCode)
+	        throws SAMLException, NoSuchAlgorithmException, InvalidKeySpecException,
+	               CertificateException, IOException, SecurityException {
+
+	    XMLObjectBuilder<LogoutResponse> builder = getBuilder(LogoutResponse.DEFAULT_ELEMENT_NAME);
+	    XMLObjectBuilder<Issuer> issuerBuilder = getBuilder(Issuer.DEFAULT_ELEMENT_NAME);
+	    XMLObjectBuilder<Status> statusBuilder = getBuilder(Status.DEFAULT_ELEMENT_NAME);
+	    XMLObjectBuilder<StatusCode> statusCodeBuilder = getBuilder(StatusCode.DEFAULT_ELEMENT_NAME);
+
+	    LogoutResponse response = builder.buildObject(LogoutResponse.DEFAULT_ELEMENT_NAME);
+	    response.setDestination(spConfig.getLogoutRequest().toString());
+	    response.setIssueInstant(new DateTime());
+	    response.setID(requestId);
+	    response.setInResponseTo(inResponseTo);
+
+	    // Status
+	    Status s = statusBuilder.buildObject(Status.DEFAULT_ELEMENT_NAME);
+	    StatusCode code = statusCodeBuilder.buildObject(StatusCode.DEFAULT_ELEMENT_NAME);
+	    code.setValue(statusCode);
+	    s.setStatusCode(code);
+	    response.setStatus(s);
+
+	    // Issuer
+	    Issuer issuer = issuerBuilder.buildObject(Issuer.DEFAULT_ELEMENT_NAME);
+	    issuer.setValue(spConfig.getEntityId());
+	    response.setIssuer(issuer);
+
+	    // Credential
+	    BasicX509Credential cred = buildSigningCredential();
+
+	    // Signature
+	    Signature signature = (Signature) XMLObjectProviderRegistrySupport.getBuilderFactory()
+	            .getBuilder(Signature.DEFAULT_ELEMENT_NAME)
+	            .buildObject(Signature.DEFAULT_ELEMENT_NAME);
+
+	    SignatureSigningParameters signingParameters = new SignatureSigningParameters();
+	    signingParameters.setSigningCredential(cred);
+	    signingParameters.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256);
+	    signingParameters.setSignatureCanonicalizationAlgorithm(
+	            SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
+
+	    try {
+	        SignatureSupport.prepareSignatureParams(signature, signingParameters);
+	    } catch (org.opensaml.security.SecurityException e) {
+	        throw new SAMLException(e);
+	    }
+
+	    response.setSignature(signature);
+
+	    // Marshall
+	    Element elem = marshall(response);
+
+	    // Sign AFTER marshalling
+	    try {
+	        Signer.signObject(signature);
+	    } catch (SignatureException e) {
+	        throw new SAMLException(e);
+	    }
+
+	    return toXmlString(elem);
+	}
+	private String createAuthnRequest(String requestId)
+	        throws SAMLException, NoSuchAlgorithmException, InvalidKeySpecException,
+	               CertificateException, IOException, SecurityException {
+
+	    XMLObjectBuilder<AuthnRequest> builder = getBuilder(AuthnRequest.DEFAULT_ELEMENT_NAME);
+	    XMLObjectBuilder<Issuer> issuerBuilder = getBuilder(Issuer.DEFAULT_ELEMENT_NAME);
+
+	    AuthnRequest request = builder.buildObject(AuthnRequest.DEFAULT_ELEMENT_NAME);
+	    request.setAssertionConsumerServiceURL(spConfig.getAcs().toString());
+	    request.setDestination(idpConfig.getLoginUrl().toString());
+	    request.setIssueInstant(new DateTime());
+	    request.setID(requestId);
+
+	    Issuer issuer = issuerBuilder.buildObject(Issuer.DEFAULT_ELEMENT_NAME);
+	    issuer.setValue(spConfig.getEntityId());
+	    request.setIssuer(issuer);
+
+	    BasicX509Credential cred = buildSigningCredential();
+
+	    Signature signature = (Signature) XMLObjectProviderRegistrySupport
+	            .getBuilderFactory()
+	            .getBuilder(Signature.DEFAULT_ELEMENT_NAME)
+	            .buildObject(Signature.DEFAULT_ELEMENT_NAME);
+
+	    SignatureSigningParameters signingParameters = new SignatureSigningParameters();
+	    signingParameters.setSigningCredential(cred);
+	    signingParameters.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256);
+	    signingParameters.setSignatureCanonicalizationAlgorithm(
+	            SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
+
+	    try {
+	        SignatureSupport.prepareSignatureParams(signature, signingParameters);
+	    } catch (org.opensaml.security.SecurityException e) {
+	        throw new SAMLException(e);
+	    }
+
+	    request.setSignature(signature);
+
+	    Element elem = marshall(request);
+
+	    try {
+	        Signer.signObject(signature);
+	    } catch (SignatureException e) {
+	        throw new SAMLException(e);
+	    }
+
+	    return toXmlString(elem);
+	}
 	private byte[] deflate(byte[] input) throws IOException {
 		// deflate and base-64 encode it
 		Deflater deflater = new Deflater(Deflater.DEFAULT_COMPRESSION, true);
@@ -738,7 +767,7 @@ public class SAMLClient {
 
 		try {
 			validateLogout(response);
-		} catch (ValidationException e) {
+		} catch (SAMLException | SignatureException e) {
 			throw new SAMLException(e);
 		}
 		return response;
@@ -764,7 +793,7 @@ public class SAMLClient {
 
 		try {
 			validateLogoutRequest(request);
-		} catch (ValidationException e) {
+		} catch (SAMLException | SignatureException e) {
 			throw new SAMLException(e);
 		}
 		return request;
@@ -792,7 +821,7 @@ public class SAMLClient {
 
 		try {
 			validate(response);
-		} catch (ValidationException e) {
+		} catch (SAMLException | SignatureException e) {
 			throw new SAMLException(e);
 		}
 
