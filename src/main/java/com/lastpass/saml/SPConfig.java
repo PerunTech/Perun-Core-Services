@@ -1,34 +1,21 @@
-/*
- * SPConfig - configuration settings for a service provider.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy
- * of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- *
- * Copyright (c) 2014 LastPass, Inc.
- */
 package com.lastpass.saml;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-
-import org.opensaml.Configuration;
-import org.opensaml.xml.parse.BasicParserPool;
-import org.opensaml.xml.io.UnmarshallerFactory;
-import org.opensaml.saml2.metadata.EntityDescriptor;
-import org.opensaml.saml2.metadata.SPSSODescriptor;
-import org.opensaml.saml2.metadata.AssertionConsumerService;
-import org.opensaml.common.xml.SAMLConstants;
 import java.security.PrivateKey;
+
+import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
+import net.shibboleth.utilities.java.support.xml.BasicParserPool;
+import net.shibboleth.utilities.java.support.xml.XMLParserException;
+
+import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
+import org.opensaml.core.xml.io.UnmarshallerFactory;
+import org.opensaml.core.xml.io.UnmarshallingException;
+import org.opensaml.saml.common.xml.SAMLConstants;
+import org.opensaml.saml.saml2.metadata.AssertionConsumerService;
+import org.opensaml.saml.saml2.metadata.EntityDescriptor;
+import org.opensaml.saml.saml2.metadata.SPSSODescriptor;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -38,166 +25,170 @@ import org.w3c.dom.Element;
  * authorization. This information is put into the auth request sent to the IdP.
  */
 public class SPConfig {
-	/** From whom requests are sent */
-	private String entityId;
+    /** From whom requests are sent */
+    private String entityId;
 
-	/** Where the assertions are sent */
-	private String acs;
+    /** Where the assertions are sent */
+    private String acs;
 
-	/** Where the logout results are sent */
-	private String logoutResult;
+    /** Where the logout results are sent */
+    private String logoutResult;
 
+    /** Where the logout request are sent */
+    private String logoutRequest;
 
-	/** Where the logout request are sent */
-	private String logoutRequest;
-	
-	public String getLogoutResult() {
-		return logoutResult;
-	}
+    /** Private key used for decrypting assertions */
+    private PrivateKey privateKey;
 
-	public void setLogoutResult(String logoutResult) {
-		this.logoutResult = logoutResult;
-	}
+    public String getLogoutResult() {
+        return logoutResult;
+    }
 
-	public String getLogoutRequest() {
-		return logoutRequest;
-	}
+    public void setLogoutResult(String logoutResult) {
+        this.logoutResult = logoutResult;
+    }
 
-	public void setLogoutRequest(String logoutRequest) {
-		this.logoutRequest = logoutRequest;
-	}
+    public String getLogoutRequest() {
+        return logoutRequest;
+    }
 
-	/** Private key used for decrypting assertions */
-	private PrivateKey privateKey;
+    public void setLogoutRequest(String logoutRequest) {
+        this.logoutRequest = logoutRequest;
+    }
 
-	/**
-	 * Construct a new, empty SPConfig.
-	 */
-	public SPConfig() {
+    /**
+     * Construct a new, empty SPConfig.
+     */
+    public SPConfig() {
+    }
 
-	}
+    /**
+     * Construct a new SPConfig from a metadata XML file.
+     *
+     * @param metadataFile File where the metadata lives
+     * @throws SAMLException if an error occurs while parsing the metadata
+     */
+    public SPConfig(File metadataFile) throws SAMLException {
+        FileInputStream inputStream;
+        try {
+            inputStream = new FileInputStream(metadataFile);
+        } catch (java.io.IOException e) {
+            throw new SAMLException(e);
+        }
 
-	/**
-	 * Construct a new SPConfig from a metadata XML file.
-	 *
-	 * @param metadataFile File where the metadata lives
-	 *
-	 * @throws SAMLException if an error condition occurs while trying to parse and
-	 *                       process the metadata
-	 */
-	public SPConfig(File metadataFile) throws SAMLException {
-		FileInputStream inputStream;
-		try {
-			inputStream = new FileInputStream(metadataFile);
-		} catch (java.io.IOException e) {
-			throw new SAMLException(e);
-		}
+        try {
+            init(inputStream);
+        } finally {
+            try {
+                inputStream.close();
+            } catch (java.io.IOException e) {
+                // Ignore
+            }
+        }
+    }
 
-		try {
-			init(inputStream);
-		} finally {
-			try {
-				inputStream.close();
-			} catch (java.io.IOException e) {
-				// Ignore
-			}
-		}
-	}
+    /**
+     * Construct a new SPConfig from a metadata XML input stream.
+     *
+     * @param inputStream An input stream containing a metadata XML document
+     * @throws SAMLException if an error occurs while parsing the metadata
+     */
+    public SPConfig(InputStream inputStream) throws SAMLException {
+        init(inputStream);
+    }
 
-	/**
-	 * Construct a new SPConfig from a metadata XML input stream.
-	 *
-	 * @param inputStream An input stream containing a metadata XML document
-	 *
-	 * @throws SAMLException if an error condition occurs while trying to parse and
-	 *                       process the metadata
-	 */
-	public SPConfig(InputStream inputStream) throws SAMLException {
-		init(inputStream);
-	}
+    private void init(InputStream inputStream) throws SAMLException {
+        BasicParserPool parsers = new BasicParserPool();
+        parsers.setNamespaceAware(true);
 
-	private void init(InputStream inputStream) throws SAMLException {
-		BasicParserPool parsers = new BasicParserPool();
-		parsers.setNamespaceAware(true);
+        try {
+            parsers.initialize();
+        } catch (ComponentInitializationException e) {
+            throw new SAMLException(e);
+        }
 
-		EntityDescriptor edesc;
+        EntityDescriptor edesc;
 
-		try {
-			Document doc = parsers.parse(inputStream);
-			Element root = doc.getDocumentElement();
+        try {
+            Document doc = parsers.parse(inputStream);
+            Element root = doc.getDocumentElement();
 
-			UnmarshallerFactory unmarshallerFactory = Configuration.getUnmarshallerFactory();
+            UnmarshallerFactory unmarshallerFactory =
+                    XMLObjectProviderRegistrySupport.getUnmarshallerFactory();
 
-			edesc = (EntityDescriptor) unmarshallerFactory.getUnmarshaller(root).unmarshall(root);
-		} catch (org.opensaml.xml.parse.XMLParserException e) {
-			throw new SAMLException(e);
-		} catch (org.opensaml.xml.io.UnmarshallingException e) {
-			throw new SAMLException(e);
-		}
+            edesc = (EntityDescriptor) unmarshallerFactory
+                    .getUnmarshaller(root)
+                    .unmarshall(root);
 
-		// fetch sp information
-		SPSSODescriptor spDesc = edesc.getSPSSODescriptor("urn:oasis:names:tc:SAML:2.0:protocol");
+        } catch (XMLParserException e) {
+            throw new SAMLException(e);
+        } catch (UnmarshallingException e) {
+            throw new SAMLException(e);
+        }
 
-		if (spDesc == null)
-			throw new SAMLException("No SP SSO descriptor found");
+        SPSSODescriptor spDesc =
+                edesc.getSPSSODescriptor(SAMLConstants.SAML20P_NS);
 
-		// get first redirect or post binding
-		String acsUrl = null;
-		for (AssertionConsumerService svc : spDesc.getAssertionConsumerServices()) {
-			if (svc.getBinding().equals(SAMLConstants.SAML2_REDIRECT_BINDING_URI)
-					|| svc.getBinding().equals(SAMLConstants.SAML2_POST_BINDING_URI)) {
-				acsUrl = svc.getLocation();
-				break;
-			}
-		}
+        if (spDesc == null) {
+            throw new SAMLException("No SP SSO descriptor found");
+        }
 
-		if (acsUrl == null)
-			throw new SAMLException("No acceptable Assertion Consumer Service found");
+        String acsUrl = null;
+        for (AssertionConsumerService svc : spDesc.getAssertionConsumerServices()) {
+            if (SAMLConstants.SAML2_REDIRECT_BINDING_URI.equals(svc.getBinding())
+                    || SAMLConstants.SAML2_POST_BINDING_URI.equals(svc.getBinding())) {
+                acsUrl = svc.getLocation();
+                break;
+            }
+        }
 
-		this.setEntityId(edesc.getEntityID());
-		this.setAcs(acsUrl);
-	}
+        if (acsUrl == null) {
+            throw new SAMLException("No acceptable Assertion Consumer Service found");
+        }
 
-	/**
-	 * Set the SP Entity Id.
-	 */
-	public void setEntityId(String entityId) {
-		this.entityId = entityId;
-	}
+        this.setEntityId(edesc.getEntityID());
+        this.setAcs(acsUrl);
+    }
 
-	/**
-	 * Get the SP Entity Id.
-	 */
-	public String getEntityId() {
-		return this.entityId;
-	}
+    /**
+     * Set the SP Entity Id.
+     */
+    public void setEntityId(String entityId) {
+        this.entityId = entityId;
+    }
 
-	/**
-	 * Set the SP ACS URL. Auth responses are posted here.
-	 */
-	public void setAcs(String acs) {
-		this.acs = acs;
-	}
+    /**
+     * Get the SP Entity Id.
+     */
+    public String getEntityId() {
+        return this.entityId;
+    }
 
+    /**
+     * Set the SP ACS URL. Auth responses are posted here.
+     */
+    public void setAcs(String acs) {
+        this.acs = acs;
+    }
 
-	/**
-	 * Get the IdP login URL.
-	 */
-	public String getAcs() {
-		return this.acs;
-	}
+    /**
+     * Get the SP ACS URL.
+     */
+    public String getAcs() {
+        return this.acs;
+    }
 
-	/**
-	 * Set private key used for decrypting assertions.
-	 */
-	public void setPrivateKey(PrivateKey privateKey) {
-		this.privateKey = privateKey;
-	}
+    /**
+     * Set private key used for decrypting assertions.
+     */
+    public void setPrivateKey(PrivateKey privateKey) {
+        this.privateKey = privateKey;
+    }
 
-	/**
-	 * Get private key used for decrypting assertions.
-	 */
-	public PrivateKey getPrivateKey() {
-		return this.privateKey;
-	}
+    /**
+     * Get private key used for decrypting assertions.
+     */
+    public PrivateKey getPrivateKey() {
+        return this.privateKey;
+    }
 }

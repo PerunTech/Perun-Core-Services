@@ -26,19 +26,19 @@ import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 
-import org.opensaml.Configuration;
-import org.opensaml.xml.parse.BasicParserPool;
-import org.opensaml.xml.io.UnmarshallerFactory;
-import org.opensaml.saml2.metadata.EntityDescriptor;
-import org.opensaml.saml2.metadata.IDPSSODescriptor;
-import org.opensaml.saml2.metadata.SingleSignOnService;
-import org.opensaml.saml2.metadata.KeyDescriptor;
-import org.opensaml.saml2.metadata.SingleLogoutService;
-import org.opensaml.xml.signature.KeyInfo;
-import org.opensaml.xml.signature.X509Data;
-import org.opensaml.xml.signature.X509Certificate;
-import org.opensaml.xml.security.credential.UsageType;
-import org.opensaml.common.xml.SAMLConstants;
+import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
+import net.shibboleth.utilities.java.support.xml.BasicParserPool;
+import org.opensaml.core.xml.io.UnmarshallerFactory;
+import org.opensaml.saml.saml2.metadata.EntityDescriptor;
+import org.opensaml.saml.saml2.metadata.IDPSSODescriptor;
+import org.opensaml.saml.saml2.metadata.SingleSignOnService;
+import org.opensaml.saml.saml2.metadata.KeyDescriptor;
+import org.opensaml.saml.saml2.metadata.SingleLogoutService;
+import org.opensaml.xmlsec.signature.KeyInfo;
+import org.opensaml.xmlsec.signature.X509Data;
+import org.opensaml.xmlsec.signature.X509Certificate;
+import org.opensaml.security.credential.UsageType;
+import org.opensaml.saml.common.xml.SAMLConstants;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -119,18 +119,18 @@ public class IdPConfig
             Element root = doc.getDocumentElement();
 
             UnmarshallerFactory unmarshallerFactory =
-                Configuration.getUnmarshallerFactory();
+            		XMLObjectProviderRegistrySupport.getUnmarshallerFactory();
 
             edesc = (EntityDescriptor) unmarshallerFactory
                 .getUnmarshaller(root)
                 .unmarshall(root);
         }
-        catch (org.opensaml.xml.parse.XMLParserException e) {
+        catch (net.shibboleth.utilities.java.support.xml.XMLParserException e) {
             throw new SAMLException(e);
         }
-        catch (org.opensaml.xml.io.UnmarshallingException e) {
+        catch (org.opensaml.core.xml.io.UnmarshallingException e) {
             throw new SAMLException(e);
-        }        
+        }   
 
         // fetch idp information
         IDPSSODescriptor idpDesc = edesc.getIDPSSODescriptor(
