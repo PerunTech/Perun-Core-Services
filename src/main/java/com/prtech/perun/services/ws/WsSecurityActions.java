@@ -45,13 +45,14 @@ import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
-import org.opensaml.saml2.core.AuthnStatement;
-import org.opensaml.saml2.core.LogoutRequest;
-import org.opensaml.saml2.core.LogoutResponse;
-import org.opensaml.saml2.core.NameID;
-import org.opensaml.saml2.core.SessionIndex;
-import org.opensaml.saml2.core.StatusCode;
-import org.opensaml.xml.security.SecurityException;
+import org.opensaml.saml.saml2.core.AuthnStatement;
+import org.opensaml.saml.saml2.core.LogoutRequest;
+import org.opensaml.saml.saml2.core.LogoutResponse;
+import org.opensaml.saml.saml2.core.NameID;
+import org.opensaml.saml.saml2.core.SessionIndex;
+import org.opensaml.saml.saml2.core.StatusCode;
+
+import org.opensaml.security.SecurityException;
 import org.zeromq.ZAuth.Auth;
 
 import com.google.common.cache.Cache;
@@ -497,7 +498,7 @@ public class WsSecurityActions {
 			if (getPerunSaml() != null) {
 				String logoutRequest = SvUtil.getUUID(); // SAMLUtils.generateRequestId();
 				String samlRequest = getPerunSaml().getLogoutResponse(logoutRequest, inResponseTo,
-						StatusCode.SUCCESS_URI);
+						StatusCode.SUCCESS);
 				return Response.ok(samlRequest).build();
 			}
 

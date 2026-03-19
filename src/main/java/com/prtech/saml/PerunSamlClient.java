@@ -19,14 +19,12 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 
-import org.opensaml.xml.security.SecurityException;
 import java.security.cert.X509Certificate;
 
 import com.lastpass.saml.IdPConfig;
 import com.lastpass.saml.SAMLClient;
 import com.lastpass.saml.SAMLException;
 import com.lastpass.saml.SAMLInit;
-import com.lastpass.saml.SAMLUtils;
 import com.lastpass.saml.SPConfig;
 import com.prtech.svarog.SvUtil;
 
@@ -87,8 +85,9 @@ public class PerunSamlClient {
 			String requestId = SvUtil.getUUID(); // SAMLUtils.generateRequestId();
 			samlRequest = samlClient.generateAuthnRequest(requestId);
 
-		} catch (SAMLException | UnsupportedEncodingException e) {
+		} catch (SAMLException | UnsupportedEncodingException | org.opensaml.security.SecurityException e) {
 			// response invalid, return to login page...
+			//TODO
 		}
 
 		return samlRequest;
@@ -102,8 +101,9 @@ public class PerunSamlClient {
 
 			samlRequest = samlClient.generateLogoutRequest(requestId, userName, sessionId);
 
-		} catch (SAMLException | UnsupportedEncodingException e) {
+		} catch (SAMLException | UnsupportedEncodingException | org.opensaml.security.SecurityException e) {
 			// response invalid, return to login page...
+			// TODO
 		}
 
 		return samlRequest;
@@ -116,8 +116,9 @@ public class PerunSamlClient {
 
 			samlRequest = samlClient.generateLogoutResponse(requestId, inResponseTo, statusCode);
 
-		} catch (SAMLException | UnsupportedEncodingException e) {
+		} catch (SAMLException | UnsupportedEncodingException | org.opensaml.security.SecurityException e) {
 			// response invalid, return to login page...
+			// TODO
 		}
 
 		return samlRequest;

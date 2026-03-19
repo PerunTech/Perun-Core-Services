@@ -19,7 +19,7 @@ package com.lastpass.saml;
 
 import java.util.Map;
 
-import org.opensaml.saml2.core.Response;
+import org.opensaml.saml.saml2.core.Response;
 
 import java.util.List;
 
