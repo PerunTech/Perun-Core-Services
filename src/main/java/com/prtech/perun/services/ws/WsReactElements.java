@@ -59,6 +59,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.prtech.perun.PerunUtil;
@@ -5257,7 +5258,18 @@ public class WsReactElements {
 					String tmpField = tempDboField.getVal(Rc.FIELD_NAME).toString();
 					if (processField(tmpField)) {
 						jsonData = addValueToJsonObject1(jsonData, reqObject, tempDboField);
-
+						// check if field has flag SV_ISLABEL:true
+						if (tempDboField.getVal(Rc.SV_ISLABEL) != null
+								&& tempDboField.getVal(Rc.SV_ISLABEL).equals(true)) {
+							String localeId = svr.getUserLocaleId(svr.getInstanceUser());
+							Object rawVal = reqObject.getVal(tmpField);
+							if (rawVal != null) {
+								jsonData.addProperty(tmpField + "_CODE", rawVal.toString());
+								StringBuilder sb = new StringBuilder(
+										"\"" + (I18n.getText(localeId, rawVal.toString().replace("\"", ""))) + "\"");
+								jsonData.add(tmpField, JsonParser.parseString(sb.toString()));
+							}
+						}
 						if (tempDboField.getVal(Rc.REFERENTIAL_TABLE) != null
 								&& tempDboField.getVal(Rc.REFERENTIAL_FIELD) != null) {
 
