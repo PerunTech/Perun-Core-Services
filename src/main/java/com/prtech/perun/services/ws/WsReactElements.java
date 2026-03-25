@@ -59,6 +59,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.prtech.perun.PerunUtil;
@@ -1901,60 +1902,119 @@ public class WsReactElements {
 		}
 		if (jsonDataForWork != null)
 			try {
-				if (recordObject.getVal(fieldName) != null) {
+				Object rawVal = recordObject.getVal(fieldName);
+				if (rawVal != null) {
+					boolean isLabelField = tmpField.getVal(Rc.SV_ISLABEL) != null
+							&& tmpField.getVal(Rc.SV_ISLABEL).equals(true);
+					String localeId = null;
+					if (isLabelField) {
+						try {
+							localeId = SvConf.getDefaultLocale();
+						} catch (Exception e) {
+							debugException(e);
+						}
+					}
 					switch (fieldType) {
 					case Rc.NVARCHAR:
 					case "TEXT":
-						if (recordObject.getVal(fieldName) != null)
-							jsonDataForWork.addProperty(tmpFieldName, recordObject.getVal(fieldName).toString());
+						if (isLabelField) {
+							jsonDataForWork.addProperty(tmpFieldName + "_CODE", rawVal.toString());
+							jsonDataForWork.addProperty(tmpFieldName,
+									I18n.getText(localeId, rawVal.toString().replace("\"", "")));
+						} else {
+							jsonDataForWork.addProperty(tmpFieldName, rawVal.toString());
+						}
 						break;
+
 					case Rc.NUMERIC:
 						if (scale == null || scale <= 0) {
-							Long tmpL = Long.valueOf(recordObject.getVal(fieldName).toString());
-							if (tmpL != null)
-								jsonDataForWork.addProperty(tmpFieldName, tmpL);
+							Long tmpL = Long.valueOf(rawVal.toString());
+							if (tmpL != null) {
+								if (isLabelField) {
+									jsonDataForWork.addProperty(tmpFieldName + "_CODE", tmpL);
+									jsonDataForWork.addProperty(tmpFieldName, I18n.getText(localeId, tmpL.toString()));
+								} else {
+									jsonDataForWork.addProperty(tmpFieldName, tmpL);
+								}
+							}
 						} else {
-							Double tmpD = Double.valueOf(recordObject.getVal(fieldName).toString());
-							if (tmpD != null)
-								jsonDataForWork.addProperty(tmpFieldName, tmpD);
+							Double tmpD = Double.valueOf(rawVal.toString());
+							if (tmpD != null) {
+								if (isLabelField) {
+									jsonDataForWork.addProperty(tmpFieldName + "_CODE", tmpD);
+									jsonDataForWork.addProperty(tmpFieldName, I18n.getText(localeId, tmpD.toString()));
+								} else {
+									jsonDataForWork.addProperty(tmpFieldName, tmpD);
+								}
+							}
 						}
 						break;
-					case Rc.BOOLEAN:
-						Boolean tmpB = (Boolean) recordObject.getVal(fieldName);
-						if (tmpB != null)
-							jsonDataForWork.addProperty(tmpFieldName, tmpB);
-						break;
-					case Rc.DATE: // short date
-						DateTime tmpDsh = null;
-						if (recordObject.getVal(fieldName) != null) {
-							tmpDsh = new DateTime(recordObject.getVal(fieldName));
-						}
 
+					case Rc.BOOLEAN:
+						Boolean tmpB = (Boolean) rawVal;
+						if (tmpB != null) {
+							if (isLabelField) {
+								jsonDataForWork.addProperty(tmpFieldName + "_CODE", tmpB);
+								jsonDataForWork.addProperty(tmpFieldName, I18n.getText(localeId, tmpB.toString()));
+							} else {
+								jsonDataForWork.addProperty(tmpFieldName, tmpB);
+							}
+						}
+						break;
+
+					case Rc.DATE: // short date
+						DateTime tmpDsh = new DateTime(rawVal);
 						if (tmpDsh != null) {
 							int monthInt = tmpDsh.monthOfYear().get();
 							int dayInt = tmpDsh.dayOfMonth().get();
-							String monthStr = ((monthInt < 10) ? "0" : "") + String.valueOf(monthInt);
-							String dayStr = ((dayInt < 10) ? "0" : "") + String.valueOf(dayInt);
-							jsonDataForWork.addProperty(tmpFieldName,
-									tmpDsh.year().get() + "-" + monthStr + "-" + dayStr);
+							String monthStr = ((monthInt < 10) ? "0" : "") + monthInt;
+							String dayStr = ((dayInt < 10) ? "0" : "") + dayInt;
+							String dateStr = tmpDsh.year().get() + "-" + monthStr + "-" + dayStr;
+							if (isLabelField) {
+								jsonDataForWork.addProperty(tmpFieldName + "_CODE", dateStr);
+								jsonDataForWork.addProperty(tmpFieldName, I18n.getText(localeId, dateStr));
+							} else {
+								jsonDataForWork.addProperty(tmpFieldName, dateStr);
+							}
 						}
 						break;
+
 					case Rc.TIMESTAMP:
 					case Rc.DATETIME: // long date with time
-						DateTime tmpDl = (DateTime) recordObject.getVal(fieldName);
-						if (tmpDl != null)
-							jsonDataForWork.addProperty(tmpFieldName, tmpDl.toString());
+						DateTime tmpDl = (DateTime) rawVal;
+						if (tmpDl != null) {
+							String dateTimeStr = tmpDl.toString();
+							if (isLabelField) {
+								jsonDataForWork.addProperty(tmpFieldName + "_CODE", dateTimeStr);
+								jsonDataForWork.addProperty(tmpFieldName, I18n.getText(localeId, dateTimeStr));
+							} else {
+								jsonDataForWork.addProperty(tmpFieldName, dateTimeStr);
+							}
+						}
 						break;
+
 					default:
+						// fallback
+						if (isLabelField) {
+							jsonDataForWork.addProperty(tmpFieldName + "_CODE", rawVal.toString());
+							jsonDataForWork.addProperty(tmpFieldName,
+									I18n.getText(localeId, rawVal.toString().replace("\"", "")));
+						} else {
+							jsonDataForWork.addProperty(tmpFieldName, rawVal.toString());
+						}
 					}
+
 				}
+
 			} catch (Exception e) {
 				debugException(e);
 			}
-		if (pathString != "" && saveData != null) {
+
+		if (!pathString.equals("") && saveData != null) {
 			saveData.add(pathString, jsonDataForWork);
 			jsonDataForWork = saveData;
 		}
+
 		return jsonDataForWork;
 	}
 
@@ -5257,7 +5317,6 @@ public class WsReactElements {
 					String tmpField = tempDboField.getVal(Rc.FIELD_NAME).toString();
 					if (processField(tmpField)) {
 						jsonData = addValueToJsonObject1(jsonData, reqObject, tempDboField);
-
 						if (tempDboField.getVal(Rc.REFERENTIAL_TABLE) != null
 								&& tempDboField.getVal(Rc.REFERENTIAL_FIELD) != null) {
 
