@@ -20,6 +20,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
 import org.apache.logging.log4j.LogManager;
@@ -103,6 +104,79 @@ public class WsModel {
 						new JsonObject());
 				return Response.ok(jrh.getAll().toString()).build();
 			}
+			if (requestData.has(CC.OBJECT_ID)) {
+				objectId = requestData.get(CC.OBJECT_ID).getAsLong();
+			}
+			if (requestData.has(CC.PARENT_ID)) {
+				parentId = requestData.get(CC.PARENT_ID).getAsLong();
+			}
+			if (requestData.has(CC.CHECK_BUSINESS_PERIOD)
+					&& requestData.get(CC.CHECK_BUSINESS_PERIOD).getAsJsonPrimitive().isBoolean()) {
+				checkParentBusinessPeriod = requestData.get(CC.CHECK_BUSINESS_PERIOD).getAsBoolean();
+			}
+			if (requestData.has(CC.TABLE_NAME)) {
+				tableName = requestData.get(CC.TABLE_NAME).getAsString();
+				obj = createModelForSave.apply(tableName, requestData);
+				if (obj != null) {
+					obj.setSkipCheck(false);
+					if (checkParentBusinessPeriod != null) {
+						obj.setCheckBusinessPeriod(checkParentBusinessPeriod);
+					}
+					errors = obj.saveObject(parentId, objectId, locale, svr, svw);
+					if (errors.isEmpty()) {
+						svw.dbCommit();
+						jrh.create(MessageType.SUCCESS, I18n.getText("perun.success.saveObject"), CC.EMPTY_STRING,
+								obj.getJsonRepresentation());
+					} else {
+						jrh.create(MessageType.ERROR, I18n.getText("perun.error.saveObject"), errors.toString(),
+								new JsonObject());
+					}
+				} else {
+					jrh.create(MessageType.ERROR, I18n.getText("perun.error.objectTableNotFound"), CC.EMPTY_STRING,
+							new JsonObject());
+				}
+			}
+		} catch (Exception e) {
+			log4j.error(e);
+			return PerunUtil.handleException(e, jrh, "perun.error.generalError");
+		}
+		return Response.ok(jrh.getAll().toString()).build();
+	}
+
+	/**
+	 * Saves an object to the database. Accepts form-urlencoded data with objectId,
+	 * parentId and tableName. Delegates to the same model logic as saveObject.
+	 *
+	 * @param sessionId   User session ID (path param)
+	 * @param formVals    Form-urlencoded request body
+	 * @param httpRequest HTTP servlet request
+	 * @return JSON response with saved object or error details
+	 */
+	@Path("/saveObjectForm/{sessionId}")
+	@POST
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response saveObjectForm(@PathParam("sessionId") String sessionId, MultivaluedMap<String, String> formVals,
+			@Context HttpServletRequest httpRequest) {
+
+		String locale = SvConf.getDefaultLocale();
+		ResponseHandler jrh = new ResponseHandler();
+		Long objectId = 0L;
+		Long parentId = 0L;
+		String tableName = CC.EMPTY_STRING;
+		Boolean checkParentBusinessPeriod = null;
+		BaseObjectModel obj = null;
+		List<String> errors = new ArrayList<String>(0);
+		JsonObject requestData = new JsonObject();
+		for (Map.Entry<String, List<String>> entry : formVals.entrySet()) {
+			if (entry.getValue() != null && !entry.getValue().isEmpty()) {
+				requestData.addProperty(entry.getKey(), entry.getValue().get(0));
+			}
+		}
+		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
+			setAutoCommit(Arrays.asList(svr, svw), false);
+			locale = svr.getUserLocaleId(svr.getInstanceUser());
+
 			if (requestData.has(CC.OBJECT_ID)) {
 				objectId = requestData.get(CC.OBJECT_ID).getAsLong();
 			}
