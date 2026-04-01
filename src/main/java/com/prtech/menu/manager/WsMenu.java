@@ -179,31 +179,19 @@ public class WsMenu {
 		return generateGetMenuResponse(sessionId, requestData);
 	}
 
-	/**
-	 * Return full menu config for the object that is sent in the request. GET
-	 * version
-	 * 
-	 * @param sessionId  User's session ID
-	 * @param objectId   Object ID we want to generate the menu for
-	 * @param objectType The type of the object
-	 * @param rootMenuCode Default rootMenuCode
-	 * @return
-	 */
 	@GET
-	@Path("/getMenu2/{sid}/{objectId}/{objectType}/{rootMenuCode}")
+	@Path("/getMenu3/{sid}/{objectId}/{objectType}/{rootMenuCode}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getMenu2(@PathParam("sid") String sessionId, @PathParam("objectId") Long objectId,
+	public Response getMenu3(@PathParam("sid") String sessionId, @PathParam("objectId") Long objectId,
 			@PathParam("objectType") String objectType, @PathParam("rootMenuCode") String rootMenuCode) {
 		ResponseHandler jrh = new ResponseHandler();
 		JsonObject requestData = new JsonObject();
-
 		try (SvReader svr = new SvReader(sessionId)) {
 			DbDataObject dbo = svr.getObjectById(objectId, SvReader.getTypeIdByName(objectType), null);
 			if (dbo == null) {
 				jrh.create(MessageType.ERROR, "Object not found", null, new JsonObject());
 				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 			}
-
 			JsonObject dboJson = dbo.toSimpleJson();
 			for (String key : dboJson.keySet()) {
 				requestData.add(key.toUpperCase(), dboJson.get(key));
@@ -212,32 +200,82 @@ public class WsMenu {
 			log4j.error("Error fetching object: ", e);
 			return PerunUtil.handleException(e, "Error fetching object");
 		}
-
-		return generateGetMenuResponse(sessionId, requestData, rootMenuCode);
+		return getMenu(sessionId, rootMenuCode, requestData.toString());
 	}
-	
+
+	/**
+	 * GET version that combines object fetching, menu lookup and placeholder
+	 * validation. If rootMenuCode is provided it is used directly, otherwise the
+	 * menu is auto-detected from the object type via
+	 * MenuHelper.findMenuCodeForObject.
+	 *
+	 * @param sessionId    User's session ID
+	 * @param objectId     Object ID to generate the menu for
+	 * @param objectType   The type of the object
+	 * @param rootMenuCode Optional root menu code. Pass "-" or omit path segment to
+	 *                     auto-detect.
+	 * @return JSON with merged menu configuration
+	 */
 	@GET
-	@Path("/getMenu3/{sid}/{objectId}/{objectType}/{rootMenuCode}")
+	@Path("/getMenu4/{sid}/{objectId}/{objectType}/{rootMenuCode}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getMenu3(@PathParam("sid") String sessionId, @PathParam("objectId") Long objectId,
-	        @PathParam("objectType") String objectType, @PathParam("rootMenuCode") String rootMenuCode) {
-	    ResponseHandler jrh = new ResponseHandler();
-	    JsonObject requestData = new JsonObject();
-	    try (SvReader svr = new SvReader(sessionId)) {
-	        DbDataObject dbo = svr.getObjectById(objectId, SvReader.getTypeIdByName(objectType), null);
-	        if (dbo == null) {
-	            jrh.create(MessageType.ERROR, "Object not found", null, new JsonObject());
-	            return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
-	        }
-	        JsonObject dboJson = dbo.toSimpleJson();
-	        for (String key : dboJson.keySet()) {
-	            requestData.add(key.toUpperCase(), dboJson.get(key));
-	        }
-	    } catch (Exception e) {
-	        log4j.error("Error fetching object: ", e);
-	        return PerunUtil.handleException(e, "Error fetching object");
-	    }
-	    return getMenu(sessionId, rootMenuCode, requestData.toString()); 
+	public Response getMenu4(@PathParam("sid") String sessionId, @PathParam("objectId") Long objectId,
+			@PathParam("objectType") String objectType, @PathParam("rootMenuCode") String rootMenuCode) {
+		ResponseHandler jrh = new ResponseHandler();
+		JsonObject requestData = new JsonObject();
+		// Step 1: fetch the object and build requestData (from GET versions)
+		try (SvReader svr = new SvReader(sessionId)) {
+			DbDataObject dbo = svr.getObjectById(objectId, SvReader.getTypeIdByName(objectType), null);
+			if (dbo == null) {
+				jrh.create(MessageType.ERROR, "Object not found", null, new JsonObject());
+				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
+			}
+			JsonObject dboJson = dbo.toSimpleJson();
+			for (String key : dboJson.keySet()) {
+				requestData.add(key.toUpperCase(), dboJson.get(key));
+			}
+		} catch (Exception e) {
+			log4j.error("Error fetching object: ", e);
+			return PerunUtil.handleException(e, "Error fetching object");
+		}
+		// Step 2: resolve menu root and generate — with placeholder check (from
+		// generateGetMenuResponse)
+		try (SvReader svr = new SvReader(sessionId)) {
+			DbDataObject menuRoot;
+			// If rootMenuCode is provided use it directly (POST logic),
+			// otherwise auto-detect from object (generateGetMenuResponse logic)
+			if (rootMenuCode != null && !rootMenuCode.isEmpty() && !rootMenuCode.equals("-")) {
+				menuRoot = new DbReader().searchDbObjectBySingleFilter(DbCompareOperand.EQUAL,
+						SvReader.getTypeIdByName(CC.PERUN_MENU), CC.MENU_CODE, rootMenuCode, svr);
+				if (menuRoot == null) {
+					jrh.create(MessageType.ERROR, "Menu not found", null, new JsonObject());
+					return Response.status(Response.Status.NOT_FOUND).entity(jrh.getAll().toString()).build();
+				}
+			} else {
+				menuRoot = MenuHelper.findMenuCodeForObject(requestData, svr);
+				if (menuRoot == null) {
+					jrh.create(MessageType.ERROR, "Menu for this type of object was not found", null, new JsonObject());
+					return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
+				}
+			}
+
+			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>(), requestData);
+			resultJson = MenuHelper.applyDataToObject(resultJson, requestData, svr);
+
+			// Placeholder check (from generateGetMenuResponse — was missing in POST)
+			Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
+			if (!missingData.isEmpty()) {
+				jrh.create(MessageType.ERROR, "The following placeholders were not replaced", missingData.toString(),
+						new JsonObject());
+				return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(jrh.getAll().toString()).build();
+			}
+
+			jrh.create(MessageType.SUCCESS, "Menu successfully generated", null, resultJson);
+			return Response.ok(jrh.getAll().toString()).build();
+		} catch (Exception e) {
+			log4j.error("Error generating menu: ", e);
+			return PerunUtil.handleException(e, "Error generating menu");
+		}
 	}
 
 	/**
@@ -294,16 +332,18 @@ public class WsMenu {
 				jrh.create(MessageType.ERROR, "Menu not found", null, new JsonObject());
 				return Response.status(Response.Status.NOT_FOUND).entity(jrh.getAll().toString()).build();
 			}
-			
+
 			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>(), requestData);
 			resultJson = MenuHelper.applyDataToObject(resultJson, requestData, svr);
-			/*Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
-
-			if (!missingData.isEmpty()) {
-				jrh.create(MessageType.ERROR, "The following placeholders were not replaced", missingData.toString(),
-						new JsonObject());
-				return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(jrh.getAll().toString()).build();
-			}*/
+			/*
+			 * Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
+			 * 
+			 * if (!missingData.isEmpty()) { jrh.create(MessageType.ERROR,
+			 * "The following placeholders were not replaced", missingData.toString(), new
+			 * JsonObject()); return
+			 * Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(jrh.getAll().
+			 * toString()).build(); }
+			 */
 
 			jrh.create(MessageType.SUCCESS, "Menu successfully generated", null, resultJson);
 			return Response.ok(jrh.getAll().toString()).build();
@@ -312,8 +352,6 @@ public class WsMenu {
 			return PerunUtil.handleException(e, "Error generating menu");
 		}
 	}
-	
-	
 
 	/**
 	 * Web service for adding a new menu in the system
