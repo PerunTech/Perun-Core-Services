@@ -215,6 +215,30 @@ public class WsMenu {
 
 		return generateGetMenuResponse(sessionId, requestData, rootMenuCode);
 	}
+	
+	@GET
+	@Path("/getMenu3/{sid}/{objectId}/{objectType}/{rootMenuCode}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getMenu3(@PathParam("sid") String sessionId, @PathParam("objectId") Long objectId,
+	        @PathParam("objectType") String objectType, @PathParam("rootMenuCode") String rootMenuCode) {
+	    ResponseHandler jrh = new ResponseHandler();
+	    JsonObject requestData = new JsonObject();
+	    try (SvReader svr = new SvReader(sessionId)) {
+	        DbDataObject dbo = svr.getObjectById(objectId, SvReader.getTypeIdByName(objectType), null);
+	        if (dbo == null) {
+	            jrh.create(MessageType.ERROR, "Object not found", null, new JsonObject());
+	            return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
+	        }
+	        JsonObject dboJson = dbo.toSimpleJson();
+	        for (String key : dboJson.keySet()) {
+	            requestData.add(key.toUpperCase(), dboJson.get(key));
+	        }
+	    } catch (Exception e) {
+	        log4j.error("Error fetching object: ", e);
+	        return PerunUtil.handleException(e, "Error fetching object");
+	    }
+	    return getMenu(sessionId, rootMenuCode, requestData.toString()); 
+	}
 
 	/**
 	 * Common logic for generating menu response from request data
@@ -273,13 +297,13 @@ public class WsMenu {
 			
 			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>(), requestData);
 			resultJson = MenuHelper.applyDataToObject(resultJson, requestData, svr);
-			Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
+			/*Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
 
 			if (!missingData.isEmpty()) {
 				jrh.create(MessageType.ERROR, "The following placeholders were not replaced", missingData.toString(),
 						new JsonObject());
 				return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(jrh.getAll().toString()).build();
-			}
+			}*/
 
 			jrh.create(MessageType.SUCCESS, "Menu successfully generated", null, resultJson);
 			return Response.ok(jrh.getAll().toString()).build();
@@ -288,6 +312,8 @@ public class WsMenu {
 			return PerunUtil.handleException(e, "Error generating menu");
 		}
 	}
+	
+	
 
 	/**
 	 * Web service for adding a new menu in the system
