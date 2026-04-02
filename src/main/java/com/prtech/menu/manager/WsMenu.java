@@ -206,19 +206,33 @@ public class WsMenu {
 	}
 
 	/**
-	 * GET version that combines object fetching, menu lookup and placeholder
-	 * validation. If rootMenuCode is provided it is used directly, otherwise the
-	 * menu is auto-detected from the object type via
-	 * MenuHelper.findMenuCodeForObject.
+	 * Unified GET endpoint for menu generation that covers multiple use cases:
+	 *
+	 * 1. No object context (objectId=0, objectType="0"): generates menu directly
+	 * from rootMenuCode with empty request data. Equivalent to POST /getMenu/{sid}
+	 * with an empty body.
+	 *
+	 * 2. With object context: fetches the object by objectId and objectType, builds
+	 * request data from it, then generates the menu.
+	 *
+	 * 3. rootMenuCode provided: menu is looked up directly by rootMenuCode.
+	 *
+	 * 4. rootMenuCode omitted (pass "-"): menu is auto-detected from the object
+	 * type via MenuHelper.findMenuCodeForObject.
+	 *
+	 * 5. checkPlaceholders (optional, default false): when true, validates that all
+	 * placeholders in the result were replaced. Returns error if any are missing.
 	 *
 	 * @param sessionId         User's session ID
-	 * @param objectId          Object ID to generate the menu for
-	 * @param objectType        The type of the object
-	 * @param rootMenuCode      Optional root menu code. Pass "-" or omit path
-	 *                          segment to auto-detect.
-	 * @param checkPlaceholders Whether to validate that all placeholders were
-	 *                          replaced. Defaults to false.
-	 * @return JSON with merged menu configuration
+	 * @param objectId          Object ID to fetch and build request data from. Pass
+	 *                          0 to skip.
+	 * @param objectType        Type of the object. Pass "0" to skip object
+	 *                          fetching.
+	 * @param rootMenuCode      Root menu code for direct lookup. Pass "-" to
+	 *                          auto-detect.
+	 * @param checkPlaceholders Whether to validate missing placeholders. Defaults
+	 *                          to false.
+	 * @return JSON with merged menu configuration, or error response
 	 */
 	@GET
 	@Path("/getMenu4/{sid}/{objectId}/{objectType}/{rootMenuCode}")
@@ -228,20 +242,28 @@ public class WsMenu {
 			@QueryParam("checkPlaceholders") @DefaultValue("false") boolean checkPlaceholders) {
 		ResponseHandler jrh = new ResponseHandler();
 		JsonObject requestData = new JsonObject();
-		try (SvReader svr = new SvReader(sessionId)) {
-			DbDataObject dbo = svr.getObjectById(objectId, SvReader.getTypeIdByName(objectType), null);
-			if (dbo == null) {
-				jrh.create(MessageType.ERROR, "Object not found", null, new JsonObject());
-				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
+
+		// Step 1: fetch the object only if objectId and objectType are provided
+		if (objectId != null && objectId != 0 && objectType != null && !objectType.equals("0")) {
+			try (SvReader svr = new SvReader(sessionId)) {
+				DbDataObject dbo = svr.getObjectById(objectId, SvReader.getTypeIdByName(objectType), null);
+				if (dbo == null) {
+					jrh.create(MessageType.ERROR, "Object not found", null, new JsonObject());
+					return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
+				}
+				JsonObject dboJson = dbo.toSimpleJson();
+				for (String key : dboJson.keySet()) {
+					requestData.add(key.toUpperCase(), dboJson.get(key));
+				}
+			} catch (Exception e) {
+				log4j.error("Error fetching object: ", e);
+				return PerunUtil.handleException(e, "Error fetching object");
 			}
-			JsonObject dboJson = dbo.toSimpleJson();
-			for (String key : dboJson.keySet()) {
-				requestData.add(key.toUpperCase(), dboJson.get(key));
-			}
-		} catch (Exception e) {
-			log4j.error("Error fetching object: ", e);
-			return PerunUtil.handleException(e, "Error fetching object");
 		}
+		// If objectId=0 and objectType=0, requestData stays empty and we proceed
+		// directly with rootMenuCode — same behaviour as POST /getMenu/{sid}
+
+		// Step 2: resolve menu root and generate
 		try (SvReader svr = new SvReader(sessionId)) {
 			DbDataObject menuRoot;
 			if (rootMenuCode != null && !rootMenuCode.isEmpty() && !rootMenuCode.equals("-")) {
@@ -260,7 +282,6 @@ public class WsMenu {
 			}
 			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>(), requestData);
 			resultJson = MenuHelper.applyDataToObject(resultJson, requestData, svr);
-			// Placeholder check — only runs if explicitly requested
 			if (checkPlaceholders) {
 				Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
 				if (!missingData.isEmpty()) {
