@@ -181,30 +181,6 @@ public class WsMenu {
 		return generateGetMenuResponse(sessionId, requestData);
 	}
 
-	@GET
-	@Path("/getMenu3/{sid}/{objectId}/{objectType}/{rootMenuCode}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response getMenu3(@PathParam("sid") String sessionId, @PathParam("objectId") Long objectId,
-			@PathParam("objectType") String objectType, @PathParam("rootMenuCode") String rootMenuCode) {
-		ResponseHandler jrh = new ResponseHandler();
-		JsonObject requestData = new JsonObject();
-		try (SvReader svr = new SvReader(sessionId)) {
-			DbDataObject dbo = svr.getObjectById(objectId, SvReader.getTypeIdByName(objectType), null);
-			if (dbo == null) {
-				jrh.create(MessageType.ERROR, "Object not found", null, new JsonObject());
-				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
-			}
-			JsonObject dboJson = dbo.toSimpleJson();
-			for (String key : dboJson.keySet()) {
-				requestData.add(key.toUpperCase(), dboJson.get(key));
-			}
-		} catch (Exception e) {
-			log4j.error("Error fetching object: ", e);
-			return PerunUtil.handleException(e, "Error fetching object");
-		}
-		return getMenu(sessionId, rootMenuCode, requestData.toString());
-	}
-
 	/**
 	 * Unified GET endpoint for menu generation that covers multiple use cases:
 	 *
@@ -235,9 +211,9 @@ public class WsMenu {
 	 * @return JSON with merged menu configuration, or error response
 	 */
 	@GET
-	@Path("/getMenu4/{sid}/{objectId}/{objectType}/{rootMenuCode}")
+	@Path("/getMenu/{sid}/{objectId}/{objectType}/{rootMenuCode}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getMenu4(@PathParam("sid") String sessionId, @PathParam("objectId") Long objectId,
+	public Response getMenu(@PathParam("sid") String sessionId, @PathParam("objectId") Long objectId,
 			@PathParam("objectType") String objectType, @PathParam("rootMenuCode") String rootMenuCode,
 			@QueryParam("checkPlaceholders") @DefaultValue("false") boolean checkPlaceholders) {
 		ResponseHandler jrh = new ResponseHandler();
