@@ -11,11 +11,13 @@ import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -209,21 +211,23 @@ public class WsMenu {
 	 * menu is auto-detected from the object type via
 	 * MenuHelper.findMenuCodeForObject.
 	 *
-	 * @param sessionId    User's session ID
-	 * @param objectId     Object ID to generate the menu for
-	 * @param objectType   The type of the object
-	 * @param rootMenuCode Optional root menu code. Pass "-" or omit path segment to
-	 *                     auto-detect.
+	 * @param sessionId         User's session ID
+	 * @param objectId          Object ID to generate the menu for
+	 * @param objectType        The type of the object
+	 * @param rootMenuCode      Optional root menu code. Pass "-" or omit path
+	 *                          segment to auto-detect.
+	 * @param checkPlaceholders Whether to validate that all placeholders were
+	 *                          replaced. Defaults to false.
 	 * @return JSON with merged menu configuration
 	 */
 	@GET
 	@Path("/getMenu4/{sid}/{objectId}/{objectType}/{rootMenuCode}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getMenu4(@PathParam("sid") String sessionId, @PathParam("objectId") Long objectId,
-			@PathParam("objectType") String objectType, @PathParam("rootMenuCode") String rootMenuCode) {
+			@PathParam("objectType") String objectType, @PathParam("rootMenuCode") String rootMenuCode,
+			@QueryParam("checkPlaceholders") @DefaultValue("false") boolean checkPlaceholders) {
 		ResponseHandler jrh = new ResponseHandler();
 		JsonObject requestData = new JsonObject();
-		// Step 1: fetch the object and build requestData (from GET versions)
 		try (SvReader svr = new SvReader(sessionId)) {
 			DbDataObject dbo = svr.getObjectById(objectId, SvReader.getTypeIdByName(objectType), null);
 			if (dbo == null) {
@@ -238,12 +242,8 @@ public class WsMenu {
 			log4j.error("Error fetching object: ", e);
 			return PerunUtil.handleException(e, "Error fetching object");
 		}
-		// Step 2: resolve menu root and generate — with placeholder check (from
-		// generateGetMenuResponse)
 		try (SvReader svr = new SvReader(sessionId)) {
 			DbDataObject menuRoot;
-			// If rootMenuCode is provided use it directly (POST logic),
-			// otherwise auto-detect from object (generateGetMenuResponse logic)
 			if (rootMenuCode != null && !rootMenuCode.isEmpty() && !rootMenuCode.equals("-")) {
 				menuRoot = new DbReader().searchDbObjectBySingleFilter(DbCompareOperand.EQUAL,
 						SvReader.getTypeIdByName(CC.PERUN_MENU), CC.MENU_CODE, rootMenuCode, svr);
@@ -258,18 +258,18 @@ public class WsMenu {
 					return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 				}
 			}
-
 			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>(), requestData);
 			resultJson = MenuHelper.applyDataToObject(resultJson, requestData, svr);
-
-			// Placeholder check (from generateGetMenuResponse — was missing in POST)
-			Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
-			if (!missingData.isEmpty()) {
-				jrh.create(MessageType.ERROR, "The following placeholders were not replaced", missingData.toString(),
-						new JsonObject());
-				return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(jrh.getAll().toString()).build();
+			// Placeholder check — only runs if explicitly requested
+			if (checkPlaceholders) {
+				Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
+				if (!missingData.isEmpty()) {
+					jrh.create(MessageType.ERROR, "The following placeholders were not replaced",
+							missingData.toString(), new JsonObject());
+					return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(jrh.getAll().toString())
+							.build();
+				}
 			}
-
 			jrh.create(MessageType.SUCCESS, "Menu successfully generated", null, resultJson);
 			return Response.ok(jrh.getAll().toString()).build();
 		} catch (Exception e) {
