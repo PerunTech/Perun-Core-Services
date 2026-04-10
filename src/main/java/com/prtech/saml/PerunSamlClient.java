@@ -77,12 +77,11 @@ public class PerunSamlClient {
 		return cert;
 	}
 
-	public String getSAMLRequest() throws NoSuchAlgorithmException, InvalidKeySpecException, CertificateException,
+	public String getSAMLRequest(String requestId ) throws NoSuchAlgorithmException, InvalidKeySpecException, CertificateException,
 			IOException, SecurityException {
 		String samlRequest = "";
 
 		try {
-			String requestId = SvUtil.getUUID(); // SAMLUtils.generateRequestId();
 			samlRequest = samlClient.generateAuthnRequest(requestId);
 
 		} catch (SAMLException | UnsupportedEncodingException | org.opensaml.security.SecurityException e) {
