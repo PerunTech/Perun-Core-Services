@@ -236,7 +236,10 @@ public class WsSecurityActions {
 
 		try (SvSecurity svs = new SvSecurity(PerunUtil.getClientIpAddress(httpRequest));) {
 			if (getPerunSaml() != null) {
-				String samlRequest = getPerunSaml().getSAMLRequest();
+				String requestId = SvUtil.getUUID(); // SAMLUtils.generateRequestId();
+				String samlRequest = getPerunSaml().getSAMLRequest(requestId);
+				AttributeSet at = new AttributeSet(requestId, null);
+				ssoRequestCache.put(requestId,at);
 				return Response.ok(samlRequest).build();
 			}
 		} catch (Exception e) {
@@ -253,13 +256,13 @@ public class WsSecurityActions {
 	@Produces("text/html;charset=utf-8")
 	public Response getLogoutRequest(@PathParam("session") String session, @Context HttpServletRequest httpRequest) {
 		try (SvSecurity svs = new SvSecurity(PerunUtil.getClientIpAddress(httpRequest));) {
-			DbDataObject user = svs.getUserBySession(session);
+			DbDataObject user = SvCore.getUserBySession(session);
 			if (getPerunSaml() != null) {
-				String logoutRequest = SvUtil.getUUID(); // SAMLUtils.generateRequestId();
-				String samlRequest = getPerunSaml().getLogoutRequest(logoutRequest, user.getAsString(Sv.USER_NAME),
+				String logoutRequestId = SvUtil.getUUID(); // SAMLUtils.generateRequestId();
+				String samlRequest = getPerunSaml().getLogoutRequest(logoutRequestId, user.getAsString(Sv.USER_NAME),
 						session);
 				AttributeSet s = new AttributeSet(session, null);
-				ssoRequestCache.put(logoutRequest, s);
+				ssoRequestCache.put(logoutRequestId, s);
 				return Response.ok(samlRequest).build();
 			}
 		} catch (Exception e) {
@@ -353,10 +356,13 @@ public class WsSecurityActions {
 				at = ssoRequestCache.getIfPresent(id);
 			} else {
 				// otherwise get the user attributes from the SAML response
-				getPerunSaml().getSamlClient().setRequireSignedAssertion(false);
+				getPerunSaml().getSamlClient().setRequireSignedAssertion(true);
 				at = getPerunSaml().getSamlClient().validateResponse(authResponse.get(0));
+				String requestId = at.getResponse().getInResponseTo();
 				// add the response to the request cache for further use
-				ssoRequestCache.put(at.getResponse().getInResponseTo(), at);
+				if(ssoRequestCache.getIfPresent(requestId)!=null)
+					ssoRequestCache.put(requestId, at);
+				else throw new SAMLException("Response doesn't have matching request in the system");
 			}
 			// if we got the SAML attribute set lets process the user
 			if (at != null) {
@@ -399,7 +405,7 @@ public class WsSecurityActions {
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			return PerunUtil.handleException(e, "SSO Authentication Error");
+			return PerunUtil.handleException(e,e.getMessage());
 		}
 		return Response.ok().build();
 
@@ -432,7 +438,7 @@ public class WsSecurityActions {
 			String keyName = SvParameter.getSysParam(CC.SSO_POST_KEY, CC.NOT_CONFIGURED);
 			List<String> samlResponse = formVals.get(keyName);
 			String form = samlResponse.get(0);
-			getPerunSaml().getSamlClient().setRequireSignedAssertion(false);
+			getPerunSaml().getSamlClient().setRequireSignedAssertion(true);
 			LogoutResponse response = getPerunSaml().getSamlClient().validateLogoutResponse(form);
 
 			AttributeSet at = ssoRequestCache.getIfPresent(response.getInResponseTo());
@@ -449,7 +455,7 @@ public class WsSecurityActions {
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			return PerunUtil.handleException(e, "SSO Authentication Error");
+			return PerunUtil.handleException(e, e.getMessage());
 		}
 	}
 
@@ -481,7 +487,7 @@ public class WsSecurityActions {
 			String form = authResponse.get(0);
 			AttributeSet at = null;
 
-			getPerunSaml().getSamlClient().setRequireSignedAssertion(false);
+			getPerunSaml().getSamlClient().setRequireSignedAssertion(true);
 			LogoutRequest r = getPerunSaml().getSamlClient().validateLogoutRequest(authResponse.get(0));
 			String inResponseTo = r.getID();
 			String userName = r.getNameID().getValue();
@@ -504,7 +510,7 @@ public class WsSecurityActions {
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			return PerunUtil.handleException(e, "SSO Authentication Error");
+			return PerunUtil.handleException(e, e.getMessage());
 		}
 		return Response.serverError().build();
 	}
