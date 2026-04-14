@@ -59,7 +59,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.prtech.perun.PerunUtil;
@@ -1906,6 +1905,8 @@ public class WsReactElements {
 				if (rawVal != null) {
 					boolean isLabelField = tmpField.getVal(Rc.SV_ISLABEL) != null
 							&& tmpField.getVal(Rc.SV_ISLABEL).equals(true);
+					boolean isMultiselectField = tmpField.getVal(Rc.SV_MULTISELECT) != null
+							&& tmpField.getVal(Rc.SV_MULTISELECT).equals(true);
 					String localeId = null;
 					if (isLabelField) {
 						try {
@@ -1921,6 +1922,19 @@ public class WsReactElements {
 							jsonDataForWork.addProperty(tmpFieldName + "_CODE", rawVal.toString());
 							jsonDataForWork.addProperty(tmpFieldName,
 									I18n.getText(localeId, rawVal.toString().replace("\"", "")));
+						} else if (isMultiselectField) {
+							String valueString = "";
+							if (rawVal instanceof List) {
+								@SuppressWarnings("unchecked")
+								List<String> selectedOptions = (List<String>) rawVal;
+								valueString = String.join(",", selectedOptions);
+							} else {
+								String multiSelectOperator = SvConf.getMultiSelectSeparator() == null ? ","
+										: SvConf.getMultiSelectSeparator();
+								String[] values = rawVal.toString().split(multiSelectOperator);
+								valueString = String.join(",", values);
+							}
+							jsonDataForWork.addProperty(tmpFieldName, valueString);
 						} else {
 							jsonDataForWork.addProperty(tmpFieldName, rawVal.toString());
 						}
@@ -2080,7 +2094,6 @@ public class WsReactElements {
 										+ multiSelectOperator);
 							}
 						}
-						trResBuild.substring(0, trResBuild.length() - 1);
 						translatedResult = translatedResult.substring(0, translatedResult.length() - 1);
 						jsonDataForWork.addProperty(saveField, trResBuild.toString());
 						break;

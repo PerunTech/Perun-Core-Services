@@ -35,6 +35,7 @@ public class Rc {
 	public static final String PARENT_CODE_VALUE = "PARENT_CODE_VALUE";
 	public static final String CODE_VALUE = "CODE_VALUE";
 	public static final String SV_ISLABEL = "SV_ISLABEL";
+	public static final String SV_MULTISELECT = "SV_MULTISELECT";
 	public static final String FIELD_TYPE = "FIELD_TYPE";
 	public static final String CODE_LIST_ID = "CODE_LIST_ID";
 	public static final String SORT_ORDER = "SORT_ORDER";
