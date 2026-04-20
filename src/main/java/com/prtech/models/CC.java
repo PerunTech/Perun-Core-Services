@@ -24,6 +24,7 @@ public class CC {
 	public static final String EMPTY_STRING = "";
 	public static final String CHECK_BUSINESS_PERIOD = "CHECK_BUSINESS_PERIOD";
 	public static final String SV_ISLABEL = "SV_ISLABEL";
+	public static final String SV_MULTISELECT = "SV_MULTISELECT";
 	public static final String REFERENTIAL_TABLE = "REFERENTIAL_TABLE";
 	public static final String REFERENTIAL_FIELD = "REFERENTIAL_FIELD";
 	public static final String REACT = "react";

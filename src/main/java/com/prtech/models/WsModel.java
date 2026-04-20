@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -31,6 +32,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
 import com.prtech.perun.PerunUtil;
 import com.prtech.perun.services.ws.DbReader;
@@ -430,12 +432,13 @@ public class WsModel {
 	public static LinkedHashMap<String, JsonElement> getDbDataObjectsAsLinkedHashMap(DbDataObject dbo, String tableName,
 			boolean skipRepoFields, SvReader svr) throws SvException {
 		DbDataObject dboField = null;
-		String localeId = CC.EMPTY_STRING;
+		final String[] localeId = { CC.EMPTY_STRING };
+		String multiSelectOperator = ",";
 		JsonObject convertedJObj = dbo.toJson().getAsJsonObject(dbo.getClass().getCanonicalName());
 		LinkedHashMap<String, JsonElement> lhmObj = new LinkedHashMap<>();
 		Gson gson = new Gson();
 		if (svr != null)
-			localeId = svr.getUserLocaleId(svr.getInstanceUser());
+			localeId[0] = svr.getUserLocaleId(svr.getInstanceUser());
 		for (Entry<String, JsonElement> tempConverted : convertedJObj.entrySet()) {
 			if (!tempConverted.getKey().equals("values")) {
 				if (!skipRepoFields) {
@@ -450,11 +453,29 @@ public class WsModel {
 							if (dboField != null && dboField.getVal(CC.SV_ISLABEL) != null
 									&& dboField.getVal(CC.SV_ISLABEL).equals(true)) {
 								lhmObj.put(tableName + "." + value.getKey().toUpperCase() + "_CODE", value.getValue());
-								StringBuilder sb = new StringBuilder(
-										"\"" + (I18n.getText(localeId, value.getValue().toString().replace("\"", "")))
-												+ "\"");
+								StringBuilder sb = new StringBuilder("\""
+										+ (I18n.getText(localeId[0], value.getValue().toString().replace("\"", "")))
+										+ "\"");
 								lhmObj.put(tableName + "." + value.getKey().toUpperCase(),
 										JsonParser.parseString(sb.toString()));
+							} else if (dboField != null && dboField.getVal(CC.SV_MULTISELECT) != null
+									&& dboField.getVal(CC.SV_MULTISELECT).equals(true)) {
+								String fieldValue = value.getValue().getAsString().replace("[", "").replace("]", "");
+								String valueString = "";
+
+								Long codeListId = dboField.getVal(CC.CODE_LIST_ID) != null
+										? dboField.getAsLong(CC.CODE_LIST_ID)
+										: null;
+								String[] values = fieldValue.toString().split(multiSelectOperator);
+								valueString = String.join(", ", Arrays.stream(values).map(val -> {
+									try {
+										return PerunUtil.translateCodeValueForField(codeListId, val, localeId[0], svr);
+									} catch (SvException e) {
+										return null;
+									}
+								}).filter(Objects::nonNull).collect(Collectors.toList()));
+								lhmObj.put(tableName + "." + value.getKey().toUpperCase(),
+										new JsonPrimitive(valueString));
 							} else {
 								lhmObj.put(tableName + "." + value.getKey().toUpperCase(), value.getValue());
 							}
@@ -493,6 +514,7 @@ public class WsModel {
 			}
 		}
 		return lhmObj;
+
 	}
 
 	public static DbDataObject getDbDataObjectFromDenormalizedField(String tableName, String fieldName,
