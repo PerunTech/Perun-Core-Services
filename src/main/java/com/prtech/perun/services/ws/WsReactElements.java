@@ -2053,49 +2053,55 @@ public class WsReactElements {
 	 */
 	private static JsonObject addValueToJsonObject2(JsonObject jsonData, DbDataObject recordObject,
 			DbDataObject tmpField, String readField, String saveField, Boolean doTranslate, SvReader svr) {
+
 		JsonObject jsonDataForWork = jsonData;
 		CodeList cl = null;
 		String nameField = tmpField.getVal(Rc.FIELD_NAME).toString();
-		// no need to display PKID and GUI_METADATA fields
 		if (processField(nameField))
 			try {
 				if (recordObject.getVal(readField) == null) {
 					return jsonDataForWork;
 				}
+				String tmpS = recordObject.getVal(readField).toString();
+				boolean isMultiSelect = false;
+				Object multiVal = tmpField.getVal("SV_MULTISELECT");
+
+				if (multiVal != null) {
+					isMultiSelect = multiVal.toString().equalsIgnoreCase("true") || multiVal.toString().equals("1");
+				}
+				if (isMultiSelect && tmpS != null) {
+					StringBuilder trResBuild = new StringBuilder();
+					if (tmpField.getVal("CODE_LIST_ID") != null) {
+						cl = new CodeList(svr);
+						HashMap<String, String> listMap = cl.getCodeList(getLocaleId(svr),
+								Long.valueOf(tmpField.getVal("CODE_LIST_ID").toString()), true);
+						tmpS = tmpS.replace("[", "").replace("]", "").trim();
+						String sep = tmpS.contains(";") ? ";" : ",";
+						//String[] cArray = tmpS.split(sep);
+						String[] cArray = tmpS.split("\\s*" + sep + "\\s*");
+						for (String key : cArray) {
+							String trimmedKey = key.trim();
+							String labelCode = listMap.get(trimmedKey);
+							String translated = (labelCode != null && !labelCode.isEmpty())
+									? I18n.getText(getLocaleId(svr), labelCode)
+									: trimmedKey; 
+							if (trResBuild.length() > 0)
+								trResBuild.append(", ");
+
+							trResBuild.append(translated);
+						}
+
+					} else {
+						trResBuild.append(tmpS.replace(";", ", "));
+					}
+					jsonDataForWork.addProperty(saveField, trResBuild.toString());
+					return jsonDataForWork;
+				}
 				switch (tmpField.getVal(Rc.FIELD_TYPE).toString()) {
 				case Rc.NVARCHAR:
-					String tmpS = null;
-					if (recordObject.getVal(readField) != null)
-						tmpS = recordObject.getVal(readField).toString();
-					// tmpS = (String) recordObject.getVal(readField);
 					if (tmpField.getVal("SV_ISLABEL") != null && tmpField.getVal("SV_ISLABEL").equals(true)) {
 						tmpS = I18n.getText(getLocaleId(svr), tmpS);
 						jsonDataForWork.addProperty(saveField, tmpS);
-						break;
-					}
-					if (tmpField.getVal("SV_MUTLISELECT") != null && tmpField.getVal("SV_MUTLISELECT").equals(true)) {
-						String translatedResult = "";
-						StringBuilder trResBuild = new StringBuilder();
-
-						if (tmpField.getVal("CODE_LIST_ID") != null) {
-							cl = new CodeList(svr);
-							HashMap<String, String> listMap = cl.getCodeList(getLocaleId(svr),
-									Long.valueOf(tmpField.getVal("CODE_LIST_ID").toString()), true);
-							String[] cArray = tmpS.split(SvConf.getMultiSelectSeparator());
-							// if SvConf.getMultiSelectSeparator() is empty, set
-							// default to ,
-							String multiSelectOperator = SvConf.getMultiSelectSeparator() == null ? ","
-									: SvConf.getMultiSelectSeparator();
-							for (String tempCodeListKey : cArray) {
-								translatedResult = translatedResult
-										+ I18n.getText(getLocaleId(svr), listMap.get(tempCodeListKey))
-										+ multiSelectOperator;
-								trResBuild.append(I18n.getText(getLocaleId(svr), listMap.get(tempCodeListKey))
-										+ multiSelectOperator);
-							}
-						}
-						translatedResult = translatedResult.substring(0, translatedResult.length() - 1);
-						jsonDataForWork.addProperty(saveField, trResBuild.toString());
 						break;
 					}
 					if (tmpS != null) {
@@ -2110,53 +2116,49 @@ public class WsReactElements {
 				case Rc.NUMERIC:
 					Number tmpN = null;
 					Long isFloat = (Long) tmpField.getVal(Rc.FIELD_SCALE);
+
 					if (isFloat == null || isFloat == 0) {
-						Long tmpL = null;
-						tmpL = Long.valueOf(recordObject.getVal(readField).toString());
-						tmpN = tmpL;
+						tmpN = Long.valueOf(recordObject.getVal(readField).toString());
 					} else {
-						Double tmpDo = null;
-						tmpDo = Double.valueOf(recordObject.getVal(readField).toString());
-						tmpN = tmpDo;
+						tmpN = Double.valueOf(recordObject.getVal(readField).toString());
 					}
+
 					if (tmpN != null)
 						jsonDataForWork.addProperty(saveField, tmpN);
 					break;
 				case Rc.BOOLEAN:
 					Boolean tmpB = null;
+
 					if (recordObject.getVal(readField) instanceof Boolean) {
 						tmpB = (Boolean) recordObject.getVal(readField);
 					} else {
 						if (recordObject.getVal(readField) != null) {
-							if (recordObject.getVal(readField).toString().equals("1")) {
-								tmpB = true;
-							} else {
-								tmpB = false;
-							}
+							tmpB = recordObject.getVal(readField).toString().equals("1");
 						}
 					}
+
 					if (tmpB != null && tmpField.getVal("CODE_LIST_ID") != null) {
 						jsonDataForWork.addProperty(saveField, tmpB);
-					} else
+					} else {
 						jsonDataForWork = addBoleanParse(jsonData, recordObject, readField, saveField);
+					}
 					break;
-				case Rc.DATE: // for some reason date was saved as datetime
+				case Rc.DATE:
 					DateTime tmpDsh = new DateTime(recordObject.getVal(readField));
-
 					int monthInt = tmpDsh.monthOfYear().get();
 					int dayInt = tmpDsh.dayOfMonth().get();
-					String monthStr = ((monthInt < 10) ? "0" : "") + String.valueOf(monthInt);
-					String dayStr = ((dayInt < 10) ? "0" : "") + String.valueOf(dayInt);
+					String monthStr = ((monthInt < 10) ? "0" : "") + monthInt;
+					String dayStr = ((dayInt < 10) ? "0" : "") + dayInt;
 					jsonDataForWork.addProperty(saveField, tmpDsh.year().get() + "-" + monthStr + "-" + dayStr);
-
 					break;
 				case Rc.TIMESTAMP:
 				case Rc.DATETIME:
-					DateTime tmpDlg = null;
-					tmpDlg = (DateTime) recordObject.getVal(readField);
+					DateTime tmpDlg = (DateTime) recordObject.getVal(readField);
+
 					if (tmpDlg != null)
 						jsonDataForWork.addProperty(saveField, tmpDlg.toString());
 					break;
+
 				default:
 				}
 			} catch (Exception e) {
@@ -2165,6 +2167,7 @@ public class WsReactElements {
 				if (cl != null)
 					cl.release();
 			}
+
 		return jsonDataForWork;
 	}
 
