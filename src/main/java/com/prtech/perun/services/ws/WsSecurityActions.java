@@ -45,6 +45,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
+import org.opensaml.core.config.InitializationException;
 import org.opensaml.saml.saml2.core.AuthnStatement;
 import org.opensaml.saml.saml2.core.LogoutRequest;
 import org.opensaml.saml.saml2.core.LogoutResponse;
@@ -86,6 +87,8 @@ import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.ResponseHandler;
 import com.prtech.svarog_common.ResponseHandler.MessageType;
 
+import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
+
 @Path("/SvSecurity")
 public class WsSecurityActions {
 	static final Logger log4j = SvConf.getLogger(WsSecurityActions.class);
@@ -100,7 +103,7 @@ public class WsSecurityActions {
 	}
 
 	static PerunSamlClient getPerunSaml() throws SvException, SAMLException, NoSuchAlgorithmException,
-			InvalidKeySpecException, IOException, CertificateException {
+			InvalidKeySpecException, IOException, CertificateException, ComponentInitializationException, InitializationException {
 		if (samlClient == null)
 			synchronized (WsSecurityActions.class) {
 				if (samlClient == null) {

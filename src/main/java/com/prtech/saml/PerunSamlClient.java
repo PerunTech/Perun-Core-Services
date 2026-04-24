@@ -19,6 +19,8 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 
+import org.opensaml.core.config.InitializationException;
+
 import java.security.cert.X509Certificate;
 
 import com.lastpass.saml.IdPConfig;
@@ -27,6 +29,8 @@ import com.lastpass.saml.SAMLException;
 import com.lastpass.saml.SAMLInit;
 import com.lastpass.saml.SPConfig;
 import com.prtech.svarog.SvUtil;
+
+import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
 
 public class PerunSamlClient {
 	public SAMLClient getSamlClient() {
@@ -135,7 +139,7 @@ public class PerunSamlClient {
 		return loginURL;
 	}
 
-	public PerunSamlClient(InputStream inputStream) throws SAMLException {
+	public PerunSamlClient(InputStream inputStream) throws SAMLException, ComponentInitializationException, InitializationException {
 		SAMLInit.initialize();
 
 		samlClient = new SAMLClient(new SPConfig(), new IdPConfig(inputStream));
@@ -149,7 +153,7 @@ public class PerunSamlClient {
 		currentSPConfig.setPrivateKey(privateKey);
 	}
 
-	public void setIdPMetadata(String idpConfigMetadataFileName) throws SAMLException {
+	public void setIdPMetadata(String idpConfigMetadataFileName) throws SAMLException, ComponentInitializationException, InitializationException {
 		SPConfig spConfig = samlClient.getSPConfig();
 		IdPConfig idpConfig = new IdPConfig(new File(idpConfigMetadataFileName));
 
