@@ -26,7 +26,11 @@ import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 
+import org.opensaml.core.config.InitializationException;
+import org.opensaml.core.config.InitializationService;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
+
+import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
 import net.shibboleth.utilities.java.support.xml.BasicParserPool;
 import org.opensaml.core.xml.io.UnmarshallerFactory;
 import org.opensaml.saml.saml2.metadata.EntityDescriptor;
@@ -68,9 +72,11 @@ public class IdPConfig
      *
      * @throws SAMLException if an error condition occurs while trying to parse and process
      *              the metadata
+     * @throws InitializationException 
+     * @throws ComponentInitializationException 
      */
     public IdPConfig(File metadataFile)
-        throws SAMLException
+        throws SAMLException, ComponentInitializationException, InitializationException
     {
         FileInputStream inputStream;
         try {
@@ -99,21 +105,26 @@ public class IdPConfig
      *
      * @throws SAMLException if an error condition occurs while trying to parse and process
      *              the metadata
+     * @throws InitializationException 
+     * @throws ComponentInitializationException 
      */
     public IdPConfig(InputStream inputStream)
-        throws SAMLException
+        throws SAMLException, ComponentInitializationException, InitializationException
     {
         init(inputStream);
     }
 
     private void init(InputStream inputStream)
-            throws SAMLException
+            throws SAMLException, ComponentInitializationException, InitializationException
     {
         BasicParserPool parsers = new BasicParserPool();
         parsers.setNamespaceAware(true);
+        parsers.setIgnoreComments(true);
+        parsers.setCoalescing(true);
+        parsers.initialize();
 
         EntityDescriptor edesc;
-
+        
         try {
             Document doc = parsers.parse(inputStream);
             Element root = doc.getDocumentElement();
