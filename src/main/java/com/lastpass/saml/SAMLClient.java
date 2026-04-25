@@ -122,8 +122,17 @@ public class SAMLClient {
 	private BasicParserPool parsers;
 	private X509Certificate entityCertificate;
 	private boolean requireSignedAssertion = true;
+	private boolean requireSignedResponse = true;
 	private BasicCredential idpCredential;
 
+	public boolean isRequireSignedResponse() {
+		return requireSignedResponse;
+	}
+
+	public void setRequireSignedResponse(boolean requireSignedResponse) {
+		this.requireSignedResponse = requireSignedResponse;
+	}
+	
 	public boolean isRequireSignedAssertion() {
 		return requireSignedAssertion;
 	}
@@ -269,6 +278,9 @@ public class SAMLClient {
 		Signature sig = response.getSignature();
 		if (sig != null)
 			SignatureValidator.validate(sig, idpCredential);
+		
+		if(sig==null && requireSignedResponse)
+			throw new SAMLException("SAML Response must be signed");
 
 		// response must be successful
 		if (response.getStatus() == null || response.getStatus().getStatusCode() == null
@@ -325,7 +337,10 @@ public class SAMLClient {
 		Signature sig = response.getSignature();
 		if (sig != null)
 			SignatureValidator.validate(sig, idpCredential);
-
+		
+		if(sig==null && requireSignedResponse)
+			throw new SAMLException("SAML Response must be signed");
+		
 		// response must be successful
 		if (response.getStatus() == null || response.getStatus().getStatusCode() == null
 				|| !(StatusCode.SUCCESS.equals(response.getStatus().getStatusCode().getValue()))) {
