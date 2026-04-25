@@ -360,7 +360,10 @@ public class WsSecurityActions {
 			} else {
 				// otherwise get the user attributes from the SAML response
 				Boolean requireSigned = SvParameter.getSysParam(CC.SSO_REQUIRE_SIGN_ASSERTION, Boolean.FALSE);
+				Boolean requireSignedResponse = SvParameter.getSysParam(CC.SSO_REQUIRE_SIGN_RESPONSE, Boolean.TRUE);
 				getPerunSaml().getSamlClient().setRequireSignedAssertion(requireSigned);
+				getPerunSaml().getSamlClient().setRequireSignedResponse(requireSignedResponse);
+				
 				at = getPerunSaml().getSamlClient().validateResponse(authResponse.get(0));
 				String requestId = at.getResponse().getInResponseTo();
 				// add the response to the request cache for further use
@@ -443,7 +446,10 @@ public class WsSecurityActions {
 			List<String> samlResponse = formVals.get(keyName);
 			String form = samlResponse.get(0);
 			Boolean requireSigned = SvParameter.getSysParam(CC.SSO_REQUIRE_SIGN_ASSERTION, Boolean.FALSE);
+			Boolean requireSignedResponse = SvParameter.getSysParam(CC.SSO_REQUIRE_SIGN_RESPONSE, Boolean.TRUE);
 			getPerunSaml().getSamlClient().setRequireSignedAssertion(requireSigned);
+			getPerunSaml().getSamlClient().setRequireSignedResponse(requireSignedResponse);
+
 			LogoutResponse response = getPerunSaml().getSamlClient().validateLogoutResponse(form);
 
 			AttributeSet at = ssoRequestCache.getIfPresent(response.getInResponseTo());
@@ -493,7 +499,11 @@ public class WsSecurityActions {
 			AttributeSet at = null;
 
 			Boolean requireSigned = SvParameter.getSysParam(CC.SSO_REQUIRE_SIGN_ASSERTION, Boolean.FALSE);
+			Boolean requireSignedResponse = SvParameter.getSysParam(CC.SSO_REQUIRE_SIGN_RESPONSE, Boolean.TRUE);
 			getPerunSaml().getSamlClient().setRequireSignedAssertion(requireSigned);
+			getPerunSaml().getSamlClient().setRequireSignedResponse(requireSignedResponse);
+
+			
 			LogoutRequest r = getPerunSaml().getSamlClient().validateLogoutRequest(authResponse.get(0));
 			String inResponseTo = r.getID();
 			String userName = r.getNameID().getValue();
