@@ -23,5 +23,6 @@ public class CC {
 	public static final String LABEL_CODE = "LABEL_CODE";
 	public static final String FIELD_NAME = "FIELD_NAME";
 	public static final String CODE_LIST_ID = "CODE_LIST_ID";
+	public static final String SSO_REQUIRE_SIGN_ASSERTION = "SSO_REQUIRE_SIGN_ASSERTION";
 
 }
