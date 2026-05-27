@@ -92,6 +92,7 @@ public class Activator implements BundleActivator {
 		list.add(WsModel.class);
 		list.add(WsCore.class);
 		list.add(MenuExporter.class);
+		list.add(DbReader.class);
 		return list;
 
 	}
