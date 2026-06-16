@@ -1,6 +1,7 @@
 package com.prtech.perun.services.ws;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -548,14 +549,19 @@ public class WsAdminConsole {
 
 			if ((dbaDefaultGroupUsers != null && !dbaDefaultGroupUsers.isEmpty())
 					|| (dbaAdditionalGroupUsers != null && !dbaAdditionalGroupUsers.isEmpty())) {
+				Set<Long> resultUserIds = new HashSet<>();
 				if (dbaDefaultGroupUsers != null && !dbaDefaultGroupUsers.isEmpty()) {
 					for (DbDataObject dboDefaultGroupUser : dbaDefaultGroupUsers.getItems()) {
-						dbaResultUsers.addDataItem(dboDefaultGroupUser);
+						if (resultUserIds.add(dboDefaultGroupUser.getObjectId())) {
+							dbaResultUsers.addDataItem(dboDefaultGroupUser);
+						}
 					}
 				}
 				if (dbaAdditionalGroupUsers != null && !dbaAdditionalGroupUsers.isEmpty()) {
 					for (DbDataObject dboAdditionalGroupUser : dbaAdditionalGroupUsers.getItems()) {
-						dbaResultUsers.addDataItem(dboAdditionalGroupUser);
+						if (resultUserIds.add(dboAdditionalGroupUser.getObjectId())) {
+							dbaResultUsers.addDataItem(dboAdditionalGroupUser);
+						}
 					}
 				}
 
