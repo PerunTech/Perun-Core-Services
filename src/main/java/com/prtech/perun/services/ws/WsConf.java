@@ -355,7 +355,11 @@ public class WsConf {
 
 		boolean hidden = false;
 		try {
-			JsonObject meta = (new Gson()).fromJson((String) dboPlugin.getVal(Sv.GUI_METADATA), JsonObject.class);
+			JsonObject meta = null;
+			if (dboPlugin.getVal(Sv.GUI_METADATA) instanceof String)
+				meta = (new Gson()).fromJson((String) dboPlugin.getVal(Sv.GUI_METADATA), JsonObject.class);
+			else
+				meta = (JsonObject) dboPlugin.getVal(Sv.GUI_METADATA);
 			if (meta != null && meta.has("cardHidden"))
 				hidden = meta.get("cardHidden").getAsBoolean();
 		} catch (Exception e) {
@@ -368,7 +372,11 @@ public class WsConf {
 
 		boolean hasReducer = false;
 		try {
-			JsonObject meta = (new Gson()).fromJson((String) dboPlugin.getVal(Sv.GUI_METADATA), JsonObject.class);
+			JsonObject meta = null;
+			if (dboPlugin.getVal(Sv.GUI_METADATA) instanceof String)
+				meta = (new Gson()).fromJson((String) dboPlugin.getVal(Sv.GUI_METADATA), JsonObject.class);
+			else
+				meta = (JsonObject) dboPlugin.getVal(Sv.GUI_METADATA);
 			if (meta != null && meta.has("hasPersistReducer"))
 				hasReducer = meta.get("hasPersistReducer").getAsBoolean();
 		} catch (Exception e) {
@@ -382,7 +390,11 @@ public class WsConf {
 		boolean directAccess = false;
 		JsonArray groupAccess = new JsonArray();
 		try {
-			JsonObject meta = (new Gson()).fromJson((String) dboPlugin.getVal(Sv.GUI_METADATA), JsonObject.class);
+			JsonObject meta = null;
+			if (dboPlugin.getVal(Sv.GUI_METADATA) instanceof String)
+				meta = (new Gson()).fromJson((String) dboPlugin.getVal(Sv.GUI_METADATA), JsonObject.class);
+			else
+				meta = (JsonObject) dboPlugin.getVal(Sv.GUI_METADATA);
 
 			if (meta != null && meta.has("directAccess"))
 				directAccess = meta.get("directAccess").getAsBoolean();
