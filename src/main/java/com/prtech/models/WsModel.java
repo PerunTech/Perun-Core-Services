@@ -469,7 +469,7 @@ public class WsModel {
 								String[] values = fieldValue.toString().split(multiSelectOperator);
 								valueString = String.join(", ", Arrays.stream(values).map(val -> {
 									try {
-										return PerunUtil.translateCodeValueForField(codeListId, val, localeId[0], svr);
+										return PerunUtil.translateCodeValueForField(codeListId, val.trim(), localeId[0], svr);
 									} catch (SvException e) {
 										return null;
 									}
