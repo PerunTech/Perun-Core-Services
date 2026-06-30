@@ -64,6 +64,7 @@ import com.google.gson.reflect.TypeToken;
 import com.prtech.perun.PerunUtil;
 import com.prtech.svarog.CodeList;
 import com.prtech.svarog.I18n;
+import com.prtech.svarog.Sv;
 import com.prtech.svarog.SvComplexCache;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvConversation;
@@ -9222,4 +9223,38 @@ public class WsReactElements {
 			return PerunUtil.handleException(e, "Error getting Linked Objects");
 		}
 	}
+	
+	/*
+	 * getLinkedTableNamesByUserObjectType - returns jsonArray tableName list
+	 * for existing POA link_type
+	 * 
+	 * @return Json Array of objects of type table_name, children of object with ID
+	 * parentId
+	 */
+	@Path("/getLinkedTableNamesByUserObjectType/{sessionId}/{userObjectType}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getLinkedTableNamesByUserObjectType(@PathParam("sessionId") String sessionId,
+			@PathParam("userObjectType") Long userObjectType, @Context HttpServletRequest httpRequest) {
+		JsonArray jArr = new JsonArray();
+		try (SvReader svr = new SvReader(sessionId)) {
+
+			DbSearchCriterion criterionTypePOA = new DbSearchCriterion("LINK_TYPE", DbCompareOperand.EQUAL, Sv.POA);
+			DbSearchCriterion criterionUser = new DbSearchCriterion("LINK_OBJ_TYPE_1", DbCompareOperand.EQUAL,
+					userObjectType);
+			DbSearchExpression dbSearchExpression = new DbSearchExpression();
+			dbSearchExpression.addDbSearchItem(criterionTypePOA).addDbSearchItem(criterionUser);
+			DbDataArray linkTypes = svr.getObjects(dbSearchExpression, svCONST.OBJECT_TYPE_LINK_TYPE, null, null, null);
+
+			for (DbDataObject linkType : linkTypes.getItems()) {
+				DbDataObject table = SvCore.getDbt(linkType.getAsLong("LINK_OBJ_TYPE_2"));
+				if (table != null)
+					jArr.add(table.getAsString(Sv.TABLE_NAME));
+			}
+			return Response.status(200).entity(jArr.toString()).build();
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error getting Linked TableNames");
+		}
+	}
+	
 }
