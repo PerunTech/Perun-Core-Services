@@ -9257,4 +9257,92 @@ public class WsReactElements {
 		}
 	}
 	
+	@Path("/getObjectsByCriteria/{sessionId}/{tableName}")
+	@POST
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getObjectsByCriteria(@PathParam("sessionId") String sessionId,
+			@PathParam("tableName") String tableName, MultivaluedMap<String, String> formVals,
+			@Context HttpServletRequest httpRequest) {
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(sessionId)) {
+			JsonArray result = new JsonArray();
+			DbDataArray filteredArray = null;
+
+			filteredArray = getFilteredRecords(formVals, tableName,	svr);
+
+			String[] tablesUsedArray = new String[1];
+			Boolean[] tableShowArray = new Boolean[1];
+			int tablesusedCount = 1;
+			tablesUsedArray[0] = tableName;
+			tableShowArray[0] = true;
+			result = prapareTableQueryData(filteredArray, tablesUsedArray, tableShowArray,
+					tablesusedCount, true, svr, true, null);
+			
+			jrh.create(MessageType.SUCCESS, I18n.getText("data.read"), I18n.getText("data.read"),
+					new Gson().fromJson(result, JsonArray.class));
+		} catch (SvException e) {
+			log4j.error(e.getFormattedMessage(), e);
+			return PerunUtil.handleException(e, "Error getting object by criteria");
+		}
+
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+	
+	public static Boolean addSearchCriterion(MultivaluedMap<String, String> formVals, String fieldName,
+			String tableName, DbCompareOperand operand, DbSearchExpression dbse, Boolean includePercent)
+			throws SvException {
+		DbDataObject field = SvCore.getFieldByName(tableName, fieldName);
+		String value = formVals.getFirst(fieldName);
+		if (field != null && value != null && !value.trim().equals("null")) {
+			if (operand == null)
+				operand = DbCompareOperand.ILIKE;
+			if (includePercent == null)
+				includePercent = true;
+			if (field.getVal("CODE_LIST_ID") != null) {
+				operand = DbCompareOperand.EQUAL;
+				includePercent = false;
+			}
+			if (operand == DbCompareOperand.ILIKE && "NUMERIC".equals(field.getVal("FIELD_TYPE").toString()))
+				fieldName = fieldName + "::text";
+			if (includePercent && operand == DbCompareOperand.ILIKE)
+				value = "%" + value + "%";
+			DbSearchCriterion dbc = new DbSearchCriterion(fieldName, operand, value);
+			dbse.addDbSearchItem(dbc);
+			return true;
+		}
+		return false;
+	}
+	
+	public static DbDataArray getFilteredRecords(MultivaluedMap<String, String> formVals, String tableName,
+			SvReader svr) throws SvException {
+		DbDataArray result = new DbDataArray();
+		DbSearchExpression dbse = new DbSearchExpression();
+		Boolean hasCrit = false;
+
+		for (String field : formVals.keySet()) {
+			if ("ROW_LIMIT".equals(field))
+				continue;
+			hasCrit = addSearchCriterion(formVals, field, tableName, null, dbse, true) || hasCrit;
+		}
+		if (hasCrit) {
+			Integer rowLimit = null;
+			Integer offset = null;
+			try {
+				if (formVals.getFirst("ROW_LIMIT") != null)
+					rowLimit = Integer.valueOf(formVals.getFirst("ROW_LIMIT"));
+			} catch (NumberFormatException e) {
+			}
+			if (rowLimit == null)
+				rowLimit = 0;
+
+			DbQueryObject query = new DbQueryObject(SvReader.getDbtByName(tableName), dbse, null, null);
+			ArrayList<String> orderBy = new ArrayList<String>();
+			orderBy.add("PKID" + " " + "DESC");
+			query.setOrderByFields(orderBy);
+			result = svr.getObjects(query, rowLimit, offset);
+		}
+		return result;
+	}
+	
 }
