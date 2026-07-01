@@ -9248,8 +9248,12 @@ public class WsReactElements {
 
 			for (DbDataObject linkType : linkTypes.getItems()) {
 				DbDataObject table = SvCore.getDbt(linkType.getAsLong("LINK_OBJ_TYPE_2"));
-				if (table != null)
-					jArr.add(table.getAsString(Sv.TABLE_NAME));
+				if (table != null) {
+					JsonObject object = new JsonObject();
+					object.addProperty("label", table.getAsString(Sv.LABEL_CODE));
+					object.addProperty("table_name", table.getAsString(Sv.TABLE_NAME));
+					jArr.add(object);
+				}
 			}
 			return Response.status(200).entity(jArr.toString()).build();
 		} catch (Exception e) {
