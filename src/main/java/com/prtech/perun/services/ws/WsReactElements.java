@@ -9250,7 +9250,7 @@ public class WsReactElements {
 				DbDataObject table = SvCore.getDbt(linkType.getAsLong("LINK_OBJ_TYPE_2"));
 				if (table != null) {
 					JsonObject object = new JsonObject();
-					object.addProperty("label", table.getAsString(Sv.LABEL_CODE));
+					object.addProperty("label", I18n.getText(getLocaleId(svr), table.getAsString(Sv.LABEL_CODE)));
 					object.addProperty("table_name", table.getAsString(Sv.TABLE_NAME));
 					jArr.add(object);
 				}
