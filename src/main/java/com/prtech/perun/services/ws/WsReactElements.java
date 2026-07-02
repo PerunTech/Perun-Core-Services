@@ -7199,7 +7199,7 @@ public class WsReactElements {
 				obj1 = svr.getObjectById(objectId1, tableId1, null);
 				obj2 = svr.getObjectById(objectId2, tableId2, null);
 				if (obj1 != null && obj2 != null)
-					dbLink = findLink(getTableNameById(tableId1, svr), linkName, svr);
+					dbLink = findLink(getTableNameById(tableId1, svr), linkName, getTableNameById(tableId2, svr), svr);
 				else
 					throw new SvException("object.not_found", null);
 			}
