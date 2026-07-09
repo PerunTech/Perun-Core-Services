@@ -1,9 +1,14 @@
 package com.prtech.perun.services.ws;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -32,6 +37,8 @@ import com.prtech.svarog.SvPerunInstance;
 import com.prtech.svarog.SvPerunManager;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvWriter;
+import com.prtech.svarog.svCONST;
+import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.ResponseHandler;
 import com.prtech.svarog_common.ResponseHandler.MessageType;
@@ -304,7 +311,8 @@ public class WsConf {
 
 //			if (accessCard) {
 			JsonObject jObj = new JsonObject();
-			for (Entry<String, SvPerunInstance> plugins : spm.getPerunPlugins()) {
+			List<Entry<String, SvPerunInstance>> pluginsList = spm.getPerunPlugins();
+			for (Entry<String, SvPerunInstance> plugins : getVisiblePluginsForUser(pluginsList, svr)) {
 				SvPerunInstance dbocard = plugins.getValue();
 				jObj = new JsonObject();
 				jObj.addProperty("id", dbocard.getPlugin().getContextName());
@@ -349,6 +357,34 @@ public class WsConf {
 			}
 		}
 		return jArray;
+	}
+
+	private List<Entry<String, SvPerunInstance>> getVisiblePluginsForUser(
+			List<Entry<String, SvPerunInstance>> pluginsList, SvReader svr) throws SvException {
+
+		if (svr.isAdmin())
+			return pluginsList;
+		else {
+			List<Entry<String, SvPerunInstance>> visiblePluginsForUser = new ArrayList<Entry<String, SvPerunInstance>>();
+			try {
+				DbDataObject defaultUserGroup = svr.getDefaultUserGroup();
+				DbDataObject linkType = SvCore.getLinkType("LINK_CARD_VISIBILITY_BY_GROUP",
+						SvCore.getDbt(svCONST.OBJECT_TYPE_GROUP), SvCore.getDbt(svCONST.OBJECT_TYPE_PERUN_PLUGIN));
+				if (linkType != null) {
+					DbDataArray linkedPlugins = svr.getObjectsByLinkedId(defaultUserGroup.getObjectId(),
+							svCONST.OBJECT_TYPE_GROUP, linkType, svCONST.OBJECT_TYPE_PERUN_PLUGIN, false, null, null,
+							null);
+					Set<Long> linkedPluginsIds = linkedPlugins.getItems().stream().map(p -> p.getObjectId())
+							.collect(Collectors.toSet());
+					visiblePluginsForUser = pluginsList.stream()
+							.filter(p -> linkedPluginsIds.contains(p.getValue().getDboPlugin().getObjectId()))
+							.collect(Collectors.toList());
+				}
+			} catch (Exception e) {
+				log4j.error("Error at getVisiblePluginsForUser", e);
+			}
+			return visiblePluginsForUser;
+		}
 	}
 
 	private boolean cardIsHidden(DbDataObject dboPlugin) throws SvException {
