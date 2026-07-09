@@ -308,19 +308,25 @@ public class WsConf {
 			} else {
 				accessCard = false;
 			}
-
-//			if (accessCard) {
+//				if (accessCard) {
 			JsonObject jObj = new JsonObject();
 			List<Entry<String, SvPerunInstance>> pluginsList = spm.getPerunPlugins();
-			for (Entry<String, SvPerunInstance> plugins : getVisiblePluginsForUser(pluginsList, svr)) {
+			Set<Long> visiblePluginIds = getVisiblePluginsForUser(pluginsList, svr).stream()
+					.map(p -> p.getValue().getDboPlugin().getObjectId()).collect(Collectors.toSet());
+			for (Entry<String, SvPerunInstance> plugins : pluginsList) {
 				SvPerunInstance dbocard = plugins.getValue();
 				jObj = new JsonObject();
 				jObj.addProperty("id", dbocard.getPlugin().getContextName());
 				jObj.addProperty("title", I18n.getText(localeId, dbocard.getLabelCode()));
 				jObj.addProperty("text", I18n.getLongText(localeId, dbocard.getLabelCode()));
-				jObj.addProperty("cardHidden", cardIsHidden(dbocard.getDboPlugin()));
+				boolean hidden = cardIsHidden(dbocard.getDboPlugin());
+				if (!svr.isAdmin() && !visiblePluginIds.isEmpty()
+						&& !visiblePluginIds.contains(dbocard.getDboPlugin().getObjectId())) {
+					hidden = true;
+				}
+				jObj.addProperty("cardHidden", hidden);
 				if (!svr.isAdmin()) {
-
+					
 					jObj.addProperty("cardDirectAccess", manageCardAccess(dbocard.getDboPlugin(), svr));
 				} else {
 					jObj.addProperty("cardDirectAccess", false);
