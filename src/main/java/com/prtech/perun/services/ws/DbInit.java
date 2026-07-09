@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import com.prtech.menu.manager.CC;
 import com.prtech.svarog.Sv;
+import com.prtech.svarog.svCONST;
 import com.prtech.svarog_common.DbDataField;
 import com.prtech.svarog_common.DbDataField.DbFieldType;
 import com.prtech.svarog_common.DbDataObject;
@@ -463,6 +464,16 @@ public class DbInit implements IDbInit {
 		dbe.setDbTableFields(dbTableFields);
 		return dbe;
 	}
+	
+	private static DbDataObject createUserGroupCardAccessLinkType() {
+		DbDataObject dbLink = new DbDataObject();
+		dbLink.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dbLink.setVal(Rc.LINK_TYPE, "LINK_CARD_VISIBILITY_BY_GROUP");
+		dbLink.setVal("LINK_TYPE_DESCRIPTION", "link between USER_GROUP and PERUN_PLUGIN");
+		dbLink.setVal(Rc.LINK_OBJECT_TYPE1, svCONST.OBJECT_TYPE_GROUP);
+		dbLink.setVal(Rc.LINK_OBJECT_TYPE2, svCONST.OBJECT_TYPE_PERUN_PLUGIN);
+		return dbLink;
+	}
 
 	@Override
 	public ArrayList<DbDataTable> getCustomObjectTypes() {
@@ -486,6 +497,7 @@ public class DbInit implements IDbInit {
 	@Override
 	public ArrayList<DbDataObject> getCustomObjectInstances() {
 		ArrayList<DbDataObject> dbtList = new ArrayList<DbDataObject>();
+		dbtList.add(createUserGroupCardAccessLinkType());
 		return dbtList;
 	}
 
