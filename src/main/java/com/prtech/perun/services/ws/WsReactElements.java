@@ -2078,14 +2078,14 @@ public class WsReactElements {
 								Long.valueOf(tmpField.getVal("CODE_LIST_ID").toString()), true);
 						tmpS = tmpS.replace("[", "").replace("]", "").trim();
 						String sep = tmpS.contains(";") ? ";" : ",";
-						//String[] cArray = tmpS.split(sep);
+						// String[] cArray = tmpS.split(sep);
 						String[] cArray = tmpS.split("\\s*" + sep + "\\s*");
 						for (String key : cArray) {
 							String trimmedKey = key.trim();
 							String labelCode = listMap.get(trimmedKey);
 							String translated = (labelCode != null && !labelCode.isEmpty())
 									? I18n.getText(getLocaleId(svr), labelCode)
-									: trimmedKey; 
+									: trimmedKey;
 							if (trResBuild.length() > 0)
 								trResBuild.append(", ");
 
@@ -7242,7 +7242,7 @@ public class WsReactElements {
 						svw.deleteObject(linkIt);
 						svw.dbCommit();
 						jrh.create(MessageType.SUCCESS, I18n.getText(localeId, "link.success.invalidate"),
-								CC.EMPTY_STRING, new JsonObject());
+								I18n.getText(localeId, "link.success.invalidate"), new JsonObject());
 					}
 				} else
 					return Response.status(401).entity("link.not_found").build();
@@ -9224,10 +9224,10 @@ public class WsReactElements {
 			return PerunUtil.handleException(e, "Error getting Linked Objects");
 		}
 	}
-	
+
 	/*
-	 * getLinkedTableNamesByUserObjectType - returns jsonArray tableName list
-	 * for existing POA link_type
+	 * getLinkedTableNamesByUserObjectType - returns jsonArray tableName list for
+	 * existing POA link_type
 	 * 
 	 * @return Json Array of objects of type table_name, children of object with ID
 	 * parentId
@@ -9261,7 +9261,7 @@ public class WsReactElements {
 			return PerunUtil.handleException(e, "Error getting Linked TableNames");
 		}
 	}
-	
+
 	@Path("/getObjectsByCriteria/{sessionId}/{tableName}")
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
@@ -9274,16 +9274,16 @@ public class WsReactElements {
 			JsonArray result = new JsonArray();
 			DbDataArray filteredArray = null;
 
-			filteredArray = getFilteredRecords(formVals, tableName,	svr);
+			filteredArray = getFilteredRecords(formVals, tableName, svr);
 
 			String[] tablesUsedArray = new String[1];
 			Boolean[] tableShowArray = new Boolean[1];
 			int tablesusedCount = 1;
 			tablesUsedArray[0] = tableName;
 			tableShowArray[0] = true;
-			result = prapareTableQueryData(filteredArray, tablesUsedArray, tableShowArray,
-					tablesusedCount, true, svr, true, null);
-			
+			result = prapareTableQueryData(filteredArray, tablesUsedArray, tableShowArray, tablesusedCount, true, svr,
+					true, null);
+
 			jrh.create(MessageType.SUCCESS, I18n.getText("data.read"), I18n.getText("data.read"),
 					new Gson().fromJson(result, JsonArray.class));
 		} catch (SvException e) {
@@ -9293,7 +9293,7 @@ public class WsReactElements {
 
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
-	
+
 	public static Boolean addSearchCriterion(MultivaluedMap<String, String> formVals, String fieldName,
 			String tableName, DbCompareOperand operand, DbSearchExpression dbse, Boolean includePercent)
 			throws SvException {
@@ -9318,7 +9318,7 @@ public class WsReactElements {
 		}
 		return false;
 	}
-	
+
 	public static DbDataArray getFilteredRecords(MultivaluedMap<String, String> formVals, String tableName,
 			SvReader svr) throws SvException {
 		DbDataArray result = new DbDataArray();
@@ -9349,5 +9349,5 @@ public class WsReactElements {
 		}
 		return result;
 	}
-	
+
 }
