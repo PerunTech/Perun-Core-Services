@@ -7186,11 +7186,13 @@ public class WsReactElements {
 			@PathParam("tableName2") String tableName2, @PathParam("linkName") String linkName,
 			@Context HttpServletRequest httpRequest) {
 		ResponseHandler jrh = new ResponseHandler();
+		String localeId = SvConf.getDefaultLocale();
 		boolean isReverse = false;
 		DbDataObject obj1 = null;
 		DbDataObject obj2 = null;
 		DbDataObject linkObject = null;
 		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr);) {
+			localeId = svr.getUserLocaleId(svr.getInstanceUser());
 			Long tableId1 = findTableType(tableName1);
 			Long tableId2 = findTableType(tableName2);
 			DbDataObject dbLink = null;
@@ -7239,9 +7241,8 @@ public class WsReactElements {
 						DbDataObject linkIt = linkExist.getItems().get(0);
 						svw.deleteObject(linkIt);
 						svw.dbCommit();
-						jrh.create(MessageType.SUCCESS, "link.success.invalidate", "link.success.invalidate",
-								new JsonObject());
-
+						jrh.create(MessageType.SUCCESS, I18n.getText(localeId, "link.success.invalidate"),
+								CC.EMPTY_STRING, new JsonObject());
 					}
 				} else
 					return Response.status(401).entity("link.not_found").build();
