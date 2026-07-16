@@ -804,7 +804,8 @@ final class MenuHelper {
 				defaultMenuConfDbo = dbo;
 			}
 			if ((dbo.getVal(CC.CDL_NAME) != null && checkObjectByCdlItemName(requestData, dbo))
-					|| (dbo.getVal(CC.REF_TABLE_NAME) != null && checkObjectByRefField(requestData, dbo, svr))) {
+					|| (dbo.getVal(CC.REF_TABLE_NAME) != null && checkObjectByRefField(requestData, dbo, svr))
+					|| (dbo.getVal(CC.CDL_ITEM_NAME) != null && checkObjectByFieldValueNull(requestData, dbo, svr))) {
 				perunMenuConfDbo = dbo;
 				break;
 			}
@@ -859,6 +860,15 @@ final class MenuHelper {
 			return true;
 		}
 
+		return false;
+	}
+	
+	private static boolean checkObjectByFieldValueNull(JsonObject requestData, DbDataObject dbo, SvReader svr)
+			throws SvException {
+		if (dbo.getVal(CC.CDL_NAME) == null && dbo.getVal(CC.REF_TABLE_NAME) == null
+				&& (CC.IS_NULL.equals(dbo.getVal(CC.CDL_ITEM_NAME)) && getValueFromRequestData(requestData, dbo).isBlank()
+				|| CC.NOT_NULL.equals(dbo.getVal(CC.CDL_ITEM_NAME))	&& !getValueFromRequestData(requestData, dbo).isBlank()))
+			return true;
 		return false;
 	}
 
