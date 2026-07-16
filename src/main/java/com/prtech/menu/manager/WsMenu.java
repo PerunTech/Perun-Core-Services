@@ -533,6 +533,7 @@ public class WsMenu {
 				menuDbo = MenuHelper.saveMenuHelper(menuJson, svr);
 				if (menuDbo != null) {
 					svw.saveObject(menuDbo);
+					MenuHelper.updateCache(CC.PERUN_MENU, CC.PM, CC.PERUN_MENU);
 					jrh.create(MessageType.SUCCESS, I18n.getText("perun.success.upload_menu"), null,
 							menuDbo.toSimpleJson());
 					return Response.ok(jrh.getAll().toString()).build();
