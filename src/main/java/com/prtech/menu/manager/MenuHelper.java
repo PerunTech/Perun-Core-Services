@@ -708,6 +708,9 @@ final class MenuHelper {
 				String importCode = btn.getAsJsonObject().get(CC.IMPORT_MENU).getAsString();
 				DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, CC.PM, svr);
 				if (importedMenu == null) {
+					importedMenu = findMenuByCode(importCode, svr);
+				}
+				if (importedMenu == null) {
 					missingMenuCodes.add(importCode);
 				}
 			}
