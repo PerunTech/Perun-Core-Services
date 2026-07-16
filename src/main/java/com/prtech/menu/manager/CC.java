@@ -30,6 +30,9 @@ public class CC {
 	public static final String CDL_ITEM_NAME = "CDL_ITEM_NAME";
 	public static final String PLACEHOLDER_NAME = "PLACEHOLDER_NAME";
 	public static final String SOURCE_FIELD = "SOURCE_FIELD";
+	
+	public static final String IS_NULL = "IS_NULL";
+	public static final String NOT_NULL = "NOT_NULL";
 
 	public static final String PARENT_NAME = "PARENT_NAME";
 	public static final String IMPORT_MENU = "IMPORT_MENU";
