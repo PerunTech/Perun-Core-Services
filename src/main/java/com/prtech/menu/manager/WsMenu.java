@@ -426,7 +426,7 @@ public class WsMenu {
 				jrh.create(MessageType.ERROR, "Menu not found", null, new JsonObject());
 				return Response.status(Response.Status.NOT_FOUND).entity(jrh.getAll().toString()).build();
 			}
-			if (!MenuHelper.checkUserHasPermission(menuRoot, Arrays.asList("FULL", "WRITE"), null, svr)) {
+			if (!MenuHelper.checkUserHasPermission(menuRoot, Arrays.asList("FULL", "WRITE"), svr)) {
 				jrh.create(MessageType.ERROR, "User does not have permission to delete this menu", null,
 						new JsonObject());
 				return Response.status(Response.Status.UNAUTHORIZED).entity(jrh.getAll().toString()).build();
@@ -467,7 +467,7 @@ public class WsMenu {
 			if (menuRoot == null) {
 				return Response.status(Response.Status.NOT_FOUND).entity("Menu not found").build();
 			}
-			if (!MenuHelper.checkUserHasPermission(menuRoot, Arrays.asList("FULL", "READ", "WRITE"), null, svr)) {
+			if (!MenuHelper.checkUserHasPermission(menuRoot, Arrays.asList("FULL", "READ", "WRITE"), svr)) {
 				return Response.status(Response.Status.UNAUTHORIZED)
 						.entity("User does not have permission to download this menu").build();
 			}

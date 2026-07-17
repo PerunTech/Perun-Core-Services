@@ -656,17 +656,14 @@ final class MenuHelper {
 	 * @return
 	 * @throws SvException
 	 */
-	static boolean checkUserHasPermission(DbDataObject menuDbo, List<String> accessType, DbDataObject dboUser,
+	static boolean checkUserHasPermission(DbDataObject menuDbo, List<String> accessType,
 			SvReader svr) throws SvException {
-		if (dboUser == null) {
-			dboUser = svr.getInstanceUser();
-		}
 		String aclLabelCode = menuDbo.getVal(CC.SVAROG_ACL_LBL) == null ? null
 				: menuDbo.getVal(CC.SVAROG_ACL_LBL).toString();
 		if (aclLabelCode == null) {
 			return true;
 		} else {
-			return new DbReader().canAccess(aclLabelCode, accessType, dboUser, svr);
+			return new DbReader().canAccess(aclLabelCode, accessType, svr);
 		}
 	}
 
@@ -721,7 +718,7 @@ final class MenuHelper {
 		}
 
 		if (menuDbo.getObjectId() > 0) {
-			if (!checkUserHasPermission(menuDbo, Arrays.asList("FULL", "WRITE"), null, svr)) {
+			if (!checkUserHasPermission(menuDbo, Arrays.asList("FULL", "WRITE"), svr)) {
 				throw new UserNotAuthorizedError("User does not have permission to edit this menu");
 			}
 		}
