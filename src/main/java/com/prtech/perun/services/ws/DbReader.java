@@ -230,6 +230,22 @@ public class DbReader {
 		}
 		return access;
 	}
+	
+	public boolean canAccess(String permissionCode, List<String> accessTypes, DbDataObject dboUser,SvReader svr) throws SvException {
+		Boolean access = true;
+		if (!svr.isAdmin()) {
+			try (SvSecurity svs = new SvSecurity(svr)) {
+				DbDataArray dbArrayACLPermissions = svs.getPermissions(dboUser, svr);
+				DbDataObject permDbo = getPermissionFromDbArray(dbArrayACLPermissions, permissionCode);
+				if (permDbo != null && accessTypes.contains(permDbo.getVal("ACCESS_TYPE").toString())) {
+					access = true;
+				} else {
+					access = false;
+				}
+			}
+		}
+		return access;
+	}
 
 	public boolean canAccess(DbDataObject dboUserGroup, String permissionCode, SvReader svr) throws SvException {
 		Boolean access = false;
