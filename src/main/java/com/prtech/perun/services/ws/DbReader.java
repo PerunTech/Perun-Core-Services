@@ -231,6 +231,23 @@ public class DbReader {
 		return access;
 	}
 
+	public boolean canAccessCustom(String permissionCode, List<String> customPerms, DbDataObject dboUser, SvReader svr)
+			throws SvException {
+		Boolean access = true;
+		if (!svr.isAdmin()) {
+			try (SvSecurity svs = new SvSecurity(svr)) {
+				DbDataArray dbArrayACLPermissions = svs.getPermissions(dboUser, svr);
+				DbDataObject permDbo = getPermissionFromDbArray(dbArrayACLPermissions, permissionCode);
+				if (permDbo != null && customPerms.contains(permDbo.getVal("LABEL_CODE").toString())) {
+					access = true;
+				} else {
+					access = false;
+				}
+			}
+		}
+		return access;
+	}
+
 	public boolean canAccess(DbDataObject dboUserGroup, String permissionCode, SvReader svr) throws SvException {
 		Boolean access = false;
 		DbDataObject dboAcl = getPermissionPerUserOrUserGroup(dboUserGroup, permissionCode, svr);

@@ -53,8 +53,9 @@ final class MenuHelper {
 	 * @param visited Set of visited menu object IDs to prevent loop
 	 * @return Merged JsonObject with buttonArray
 	 */
-	static JsonObject buildFullHierarchy(DbDataObject menuDbo, SvReader svr, Set<Long> visited) throws Exception {
-		return buildFullHierarchy(menuDbo, svr, visited, null);
+	static JsonObject buildFullHierarchy(DbDataObject menuDbo, DbDataObject dboUser, SvReader svr, Set<Long> visited)
+			throws Exception {
+		return buildFullHierarchy(menuDbo, dboUser, svr, visited, null);
 	}
 
 	/**
@@ -67,10 +68,10 @@ final class MenuHelper {
 	 * @param objectData Object descriptor
 	 * @return Merged JsonObject with buttonArray
 	 */
-	static JsonObject buildFullHierarchy(DbDataObject menuDbo, SvReader svr, Set<Long> visited, JsonObject objectData)
-			throws Exception {
+	static JsonObject buildFullHierarchy(DbDataObject menuDbo, DbDataObject dboUser, SvReader svr, Set<Long> visited,
+			JsonObject objectData) throws Exception {
 		JsonArray mergedButtons = new JsonArray();
-		buildRecursiveWithSvCache(menuDbo, svr, visited, mergedButtons, null, objectData);
+		buildRecursiveWithSvCache(menuDbo, dboUser, svr, visited, mergedButtons, null, objectData);
 		JsonObject result = new JsonObject();
 
 		String year = String.valueOf(new DateTime().year().get());
@@ -197,10 +198,16 @@ final class MenuHelper {
 		mergedButtons.add(obj.deepCopy());
 	}
 
-	static void buildRecursiveWithSvCache(DbDataObject menuDbo, SvReader svr, Set<Long> visited,
+	static void buildRecursiveWithSvCache(DbDataObject menuDbo, DbDataObject dboUser, SvReader svr, Set<Long> visited,
 			JsonArray mergedButtons, JsonObject configData, JsonObject objectData) throws Exception {
 		if (menuDbo == null)
 			return;
+
+		String customAclPermission = menuDbo.getAsString(CC.SVAROG_ACL_LBL);
+		if (customAclPermission != null && !customAclPermission.equals(CC.EMPTY_STRING)) {
+			if (!checkUserHasCustomAclPermission(menuDbo, List.of(customAclPermission), dboUser, svr))
+				return;
+		}
 
 		visited.add(menuDbo.getObjectId());
 		String menuConfStr = (String) menuDbo.getVal(CC.MENU_CONF);
@@ -213,12 +220,12 @@ final class MenuHelper {
 
 		JsonArray btns = confJson.getAsJsonArray("buttonArray");
 		for (JsonElement btn : btns) {
-			processMenuItemWithSvCache(btn, svr, visited, mergedButtons, configData, objectData);
+			processMenuItemWithSvCache(btn, dboUser, svr, visited, mergedButtons, configData, objectData);
 		}
 	}
 
-	private static void processMenuItemWithSvCache(JsonElement item, SvReader svr, Set<Long> visited,
-			JsonArray mergedButtons, JsonObject configData, JsonObject objectData) throws Exception {
+	private static void processMenuItemWithSvCache(JsonElement item, DbDataObject dboUser, SvReader svr,
+			Set<Long> visited, JsonArray mergedButtons, JsonObject configData, JsonObject objectData) throws Exception {
 		if (!item.isJsonObject())
 			return;
 
@@ -243,7 +250,7 @@ final class MenuHelper {
 			DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, CC.PM, svr);
 
 			if (importedMenu != null) {
-				buildRecursiveWithSvCache(importedMenu, svr, visited, mergedButtons, obj, objectData);
+				buildRecursiveWithSvCache(importedMenu, dboUser, svr, visited, mergedButtons, obj, objectData);
 			} else {
 				log4j.warn("IMPORT_MENU: Menu code not found: " + importCode);
 			}
@@ -253,7 +260,8 @@ final class MenuHelper {
 		if (obj.has(CC.DATA) && obj.get(CC.DATA).isJsonArray()) {
 			JsonArray dataArray = new JsonArray();
 			for (JsonElement dataElem : obj.getAsJsonArray(CC.DATA)) {
-				processMenuItemWithSvCache(dataElem, svr, visited, dataArray, dataElem.getAsJsonObject(), objectData);
+				processMenuItemWithSvCache(dataElem, dboUser, svr, visited, dataArray, dataElem.getAsJsonObject(),
+						objectData);
 			}
 			obj.add(CC.DATA, dataArray);
 		}
@@ -648,14 +656,39 @@ final class MenuHelper {
 	 * @return
 	 * @throws SvException
 	 */
-	static boolean checkUserHasPermission(DbDataObject menuDbo, List<String> accessType, SvReader svr)
-			throws SvException {
+	static boolean checkUserHasPermission(DbDataObject menuDbo, List<String> accessType,
+			SvReader svr) throws SvException {
 		String aclLabelCode = menuDbo.getVal(CC.SVAROG_ACL_LBL) == null ? null
 				: menuDbo.getVal(CC.SVAROG_ACL_LBL).toString();
 		if (aclLabelCode == null) {
 			return true;
 		} else {
 			return new DbReader().canAccess(aclLabelCode, accessType, svr);
+		}
+	}
+
+	/**
+	 * Check if the user has the appropriate svarog custom acl permission for the
+	 * given menu object.
+	 * 
+	 * @param menuDbo
+	 * @param accessType
+	 * @param dboUser
+	 * @param svr
+	 * @return
+	 * @throws SvException
+	 */
+	static boolean checkUserHasCustomAclPermission(DbDataObject menuDbo, List<String> customPerms, DbDataObject dboUser,
+			SvReader svr) throws SvException {
+		if (dboUser == null) {
+			dboUser = svr.getInstanceUser();
+		}
+		String aclLabelCode = menuDbo.getVal(CC.SVAROG_ACL_LBL) == null ? null
+				: menuDbo.getVal(CC.SVAROG_ACL_LBL).toString();
+		if (aclLabelCode == null) {
+			return true;
+		} else {
+			return new DbReader().canAccessCustom(aclLabelCode, customPerms, dboUser, svr);
 		}
 	}
 
@@ -748,7 +781,7 @@ final class MenuHelper {
 		JsonObject menuJson = menuDbo.toSimpleJson();
 
 		if (resolveImports) {
-			menuConf = buildFullHierarchy(menuDbo, svr, new HashSet<Long>());
+			menuConf = buildFullHierarchy(menuDbo, svr.getInstanceUser(), svr, new HashSet<Long>());
 		} else {
 			menuConf = new Gson().fromJson(menuDbo.getVal(CC.MENU_CONF).toString(), JsonObject.class);
 		}
@@ -862,12 +895,14 @@ final class MenuHelper {
 
 		return false;
 	}
-	
+
 	private static boolean checkObjectByFieldValueNull(JsonObject requestData, DbDataObject dbo, SvReader svr)
 			throws SvException {
 		if (dbo.getVal(CC.CDL_NAME) == null && dbo.getVal(CC.REF_TABLE_NAME) == null
-				&& (CC.IS_NULL.equals(dbo.getVal(CC.CDL_ITEM_NAME)) && getValueFromRequestData(requestData, dbo).isBlank()
-				|| CC.NOT_NULL.equals(dbo.getVal(CC.CDL_ITEM_NAME))	&& !getValueFromRequestData(requestData, dbo).isBlank()))
+				&& (CC.IS_NULL.equals(dbo.getVal(CC.CDL_ITEM_NAME))
+						&& getValueFromRequestData(requestData, dbo).isBlank()
+						|| CC.NOT_NULL.equals(dbo.getVal(CC.CDL_ITEM_NAME))
+								&& !getValueFromRequestData(requestData, dbo).isBlank()))
 			return true;
 		return false;
 	}
