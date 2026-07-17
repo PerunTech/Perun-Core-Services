@@ -73,7 +73,8 @@ public class WsMenu {
 				jrh.create(MessageType.ERROR, "Menu not found", null, new JsonObject());
 				return Response.status(Response.Status.NOT_FOUND).entity(jrh.getAll().toString()).build();
 			}
-			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>());
+			DbDataObject currUser = svr.getInstanceUser();
+			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, currUser, svr, new HashSet<>());
 			return Response.ok(resultJson.toString(), MediaType.APPLICATION_JSON).build();
 		} catch (Exception e) {
 			log4j.error("Error generating menu: ", e);
@@ -112,7 +113,8 @@ public class WsMenu {
 				jrh.create(MessageType.ERROR, "Menu not found", null, new JsonObject());
 				return Response.status(Response.Status.NOT_FOUND).entity(jrh.getAll().toString()).build();
 			}
-			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>(), requestData);
+			DbDataObject currUser = svr.getInstanceUser();
+			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, currUser, svr, new HashSet<>(), requestData);
 			resultJson = MenuHelper.applyDataToObject(resultJson, requestData, svr);
 			jrh.create(MessageType.SUCCESS, "Menu successfully generated", null, resultJson);
 			return Response.ok(jrh.getAll().toString()).build();
@@ -256,7 +258,8 @@ public class WsMenu {
 					return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 				}
 			}
-			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>(), requestData);
+			DbDataObject currUser = svr.getInstanceUser();
+			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, currUser, svr, new HashSet<>(), requestData);
 			resultJson = MenuHelper.applyDataToObject(resultJson, requestData, svr);
 			if (checkPlaceholders) {
 				Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
@@ -293,7 +296,8 @@ public class WsMenu {
 				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 			}
 
-			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>(), requestData);
+			DbDataObject currUser = svr.getInstanceUser();
+			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, currUser, svr, new HashSet<>(), requestData);
 			resultJson = MenuHelper.applyDataToObject(resultJson, requestData, svr);
 			Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
 
@@ -330,7 +334,8 @@ public class WsMenu {
 				return Response.status(Response.Status.NOT_FOUND).entity(jrh.getAll().toString()).build();
 			}
 
-			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, svr, new HashSet<>(), requestData);
+			DbDataObject currUser = svr.getInstanceUser();
+			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuRoot, currUser, svr, new HashSet<>(), requestData);
 			resultJson = MenuHelper.applyDataToObject(resultJson, requestData, svr);
 			/*
 			 * Set<String> missingData = MenuHelper.findPlaceholders(resultJson);
@@ -421,7 +426,7 @@ public class WsMenu {
 				jrh.create(MessageType.ERROR, "Menu not found", null, new JsonObject());
 				return Response.status(Response.Status.NOT_FOUND).entity(jrh.getAll().toString()).build();
 			}
-			if (!MenuHelper.checkUserHasPermission(menuRoot, Arrays.asList("FULL", "WRITE"), svr)) {
+			if (!MenuHelper.checkUserHasPermission(menuRoot, Arrays.asList("FULL", "WRITE"), null, svr)) {
 				jrh.create(MessageType.ERROR, "User does not have permission to delete this menu", null,
 						new JsonObject());
 				return Response.status(Response.Status.UNAUTHORIZED).entity(jrh.getAll().toString()).build();
@@ -462,7 +467,7 @@ public class WsMenu {
 			if (menuRoot == null) {
 				return Response.status(Response.Status.NOT_FOUND).entity("Menu not found").build();
 			}
-			if (!MenuHelper.checkUserHasPermission(menuRoot, Arrays.asList("FULL", "READ", "WRITE"), svr)) {
+			if (!MenuHelper.checkUserHasPermission(menuRoot, Arrays.asList("FULL", "READ", "WRITE"), null, svr)) {
 				return Response.status(Response.Status.UNAUTHORIZED)
 						.entity("User does not have permission to download this menu").build();
 			}
