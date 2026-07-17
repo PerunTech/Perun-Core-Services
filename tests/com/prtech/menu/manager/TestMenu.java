@@ -19,6 +19,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.prtech.menu.manager.MenuExceptions.MenuError;
 import com.prtech.menu.manager.MenuExceptions.MenuInvalidConfigError;
 import com.prtech.menu.manager.MenuExceptions.UserNotAuthorizedError;
@@ -58,6 +59,21 @@ public class TestMenu {
 		data.addProperty("LABEL_CODE", labelCode);
 		data.addProperty("MENU_TYPE", "menu");
 		data.addProperty("VERSION", 1);
+		if (menuConf != null) {
+			data.add("MENU_CONF", gson.fromJson(menuConf, JsonObject.class));
+		}
+		return data;
+	}
+	
+	private JsonObject createBasicMenuFormValuesWithACL(String menuCode, String labelCode, String menuConf) {
+		JsonObject data = new JsonObject();
+		Gson gson = new Gson();
+		data.addProperty(Rc.OBJECT_ID, 0l);
+		data.addProperty("MENU_CODE", menuCode);
+		data.addProperty("LABEL_CODE", labelCode);
+		data.addProperty("MENU_TYPE", "menu");
+		data.addProperty("VERSION", 1);
+		data.addProperty("SVAROG_ACL_LBL", "LABORATORY.READ");
 		if (menuConf != null) {
 			data.add("MENU_CONF", gson.fromJson(menuConf, JsonObject.class));
 		}
@@ -127,7 +143,7 @@ public class TestMenu {
 		String sessionId = getUserSessionIdForTestPurpose();
 		assertTrue(sessionId != null && !sessionId.isBlank());
 
-		JsonObject data = createBasicMenuFormValues("test_menu", "test_menu", menuConfValid);
+		JsonObject data = createBasicMenuFormValuesWithACL("test_menu", "test_menu", menuConfValid);
 		JsonObject data2 = createBasicMenuFormValues("test_menu2", "test_menu2", menuConfValidImport);
 
 		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
@@ -169,7 +185,7 @@ public class TestMenu {
 			saveMenuAndAssert(data, svr, svw);
 			DbDataObject menuDbo2 = saveMenuAndAssert(data2, svr, svw);
 
-			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuDbo2, svr, new HashSet<>());
+			JsonObject resultJson = MenuHelper.buildFullHierarchy(menuDbo2, svr.getInstanceUser(), svr, new HashSet<>());
 			assertTrue(resultJson != null);
 			assertTrue(resultJson.has("buttonArray"));
 
