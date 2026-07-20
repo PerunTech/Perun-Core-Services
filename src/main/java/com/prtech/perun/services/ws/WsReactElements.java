@@ -9122,7 +9122,7 @@ public class WsReactElements {
 	}
 
 	/**
-	 * Generic lookup: resolves a derived field value by finding the codelist row(s)
+	 * Resolves a derived field value by finding the codelist row(s)
 	 * whose CODE_VALUE is {codeValue}_{suffix} within the given codelist, and
 	 * interpreting the trailing suffix as a boolean (1/0).
 	 *
