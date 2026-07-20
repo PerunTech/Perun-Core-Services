@@ -9122,8 +9122,8 @@ public class WsReactElements {
 	}
 
 	/**
-	 * Resolves a derived field value by finding the codelist row(s)
-	 * whose CODE_VALUE is {codeValue}_{suffix} within the given codelist, and
+	 * Resolves a derived field value by finding the codelist row(s) whose
+	 * CODE_VALUE is {codeValue}_{suffix} within the given codelist, and
 	 * interpreting the trailing suffix as a boolean (1/0).
 	 *
 	 * @param sessionId     String token for connecting to Database
@@ -9133,18 +9133,18 @@ public class WsReactElements {
 	 * @param attributeName String name of the target field
 	 * @return { "data": { "value": true|false|null } }
 	 */
-	@Path("/getDependentFieldValue/sid/{sessionId}/codelist-name/{codelistName}/code-value/{codeValue}/attribute/{attributeName}")
+	@Path("/getDependentFieldValue/sid/{sessionId}/codelist-name/{codelistName}/parent-code-value/{parentCodeValue}/attribute/{attributeName}")
 	@GET
 	@Produces("text/html;charset=utf-8")
 	public Response getDependentFieldValue(@PathParam("sessionId") String sessionId,
-			@PathParam("codelistName") String codelistName, @PathParam("codeValue") String codeValue,
+			@PathParam("codelistName") String codelistName, @PathParam("parentCodeValue") String parentCodeValue,
 			@PathParam("attributeName") String attributeName) {
 		JsonObject result = new JsonObject();
 		ResponseHandler jrh = new ResponseHandler();
 		try (SvReader svr = new SvReader(sessionId)) {
 			DbSearchExpression srchExpr = new DbSearchExpression();
 			DbSearchCriterion filterByCodeValue = new DbSearchCriterion("CODE_VALUE", DbCompareOperand.LIKE,
-					codeValue + "_%");
+					parentCodeValue + "%");
 			DbSearchCriterion filterByParentId = new DbSearchCriterion("PARENT_CODE_VALUE", DbCompareOperand.EQUAL,
 					codelistName);
 			srchExpr.addDbSearchItem(filterByCodeValue).addDbSearchItem(filterByParentId);
