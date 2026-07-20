@@ -58,6 +58,7 @@ import org.locationtech.jts.geom.Polygon;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
@@ -9116,6 +9117,54 @@ public class WsReactElements {
 					I18n.getText(getLocaleId(svr), "success.dependancy.dropdown"), result);
 		} catch (Exception e) {
 			return PerunUtil.handleException(e, "Error in dependant dropdown");
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+
+	/**
+	 * Generic lookup: resolves a derived field value by finding the codelist row(s)
+	 * whose CODE_VALUE is {codeValue}_{suffix} within the given codelist, and
+	 * interpreting the trailing suffix as a boolean (1/0).
+	 *
+	 * @param sessionId     String token for connecting to Database
+	 * @param codelistName  String name of the codelist to search
+	 *                      (PARENT_CODE_VALUE)
+	 * @param codeValue     String prefix value
+	 * @param attributeName String name of the target field
+	 * @return { "data": { "value": true|false|null } }
+	 */
+	@Path("/getDependentFieldValue/sid/{sessionId}/codelist-name/{codelistName}/code-value/{codeValue}/attribute/{attributeName}")
+	@GET
+	@Produces("text/html;charset=utf-8")
+	public Response getDependentFieldValue(@PathParam("sessionId") String sessionId,
+			@PathParam("codelistName") String codelistName, @PathParam("codeValue") String codeValue,
+			@PathParam("attributeName") String attributeName) {
+		JsonObject result = new JsonObject();
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(sessionId)) {
+			DbSearchExpression srchExpr = new DbSearchExpression();
+			DbSearchCriterion filterByCodeValue = new DbSearchCriterion("CODE_VALUE", DbCompareOperand.LIKE,
+					codeValue + "_%");
+			DbSearchCriterion filterByParentId = new DbSearchCriterion("PARENT_CODE_VALUE", DbCompareOperand.EQUAL,
+					codelistName);
+			srchExpr.addDbSearchItem(filterByCodeValue).addDbSearchItem(filterByParentId);
+			DbDataArray searchResult = svr.getObjects(srchExpr, svCONST.OBJECT_TYPE_CODE, null, 0, 0);
+
+			JsonObject data = new JsonObject();
+			if (searchResult != null && !searchResult.getItems().isEmpty()) {
+				DbDataObject item = searchResult.getItems().get(0);
+				String fullCode = item.getAsString("CODE_VALUE");
+				String suffix = fullCode.substring(fullCode.lastIndexOf('_') + 1);
+				data.addProperty("value", "1".equals(suffix));
+			} else {
+				data.add("value", JsonNull.INSTANCE);
+			}
+			result = data;
+
+			jrh.create(MessageType.SUCCESS, I18n.getText(getLocaleId(svr), "success.dependancy.value"),
+					I18n.getText(getLocaleId(svr), "success.dependancy.value"), result);
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error in dependant field value");
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
 	}
