@@ -860,13 +860,15 @@ final class MenuHelper {
 	}
 
 	private static String getValueFromRequestData(JsonObject requestData, DbDataObject dbo) {
-		String fieldNamePerunMenuConf = dbo.getAsString(CC.FIELD_NAME);
-		for (String key : requestData.keySet()) {
-			if (key.equalsIgnoreCase(fieldNamePerunMenuConf)) {
-				return requestData.get(key).getAsString();
-			}
-		}
-		return CC.EMPTY_STRING;
+	    String fieldNamePerunMenuConf = dbo.getAsString(CC.FIELD_NAME);
+	    String value = CC.EMPTY_STRING;
+	    for (String key : requestData.keySet()) {
+	        if (key.equalsIgnoreCase(fieldNamePerunMenuConf)) {
+	            value = requestData.get(key).getAsString();
+	            break;
+	        }
+	    }
+	    return value;
 	}
 
 	private static boolean checkObjectByCdlItemName(JsonObject requestData, DbDataObject dbo) {
