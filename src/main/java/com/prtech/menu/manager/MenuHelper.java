@@ -656,8 +656,8 @@ final class MenuHelper {
 	 * @return
 	 * @throws SvException
 	 */
-	static boolean checkUserHasPermission(DbDataObject menuDbo, List<String> accessType,
-			SvReader svr) throws SvException {
+	static boolean checkUserHasPermission(DbDataObject menuDbo, List<String> accessType, SvReader svr)
+			throws SvException {
 		String aclLabelCode = menuDbo.getVal(CC.SVAROG_ACL_LBL) == null ? null
 				: menuDbo.getVal(CC.SVAROG_ACL_LBL).toString();
 		if (aclLabelCode == null) {
@@ -860,21 +860,28 @@ final class MenuHelper {
 	}
 
 	private static String getValueFromRequestData(JsonObject requestData, DbDataObject dbo) {
-		String fieldNamePerunMenuConf = dbo.getAsString(CC.FIELD_NAME);
-		String value = CC.EMPTY_STRING;
-		for (String key : requestData.keySet()) {
-			if (key.contains(fieldNamePerunMenuConf)) {
-				value = requestData.get(key).getAsString();
-			}
-		}
-		return value;
+	    String fieldNamePerunMenuConf = dbo.getAsString(CC.FIELD_NAME);
+	    String value = CC.EMPTY_STRING;
+	    for (String key : requestData.keySet()) {
+	        if (key.equalsIgnoreCase(fieldNamePerunMenuConf)) {
+	            value = requestData.get(key).getAsString();
+	            break;
+	        }
+	    }
+	    return value;
 	}
 
 	private static boolean checkObjectByCdlItemName(JsonObject requestData, DbDataObject dbo) {
 		String value = getValueFromRequestData(requestData, dbo);
-		if (!value.equals(CC.EMPTY_STRING) && dbo.getVal(CC.CDL_ITEM_NAME) != null
-				&& dbo.getVal(CC.CDL_ITEM_NAME).toString().equals(value)) {
-			return true;
+		if (value.equals(CC.EMPTY_STRING) || dbo.getVal(CC.CDL_ITEM_NAME) == null) {
+			return false;
+		}
+		String cdlItem = dbo.getVal(CC.CDL_ITEM_NAME).toString().trim();
+		String normalized = value.replace("[", "").replace("]", "").replace("\"", "");
+		for (String token : normalized.split("[;,]")) {
+			if (cdlItem.equals(token.trim())) {
+				return true;
+			}
 		}
 		return false;
 	}
