@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.regex.Pattern;
 
 import javax.mail.Message;
 import javax.mail.PasswordAuthentication;
@@ -683,5 +685,40 @@ public class PerunUtil extends SvUtil {
 			core.setAutoCommit(autoCommit);
 			core.dbSetAutoCommit(autoCommit);
 		}
+	}
+
+	/**
+	 * Converts a database value into a list of selected values for a multiselect
+	 * field.
+	 *
+	 * @param rawDbValue the database value, which may be a List, a delimited
+	 *                   String, or null
+	 * @return a list of trimmed, non-empty values
+	 */
+	public static List<String> toMultiselectList(Object rawDbValue) {
+		List<String> result = new ArrayList<>();
+		if (rawDbValue == null) {
+			return result;
+		}
+		if (rawDbValue instanceof List) {
+			for (Object item : (List<?>) rawDbValue) {
+				if (item != null && !item.toString().isBlank()) {
+					result.add(item.toString().trim());
+				}
+			}
+			return result;
+		}
+		String sep = SvConf.getMultiSelectSeparator();
+		String s = rawDbValue.toString().trim();
+		if (s.startsWith("[") && s.endsWith("]")) {
+			s = s.substring(1, s.length() - 1);
+		}
+		for (String part : s.split(Pattern.quote(sep))) {
+			String token = part.trim().replace("\"", "");
+			if (!token.isEmpty()) {
+				result.add(token);
+			}
+		}
+		return result;
 	}
 }
