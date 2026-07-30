@@ -29,6 +29,7 @@ import com.prtech.menu.manager.WsMenu;
 import com.prtech.models.ModelFactory;
 import com.prtech.models.ModelFactoryRegistry;
 import com.prtech.models.WsModel;
+import com.prtech.reports.WsReport;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog_interfaces.ISvExecutorGroup;
 
@@ -93,6 +94,7 @@ public class Activator implements BundleActivator {
 		list.add(WsCore.class);
 		list.add(MenuExporter.class);
 		list.add(DbReader.class);
+		list.add(WsReport.class);
 		return list;
 
 	}
