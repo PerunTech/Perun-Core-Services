@@ -295,8 +295,48 @@
     <artifactId>java-support</artifactId>
     <version>7.5.0</version>
 </dependency>
+<dependency>
+	<groupId>org.postgresql</groupId>
+	<artifactId>postgresql</artifactId>
+	<version>42.5.4</version>
+</dependency>
+<dependency>
+	<groupId>net.sf.jasperreports</groupId>
+	<artifactId>jasperreports</artifactId>
+	<version>6.8.1</version>
+</dependency>
+<dependency>
+	<groupId>net.sf.jasperreports</groupId>
+	<artifactId>jasperreports-fonts</artifactId>
+	<version>6.20.6</version>
+</dependency>
+<dependency>
+	<groupId>net.sf.barcode4j</groupId>
+	<artifactId>barcode4j</artifactId>
+	<version>2.0</version>
+	<exclusions>
+		<exclusion>
+			<groupId>xml-apis</groupId>
+			<artifactId>xml-apis</artifactId>
+		</exclusion>
+	</exclusions>
+</dependency>
 
 	</dependencies>
+	<repositories>
+		<repository>
+			<id>jaspersoft-third-party</id>
+			<url>https://jaspersoft.jfrog.io/jaspersoft/third-party-ce-artifacts/</url>
+			<releases><enabled>true</enabled></releases>
+			<snapshots><enabled>true</enabled></snapshots>
+		</repository>
+		<repository>
+			<id>jr-ce-releases</id>
+			<url>https://jaspersoft.jfrog.io/jaspersoft/jr-ce-releases/</url>
+			<releases><enabled>true</enabled></releases>
+			<snapshots><enabled>true</enabled></snapshots>
+		</repository>
+	</repositories>
 	<profiles>
 		<profile>
 			<id>Oracle</id>
@@ -320,7 +360,7 @@
 				<dependency>
 					<groupId>org.postgresql</groupId>
 					<artifactId>postgresql</artifactId>
-					<version>9.4.1212.jre7</version>
+					<version>42.5.4</version>
 				</dependency>
 			</dependencies>
 		</profile>
