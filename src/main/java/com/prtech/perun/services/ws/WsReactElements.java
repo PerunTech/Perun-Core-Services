@@ -5010,7 +5010,7 @@ public class WsReactElements {
 					// if this is first object in group create the group obect,
 					// if not, retreve it, add it to exising and put it back
 					if (jsonUISchema != null) {
-						fillTableUISchemaData(gson, jsonData, svr, jsonreactGUI, jsonUISchema, tempDboField, tmpField);
+						fillTableUISchemaData(gson, jsonData, svr, jsonreactGUI, jsonUISchema, tempDboField, tmpField, true);
 					}
 				}
 				if ("GEOM".equalsIgnoreCase(tmpField)) {
@@ -5027,6 +5027,30 @@ public class WsReactElements {
 		}
 		return Response.status(200).entity(jsonData.toString()).build();
 	}
+	
+	/**
+	 * Web service to get the schema for react UI , UI schema to be stored in
+	 * SVAROG_FIELDS , field GUI_METADATA sub_object "react" , sub_object
+	 * "uischema", it will just read the full object as it is and add it to return
+	 * string with the same field name to be paired to the object returned by
+	 * getTableJSONSchema WS
+	 * 
+	 * using {@link #getTableUISchemaOverride} with shouldGroupFields set to true
+	 * 
+	 * @param sessionId Session ID (SID) of the web communication between browser
+	 *                  and web server
+	 * @param tableName String table name for which we want to insert new element
+	 *                  (record)
+	 *                   
+	 * @return Json string with UI json for all fields in the table
+	 */
+	@Path("/getTableUISchemaOverride/{sessionId}/{table_name}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getTableUISchemaOverride(@PathParam("sessionId") String sessionId,
+			@PathParam("table_name") String tableName, @Context HttpServletRequest httpRequest) {
+		return getTableUISchemaOverride(sessionId, tableName, true, httpRequest);
+	}
 
 	/**
 	 * Web service to get the schema for react UI , UI schema to be stored in
@@ -5040,13 +5064,16 @@ public class WsReactElements {
 	 * @param tableName String table name for which we want to insert new element
 	 *                  (record)
 	 * 
+	 * @param shouldGroupFields Boolean specifying if fields should be grouped by groupPath
+	 *                  
 	 * @return Json string with UI json for all fields in the table
 	 */
-	@Path("/getTableUISchemaOverride/{sessionId}/{table_name}")
+	@Path("/getTableUISchemaOverride/{sessionId}/{shouldGroupFields}/{table_name}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getTableUISchemaOverride(@PathParam("sessionId") String sessionId,
-			@PathParam("table_name") String tableName, @Context HttpServletRequest httpRequest) {
+			@PathParam("table_name") String tableName, @PathParam("shouldGroupFields") Boolean shouldGroupFields,
+			@Context HttpServletRequest httpRequest) {
 		Gson gson = new Gson();
 		JsonObject jsonData = new JsonObject();
 		try (SvReader svr = new SvReader(sessionId);) {
@@ -5077,7 +5104,7 @@ public class WsReactElements {
 						}
 					}
 					if (jsonUISchema != null) {
-						fillTableUISchemaData(gson, jsonData, svr, jsonreactGUI, jsonUISchema, tempDboField, tmpField);
+						fillTableUISchemaData(gson, jsonData, svr, jsonreactGUI, jsonUISchema, tempDboField, tmpField, shouldGroupFields);
 					}
 				}
 				if ("GEOM".equalsIgnoreCase(tmpField)) {
@@ -5095,10 +5122,14 @@ public class WsReactElements {
 	}
 
 	private void fillTableUISchemaData(Gson gson, JsonObject jsonData, SvReader svr, JsonObject jsonreactGUI,
-			JsonObject jsonUISchema, DbDataObject tempDboField, String tmpField) throws SvException {
+			JsonObject jsonUISchema, DbDataObject tempDboField, String tmpField, Boolean shouldGroupFields)
+			throws SvException {
 		Boolean visible = false;
 		Boolean readonly = false;
-		addUISchemaToGroupPath(jsonData, jsonreactGUI, jsonUISchema, tmpField);
+		if (shouldGroupFields)
+			addUISchemaToGroupPath(jsonData, jsonreactGUI, jsonUISchema, tmpField);
+		else
+			jsonData.add(tmpField, jsonUISchema);
 
 		if (tempDboField.getVal(Rc.REFERENTIAL_TABLE) != null && tempDboField.getVal(Rc.REFERENTIAL_FIELD) != null
 				&& jsonreactGUI != null && jsonreactGUI.has(Rc.DENORMALIZED_MNEMONIC)) {
