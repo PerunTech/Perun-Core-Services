@@ -5044,7 +5044,7 @@ public class WsReactElements {
 	 *                   
 	 * @return Json string with UI json for all fields in the table
 	 */
-	@Path("/getTableUISchemaOverride/{sessionId}/{shouldGroupFields}/{table_name}")
+	@Path("/getTableUISchemaOverride/{sessionId}/{table_name}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getTableUISchemaOverride(@PathParam("sessionId") String sessionId,
