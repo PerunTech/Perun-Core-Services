@@ -439,6 +439,10 @@ public class WsModel {
 		Gson gson = new Gson();
 		if (svr != null)
 			localeId[0] = svr.getUserLocaleId(svr.getInstanceUser());
+
+		// Denormalization writes are deferred to a second pass.
+		List<Runnable> pendingDenormalizations = new ArrayList<>();
+
 		for (Entry<String, JsonElement> tempConverted : convertedJObj.entrySet()) {
 			if (!tempConverted.getKey().equals("values")) {
 				if (!skipRepoFields) {
@@ -461,15 +465,14 @@ public class WsModel {
 							} else if (dboField != null && dboField.getVal(CC.SV_MULTISELECT) != null
 									&& dboField.getVal(CC.SV_MULTISELECT).equals(true)) {
 								String fieldValue = value.getValue().getAsString().replace("[", "").replace("]", "");
-								String valueString = "";
-
 								Long codeListId = dboField.getVal(CC.CODE_LIST_ID) != null
 										? dboField.getAsLong(CC.CODE_LIST_ID)
 										: null;
-								String[] values = fieldValue.toString().split(multiSelectOperator);
-								valueString = String.join(", ", Arrays.stream(values).map(val -> {
+								String[] values = fieldValue.split(multiSelectOperator);
+								String valueString = String.join(", ", Arrays.stream(values).map(val -> {
 									try {
-										return PerunUtil.translateCodeValueForField(codeListId, val.trim(), localeId[0], svr);
+										return PerunUtil.translateCodeValueForField(codeListId, val.trim(), localeId[0],
+												svr);
 									} catch (SvException e) {
 										return null;
 									}
@@ -488,23 +491,36 @@ public class WsModel {
 								if (guiMetadata != null && guiMetadata.has(CC.REACT)) {
 									JsonObject jsonreactGUI = guiMetadata.get(CC.REACT).getAsJsonObject();
 									if (jsonreactGUI != null && jsonreactGUI.has(CC.DENORMALIZED_MNEMONIC)) {
-										DbDataObject denormalizedField = DbReader.findField(
-												dboField.getVal(CC.REFERENTIAL_TABLE).toString(),
-												jsonreactGUI.get(CC.DENORMALIZED_MNEMONIC).getAsString(), svr);
-										DbDataObject denormalizedData = getDbDataObjectFromDenormalizedField(
-												dboField.getVal(CC.REFERENTIAL_TABLE).toString(),
-												dboField.getVal(CC.REFERENTIAL_FIELD).toString(),
-												dbo.getVal(value.getKey().toUpperCase()), svr);
-										if (denormalizedField != null && denormalizedData != null) {
-											lhmObj.put(
-													dboField.getVal(CC.REFERENTIAL_TABLE).toString() + "."
-															+ jsonreactGUI.get(CC.DENORMALIZED_MNEMONIC).getAsString(),
-													gson.toJsonTree(denormalizedData.getVal(
-															jsonreactGUI.get(CC.DENORMALIZED_MNEMONIC).getAsString())));
-										}
+										final String srcFieldName = value.getKey().toUpperCase();
+										final String refTable = dboField.getVal(CC.REFERENTIAL_TABLE).toString();
+										final String refField = dboField.getVal(CC.REFERENTIAL_FIELD).toString();
+										final String mnemonic = jsonreactGUI.get(CC.DENORMALIZED_MNEMONIC)
+												.getAsString();
+										final Object fkValue = dbo.getVal(srcFieldName);
+
+										pendingDenormalizations.add(() -> {
+											try {
+												DbDataObject denormalizedField = DbReader.findField(refTable, mnemonic,
+														svr);
+												DbDataObject denormalizedData = getDbDataObjectFromDenormalizedField(
+														refTable, refField, fkValue, svr);
+												if (denormalizedField != null && denormalizedData != null) {
+													String candidateKey = refTable + "." + mnemonic;
+													if (lhmObj.containsKey(candidateKey)) {
+														candidateKey = tableName + "." + srcFieldName + "_" + mnemonic;
+													}
+													lhmObj.put(candidateKey,
+															gson.toJsonTree(denormalizedData.getVal(mnemonic)));
+												}
+											} catch (SvException e) {
+												log4j.warn(
+														"Failed to resolve denormalized field " + mnemonic + " on "
+																+ refTable + " for " + tableName + "." + srcFieldName,
+														e);
+											}
+										});
 									}
 								}
-
 							}
 						} else {
 							lhmObj.put(tableName + "." + value.getKey().toUpperCase(), value.getValue());
@@ -513,8 +529,12 @@ public class WsModel {
 				}
 			}
 		}
-		return lhmObj;
 
+		// Second pass: resolves all denormalized fields now that every real
+		// column has already been written — order-independent.
+		pendingDenormalizations.forEach(Runnable::run);
+
+		return lhmObj;
 	}
 
 	public static DbDataObject getDbDataObjectFromDenormalizedField(String tableName, String fieldName,
