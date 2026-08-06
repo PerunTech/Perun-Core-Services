@@ -3480,13 +3480,31 @@ public class WsReactElements {
 									JsonObject.class);
 						if (jsonObj != null && jsonObj.has(Rc.REACT))
 							jsonreactGUI = (JsonObject) jsonObj.get(Rc.REACT);
-						if (jsonreactGUI.has(Rc.DENORMALIZED_MNEMONIC) && (!jsonreactGUI.has("denormalizeVisible")
-								|| jsonreactGUI.get("denormalizeVisible").getAsBoolean())) {
-							DbDataObject denormalizedField = findField(
-									tempDboField.getVal(Rc.REFERENTIAL_TABLE).toString(),
-									jsonreactGUI.get(Rc.DENORMALIZED_MNEMONIC).getAsString(), svr);
-							tryObject = prapareObjectField1(tempDboField.getVal(Rc.REFERENTIAL_TABLE).toString(),
-									denormalizedField, svr);
+						if (jsonreactGUI != null && jsonreactGUI.has(Rc.DENORMALIZED_MNEMONIC)
+								&& (!jsonreactGUI.has("denormalizeVisible")
+										|| jsonreactGUI.get("denormalizeVisible").getAsBoolean())) {
+							String mnemonic = jsonreactGUI.get(Rc.DENORMALIZED_MNEMONIC).getAsString();
+							String refTable = tempDboField.getVal(Rc.REFERENTIAL_TABLE).toString();
+							DbDataObject denormalizedField = findField(refTable, mnemonic, svr);
+							tryObject = prapareObjectField1(refTable, denormalizedField, svr);
+							String candidateKey = tryObject.get("key").getAsString();
+							boolean collides = false;
+							for (int k = 0; k < jArray.size(); k++) {
+								JsonObject existing = (JsonObject) jArray.get(k);
+								if (existing.has("key") && existing.get("key").getAsString().equals(candidateKey)) {
+									collides = true;
+									break;
+								}
+							}
+
+							if (collides) {
+								tryObject.addProperty("key", tableName + "." + tmpField + "_" + mnemonic);
+								tryObject.addProperty("editable", false);
+								if (jsonreactGUI.has("denormalizedLabelCode"))
+									tryObject.addProperty("name", I18n.getText(getLocaleId(svr),
+											jsonreactGUI.get("denormalizedLabelCode").getAsString()));
+							}
+
 							if (tryObject.toString().length() > 5)
 								jArray.add(tryObject);
 						}
@@ -5010,7 +5028,8 @@ public class WsReactElements {
 					// if this is first object in group create the group obect,
 					// if not, retreve it, add it to exising and put it back
 					if (jsonUISchema != null) {
-						fillTableUISchemaData(gson, jsonData, svr, jsonreactGUI, jsonUISchema, tempDboField, tmpField, true);
+						fillTableUISchemaData(gson, jsonData, svr, jsonreactGUI, jsonUISchema, tempDboField, tmpField,
+								true);
 					}
 				}
 				if ("GEOM".equalsIgnoreCase(tmpField)) {
@@ -5027,7 +5046,7 @@ public class WsReactElements {
 		}
 		return Response.status(200).entity(jsonData.toString()).build();
 	}
-	
+
 	/**
 	 * Web service to get the schema for react UI , UI schema to be stored in
 	 * SVAROG_FIELDS , field GUI_METADATA sub_object "react" , sub_object
@@ -5041,7 +5060,7 @@ public class WsReactElements {
 	 *                  and web server
 	 * @param tableName String table name for which we want to insert new element
 	 *                  (record)
-	 *                   
+	 * 
 	 * @return Json string with UI json for all fields in the table
 	 */
 	@Path("/getTableUISchemaOverride/{sessionId}/{table_name}")
@@ -5059,13 +5078,14 @@ public class WsReactElements {
 	 * string with the same field name to be paired to the object returned by
 	 * getTableJSONSchema WS
 	 * 
-	 * @param sessionId Session ID (SID) of the web communication between browser
-	 *                  and web server
-	 * @param tableName String table name for which we want to insert new element
-	 *                  (record)
+	 * @param sessionId         Session ID (SID) of the web communication between
+	 *                          browser and web server
+	 * @param tableName         String table name for which we want to insert new
+	 *                          element (record)
 	 * 
-	 * @param shouldGroupFields Boolean specifying if fields should be grouped by groupPath
-	 *                  
+	 * @param shouldGroupFields Boolean specifying if fields should be grouped by
+	 *                          groupPath
+	 * 
 	 * @return Json string with UI json for all fields in the table
 	 */
 	@Path("/getTableUISchemaOverride/{sessionId}/{shouldGroupFields}/{table_name}")
@@ -5104,7 +5124,8 @@ public class WsReactElements {
 						}
 					}
 					if (jsonUISchema != null) {
-						fillTableUISchemaData(gson, jsonData, svr, jsonreactGUI, jsonUISchema, tempDboField, tmpField, shouldGroupFields);
+						fillTableUISchemaData(gson, jsonData, svr, jsonreactGUI, jsonUISchema, tempDboField, tmpField,
+								shouldGroupFields);
 					}
 				}
 				if ("GEOM".equalsIgnoreCase(tmpField)) {
