@@ -1651,9 +1651,14 @@ public class WsReactElements {
 									typetoGet.getItems().get(i).getVal(Rc.REFERENTIAL_FIELD).toString(),
 									obj1.getVal(tmpField), svr);
 							if (denormalizedField != null && denormalizedData != null) {
+								String candidateKey = readField;
+								if (jData.has(candidateKey)) {
+									candidateKey = tablesUsedArray[k] + "." + tmpField + "_"
+											+ fieldToRead.replaceFirst("tbl[0-9]_", "");
+								}
 								DbDataObject tempField = new DbDataObject();
 								tempField.fromSimpleJson(denormalizedField.toSimpleJson());
-								tempField.setVal(Rc.FIELD_NAME, readField);
+								tempField.setVal(Rc.FIELD_NAME, candidateKey);
 								jData = addValueToJsonObject1(jData, denormalizedData, tempField);
 							}
 						}
