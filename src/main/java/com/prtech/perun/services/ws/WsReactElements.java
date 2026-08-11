@@ -1656,10 +1656,8 @@ public class WsReactElements {
 									candidateKey = tablesUsedArray[k] + "." + tmpField + "_"
 											+ fieldToRead.replaceFirst("tbl[0-9]_", "");
 								}
-								DbDataObject tempField = new DbDataObject();
-								tempField.fromSimpleJson(denormalizedField.toSimpleJson());
-								tempField.setVal(Rc.FIELD_NAME, candidateKey);
-								jData = addValueToJsonObject1(jData, denormalizedData, tempField);
+								jData = addValueToJsonObject2(jData, denormalizedData, denormalizedField,
+										fieldToRead.replaceFirst("tbl[0-9]_", ""), candidateKey, doTranslate, svr);
 							}
 						}
 					}
