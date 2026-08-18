@@ -199,8 +199,7 @@ public class DbInit implements IDbInit {
 		dbf8.setDbFieldSize(100);
 		dbf8.setIsNull(true);
 		dbf8.setLabel_code("perun_menu.svarog_acl_label");
-		dbf8.setGui_metadata(
-				"{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"editable\":true,\"uischema\":{\"ui:widget\":\"hidden\"}}}");
+		dbf8.setGui_metadata("{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"editable\":true}}");
 
 		// internal category
 		DbDataField dbf9 = new DbDataField();
@@ -464,7 +463,7 @@ public class DbInit implements IDbInit {
 		dbe.setDbTableFields(dbTableFields);
 		return dbe;
 	}
-	
+
 	private static DbDataObject createUserGroupCardAccessLinkType() {
 		DbDataObject dbLink = new DbDataObject();
 		dbLink.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
