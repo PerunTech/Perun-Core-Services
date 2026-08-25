@@ -860,15 +860,15 @@ final class MenuHelper {
 	}
 
 	private static String getValueFromRequestData(JsonObject requestData, DbDataObject dbo) {
-	    String fieldNamePerunMenuConf = dbo.getAsString(CC.FIELD_NAME);
-	    String value = CC.EMPTY_STRING;
-	    for (String key : requestData.keySet()) {
-	        if (key.equalsIgnoreCase(fieldNamePerunMenuConf)) {
-	            value = requestData.get(key).getAsString();
-	            break;
-	        }
-	    }
-	    return value;
+		String fieldNamePerunMenuConf = dbo.getAsString(CC.FIELD_NAME);
+		String value = CC.EMPTY_STRING;
+		for (String key : requestData.keySet()) {
+			if (key.equalsIgnoreCase(fieldNamePerunMenuConf)) {
+				value = requestData.get(key).getAsString();
+				break;
+			}
+		}
+		return value;
 	}
 
 	private static boolean checkObjectByCdlItemName(JsonObject requestData, DbDataObject dbo) {
@@ -905,12 +905,24 @@ final class MenuHelper {
 
 	private static boolean checkObjectByFieldValueNull(JsonObject requestData, DbDataObject dbo, SvReader svr)
 			throws SvException {
-		if (dbo.getVal(CC.CDL_NAME) == null && dbo.getVal(CC.REF_TABLE_NAME) == null
-				&& (CC.IS_NULL.equals(dbo.getVal(CC.CDL_ITEM_NAME))
-						&& getValueFromRequestData(requestData, dbo).isBlank()
-						|| CC.NOT_NULL.equals(dbo.getVal(CC.CDL_ITEM_NAME))
-								&& !getValueFromRequestData(requestData, dbo).isBlank()))
-			return true;
+		if (dbo.getVal(CC.CDL_NAME) == null && dbo.getVal(CC.REF_TABLE_NAME) == null) {
+
+			String cdlItemVal = dbo.getVal(CC.CDL_ITEM_NAME) != null ? dbo.getVal(CC.CDL_ITEM_NAME).toString() : null;
+			String fieldValue = getValueFromRequestData(requestData, dbo);
+
+			if (CC.IS_NULL.equals(cdlItemVal) && fieldValue.isBlank())
+				return true;
+			if (CC.NOT_NULL.equals(cdlItemVal) && !fieldValue.isBlank())
+				return true;
+			if (CC.ZERO.equals(cdlItemVal) && !fieldValue.isBlank()) {
+				try {
+					long numericValue = Long.parseLong(fieldValue.trim());
+					return numericValue == 0L;
+				} catch (NumberFormatException e) {
+					return false;
+				}
+			}
+		}
 		return false;
 	}
 
