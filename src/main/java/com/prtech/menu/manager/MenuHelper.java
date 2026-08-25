@@ -833,7 +833,8 @@ final class MenuHelper {
 		}
 
 		for (DbDataObject dbo : perunMenuConfArr.getItems()) {
-			if (dbo.getVal(CC.CDL_NAME) == null && dbo.getVal(CC.REF_TABLE_NAME) == null) {
+			if (dbo.getVal(CC.CDL_NAME) == null && dbo.getVal(CC.REF_TABLE_NAME) == null
+					&& dbo.getVal(CC.CDL_ITEM_NAME) == null) {
 				defaultMenuConfDbo = dbo;
 			}
 			if ((dbo.getVal(CC.CDL_NAME) != null && checkObjectByCdlItemName(requestData, dbo))
