@@ -82,6 +82,7 @@ import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvRelationCache;
 import com.prtech.svarog.SvSDITile;
 import com.prtech.svarog.SvUtil;
+import com.prtech.svarog.SvWorkflow;
 import com.prtech.svarog.SvWriter;
 import com.prtech.svarog.svCONST;
 import com.prtech.svarog_common.DbDataArray;
@@ -7940,6 +7941,200 @@ public class WsReactElements {
 
 		}
 		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+
+	@Path("/changeStatusMultiple/{sessionId}")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response changeStatusMultiple(@PathParam("sessionId") String sessionId, String entity,
+			@Context HttpServletRequest httpRequest) {
+		ResponseHandler jrh = new ResponseHandler();
+		JsonObject requestData = new JsonObject();
+		JsonArray selectedObjects = new JsonArray();
+		JsonArray changedObjects = new JsonArray();
+		List<String> msgHolder = new ArrayList<String>(0);
+		List<String> errorMsgHolder = new ArrayList<String>(0);
+		String localeId = SvConf.getDefaultLocale();
+		String tableName = CC.EMPTY_STRING;
+		String toStatus = CC.EMPTY_STRING;
+		Long objectTypeId = null;
+		int successCount = 0;
+
+		try (SvReader svr = new SvReader(sessionId);
+				SvWriter svw = new SvWriter(svr);
+				SvWorkflow sww = new SvWorkflow(svw);
+				MassActionTransaction transaction = new MassActionTransaction(svw, sww, "change status multiple")) {
+			setAutoCommit(Arrays.asList(svr, svw, sww), false);
+			localeId = svr.getUserLocaleId(svr.getInstanceUser());
+
+			try {
+				requestData = new Gson().fromJson(entity, JsonObject.class);
+			} catch (JsonSyntaxException e) {
+				jrh.create(MessageType.ERROR, I18n.getText(localeId, "error.bad_json"), CC.EMPTY_STRING,
+						new JsonObject());
+				return Response.ok(jrh.getAll().toString()).build();
+			}
+			if (requestData == null) {
+				jrh.create(MessageType.ERROR, I18n.getText(localeId, "error.bad_json"), CC.EMPTY_STRING,
+						new JsonObject());
+				return Response.ok(jrh.getAll().toString()).build();
+			}
+
+			tableName = getStringFromJson(requestData, "objectType", "tableName", Rc.TABLE_NAME);
+			if (tableName == null || tableName.isEmpty()) {
+				jrh.create(MessageType.ERROR, I18n.getText(localeId, "perun.error.objectTableNotFound"),
+						Rc.TABLE_NAME, new JsonObject());
+				return Response.ok(jrh.getAll().toString()).build();
+			}
+			objectTypeId = SvReader.getTypeIdByName(tableName);
+
+			toStatus = getStatusFromRequest(requestData);
+			if (toStatus == null || toStatus.isEmpty()) {
+				jrh.create(MessageType.ERROR, I18n.getText(localeId, "perun.error.changeStatus"), Rc.STATUS,
+						new JsonObject());
+				return Response.ok(jrh.getAll().toString()).build();
+			}
+
+			if (!requestData.has("objArray") || !requestData.get("objArray").isJsonArray()) {
+				jrh.create(MessageType.ERROR, I18n.getText(localeId, "perun.error.objectTableNotFound"), "objArray",
+						new JsonObject());
+				return Response.ok(jrh.getAll().toString()).build();
+			} else {
+				selectedObjects = requestData.getAsJsonArray("objArray");
+			}
+
+			if (selectedObjects.size() == 0) {
+				jrh.create(MessageType.ERROR, I18n.getText(localeId, "perun.error.objectTableNotFound"), "objArray",
+						new JsonObject());
+				return Response.ok(jrh.getAll().toString()).build();
+			}
+
+			for (int i = 0; i < selectedObjects.size(); i++) {
+				JsonObject selectedObject = selectedObjects.get(i).getAsJsonObject();
+				Long selectedObjectId = getSelectedObjectId(selectedObject, tableName);
+
+				if (selectedObjectId == null || selectedObjectId.equals(0L)) {
+					errorMsgHolder.add(I18n.getText(localeId, "perun.error.objectTableNotFound") + " (row: " + i + ")");
+					continue;
+				}
+
+				DbDataObject dboToChangeStatus = svr.getObjectById(selectedObjectId, objectTypeId, null);
+				if (dboToChangeStatus == null) {
+					errorMsgHolder.add(I18n.getText(localeId, "perun.error.objectTableNotFound") + " (ID: "
+							+ selectedObjectId.toString() + ")");
+					continue;
+				}
+
+				if (dboToChangeStatus.getObjectType().equals(svCONST.OBJECT_TYPE_FORM_TYPE)) {
+					DbDataObject formTypeObject = new DbDataObject();
+					formTypeObject.fromJson(dboToChangeStatus.toJson());
+					dboToChangeStatus = formTypeObject;
+				}
+
+				try {
+					sww.moveObject(dboToChangeStatus, toStatus, false);
+					changedObjects.add(dboToChangeStatus.toSimpleJson());
+					successCount++;
+				} catch (SvException e) {
+					errorMsgHolder.add(I18n.getText(localeId, "perun.error.changeStatus") + " (ID: "
+							+ selectedObjectId.toString() + "): " + e.getFormattedMessage());
+				}
+			}
+
+			if (!errorMsgHolder.isEmpty()) {
+				msgHolder.add(I18n.getText(localeId, "perun.error.changeStatus") + " (" + successCount + "/"
+						+ selectedObjects.size() + ")");
+				jrh.create(MessageType.ERROR, I18n.getText(localeId, "perun.error.changeStatus"),
+						String.join("\n\n", msgHolder) + "\n\n" + buildAllOrNothingError(errorMsgHolder),
+						new JsonObject());
+				return Response.ok(jrh.getAll().toString()).build();
+			}
+
+			transaction.commit();
+			jrh.create(MessageType.SUCCESS, I18n.getText(localeId, "perun.success.changeStatus"), CC.EMPTY_STRING,
+					changedObjects);
+		} catch (Exception e) {
+			return PerunUtil.handleException(e, "Error changing status");
+
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+
+	private String getStringFromJson(JsonObject jsonData, String... fieldNames) {
+		if (jsonData == null)
+			return null;
+		for (String fieldName : fieldNames) {
+			if (jsonData.has(fieldName) && jsonData.get(fieldName) != null && !jsonData.get(fieldName).isJsonNull())
+				return jsonData.get(fieldName).getAsString();
+		}
+		return null;
+	}
+
+	private String getStatusFromRequest(JsonObject requestData) {
+		String status = getStringFromJson(requestData, "status", "newStatus", "toStatus", Rc.STATUS);
+		if (status == null && requestData.has("formData") && requestData.get("formData").isJsonObject())
+			status = getStringFromJson(requestData.getAsJsonObject("formData"), "status", "newStatus", "toStatus",
+					Rc.STATUS);
+		return status;
+	}
+
+	private static Long getSelectedObjectId(JsonObject row, String objectType) {
+		if (row == null)
+			return null;
+		String objectIdKey = objectType + "." + Rc.OBJECT_ID;
+		if (row.has(objectIdKey) && !row.get(objectIdKey).isJsonNull())
+			return row.get(objectIdKey).getAsLong();
+		if (row.has(Rc.OBJECT_ID) && !row.get(Rc.OBJECT_ID).isJsonNull())
+			return row.get(Rc.OBJECT_ID).getAsLong();
+		if (row.has("objectId") && !row.get("objectId").isJsonNull())
+			return row.get("objectId").getAsLong();
+		return null;
+	}
+
+	private static void setAutoCommit(List<SvCore> svCoreList, Boolean autoCommit) throws SvException {
+		for (SvCore core : svCoreList) {
+			core.setAutoCommit(autoCommit);
+			core.dbSetAutoCommit(autoCommit);
+		}
+	}
+
+	private static final class MassActionTransaction implements AutoCloseable {
+		private final SvWriter svw;
+		private final SvWorkflow sww;
+		private final String operation;
+		private boolean committed;
+
+		private MassActionTransaction(SvWriter svw, SvWorkflow sww, String operation) {
+			this.svw = svw;
+			this.sww = sww;
+			this.operation = operation;
+		}
+
+		private void commit() throws SvException {
+			svw.dbCommit();
+			committed = true;
+		}
+
+		@Override
+		public void close() {
+			if (committed)
+				return;
+			try {
+				svw.dbRollback();
+			} catch (SvException e) {
+				log4j.error("Failed to roll back writer transaction for mass action: " + operation, e);
+			}
+			try {
+				sww.dbRollback();
+			} catch (SvException e) {
+				log4j.error("Failed to roll back workflow transaction for mass action: " + operation, e);
+			}
+		}
+	}
+
+	private static String buildAllOrNothingError(List<String> errorMsgHolder) {
+		return String.join("\n\n", errorMsgHolder) + "\n\nNo changes were saved.";
 	}
 
 	@Path("/deleteLinkObject/{session_id}")
