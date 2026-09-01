@@ -474,6 +474,22 @@ public class DbInit implements IDbInit {
 		return dbLink;
 	}
 
+	/**
+	 * SvFileStore resolves getLinkType(LINK_FILE, <linked type>, OBJECT_TYPE_FILE) before it reads
+	 * or writes anything, and svarog only ships LINK_FILE for JOB_TYPE and ACTION. Without this the
+	 * lookup returns null and getObjectsByLinkedId fails, so help documents cannot be attached to a
+	 * plugin row at all. Direction matters: the cache key is linkType.type1.type2.
+	 */
+	private static DbDataObject createPluginFileLinkType() {
+		DbDataObject dbLink = new DbDataObject();
+		dbLink.setObjectType(svCONST.OBJECT_TYPE_LINK_TYPE);
+		dbLink.setVal(Rc.LINK_TYPE, "LINK_FILE");
+		dbLink.setVal("LINK_TYPE_DESCRIPTION", "link between PERUN_PLUGIN and FILE");
+		dbLink.setVal(Rc.LINK_OBJECT_TYPE1, svCONST.OBJECT_TYPE_PERUN_PLUGIN);
+		dbLink.setVal(Rc.LINK_OBJECT_TYPE2, svCONST.OBJECT_TYPE_FILE);
+		return dbLink;
+	}
+
 	@Override
 	public ArrayList<DbDataTable> getCustomObjectTypes() {
 		DbDataTable dbtt = null;
@@ -497,6 +513,7 @@ public class DbInit implements IDbInit {
 	public ArrayList<DbDataObject> getCustomObjectInstances() {
 		ArrayList<DbDataObject> dbtList = new ArrayList<DbDataObject>();
 		dbtList.add(createUserGroupCardAccessLinkType());
+		dbtList.add(createPluginFileLinkType());
 		return dbtList;
 	}
 
