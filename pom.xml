@@ -67,6 +67,7 @@
 				<directory>${project.basedir}</directory>
 				<includes>
 					<include>labels/*</include>
+					<include>config/*</include>
 				</includes>
 			</resource>
 		</resources>

@@ -1,0 +1,91 @@
+{
+  "com.prtech.svarog_common.DbDataArray": {
+    "indexField": null,
+    "filter": null,
+    "items": [
+      {
+        "com.prtech.svarog_common.DbDataObject": {
+          "pkid": 12243,
+          "object_id": 12178,
+          "dt_insert": "2025-11-17T08:18:06.310Z",
+          "dt_delete": "9999-12-31T02:00:00.000Z",
+          "parent_id": 0,
+          "object_type": 50,
+          "status": "VALID",
+          "user_id": -13,
+          "values": [
+            {
+              "REPO_NAME": "SVAROG"
+            },
+            {
+              "TABLE_NAME": "PERUN_MENU"
+            },
+            {
+              "SCHEMA": "{DEFAULT_SCHEMA}"
+            },
+            {
+              "SYSTEM_TABLE": false
+            },
+            {
+              "REPO_TABLE": false
+            },
+            {
+              "LABEL_CODE": "perun_menu"
+            },
+            {
+              "USE_CACHE": true
+            },
+            {
+              "CACHE_TYPE": "LRU_TTL"
+            },
+            {
+              "CACHE_SIZE": 5000
+            },
+            {
+              "CACHE_EXPIRY": 30
+            },
+            {
+              "IS_CONFIG_TABLE": true
+            },
+            {
+              "CONFIG_UNQ_ID": "MENU_CODE"
+            },
+            {
+              "GUI_METADATA": "{\"FIELDS\":{\"MENU_TYPE\":{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"editable\":true}},\"MENU_CONF\":{\"react\":{\"filterable\":true,\"visible\":false,\"resizable\":true,\"editable\":true}},\"SVAROG_ACL_LBL\":{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"editable\":true}},\"INTERNAL_CAT\":{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"editable\":true}},\"PKID\":{\"editable\":true,\"hidden\":true,\"editoptions\":{\"readonly\":true}},\"MENU_CODE\":{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"editable\":true,\"width\":300}}}}"
+            },
+            {
+              "EXTENDED_PARAMS": "{\"FIELDS\":{}}"
+            }
+          ]
+        }
+      },
+      {
+        "com.prtech.svarog_common.DbDataObject": {
+          "pkid": 83323,
+          "object_id": 46799,
+          "dt_insert": "2025-12-09T14:02:36.450Z",
+          "dt_delete": "9999-12-31T02:00:00.000Z",
+          "parent_id": 0,
+          "object_type": 12178,
+          "status": "VALID",
+          "user_id": 12647,
+          "values": [
+            {
+              "VERSION": 1
+            },
+            {
+              "MENU_CODE": "prints-item-signature"
+            },
+            {
+              "MENU_TYPE": "menu-component"
+            },
+            {
+              "MENU_CONF": "{\"buttonArray\":[{\"ID\":\"%REPORT_NAME%_%OBJECT_ID%_PRINT\",\"label\":\"print.%REPORT_NAME%\",\"eSignature\":{\"enabled\":true,\"onSubmit\":\"%REPORT_WS%\"},\"type\":\"print\"}]}"
+            }
+          ]
+        }
+      }
+    ],
+    "idxItems": []
+  }
+}
