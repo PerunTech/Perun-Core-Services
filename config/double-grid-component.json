@@ -1,0 +1,91 @@
+{
+  "com.prtech.svarog_common.DbDataArray": {
+    "indexField": null,
+    "filter": null,
+    "items": [
+      {
+        "com.prtech.svarog_common.DbDataObject": {
+          "pkid": 12243,
+          "object_id": 12178,
+          "dt_insert": "2025-11-17T08:18:06.310Z",
+          "dt_delete": "9999-12-31T02:00:00.000Z",
+          "parent_id": 0,
+          "object_type": 50,
+          "status": "VALID",
+          "user_id": -13,
+          "values": [
+            {
+              "REPO_NAME": "SVAROG"
+            },
+            {
+              "TABLE_NAME": "PERUN_MENU"
+            },
+            {
+              "SCHEMA": "{DEFAULT_SCHEMA}"
+            },
+            {
+              "SYSTEM_TABLE": false
+            },
+            {
+              "REPO_TABLE": false
+            },
+            {
+              "LABEL_CODE": "perun_menu"
+            },
+            {
+              "USE_CACHE": true
+            },
+            {
+              "CACHE_TYPE": "LRU_TTL"
+            },
+            {
+              "CACHE_SIZE": 5000
+            },
+            {
+              "CACHE_EXPIRY": 30
+            },
+            {
+              "IS_CONFIG_TABLE": true
+            },
+            {
+              "CONFIG_UNQ_ID": "MENU_CODE"
+            },
+            {
+              "GUI_METADATA": "{\"FIELDS\":{\"MENU_TYPE\":{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"editable\":true}},\"MENU_CONF\":{\"react\":{\"filterable\":true,\"visible\":false,\"resizable\":true,\"editable\":true}},\"SVAROG_ACL_LBL\":{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"editable\":true}},\"INTERNAL_CAT\":{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"editable\":true}},\"PKID\":{\"editable\":true,\"hidden\":true,\"editoptions\":{\"readonly\":true}},\"MENU_CODE\":{\"react\":{\"filterable\":true,\"visible\":true,\"resizable\":true,\"editable\":true,\"width\":300}}}}"
+            },
+            {
+              "EXTENDED_PARAMS": "{\"FIELDS\":{}}"
+            }
+          ]
+        }
+      },
+      {
+        "com.prtech.svarog_common.DbDataObject": {
+          "pkid": 251376,
+          "object_id": 56157,
+          "dt_insert": "2026-03-03T10:24:11.251Z",
+          "dt_delete": "9999-12-31T02:00:00.000Z",
+          "parent_id": 0,
+          "object_type": 12178,
+          "status": "VALID",
+          "user_id": 12647,
+          "values": [
+            {
+              "VERSION": 4
+            },
+            {
+              "MENU_CODE": "double-grid-component"
+            },
+            {
+              "MENU_TYPE": "menu-component"
+            },
+            {
+              "MENU_CONF": "{\"buttonArray\":[{\"ID\":\"%CUSTOMID%\",\"label\":\"%CUSTOMLABEL%\",\"objectConfiguration\":{\"leftGrid\":{\"customRowClick\":{\"type\":\"%CRWTYPE%\",\"route\":\"%ROUTE%\"},\"configuration\":{\"type\":\"GET\",\"onSubmit\":\"%LEFT_GRID_CONFIG_WS%\"},\"data\":{\"type\":\"GET\",\"onSubmit\":\"%LEFT_GRID_DATA_WS%\"},\"multiSelect\":\"%LEFT_MS%\",\"readOnly\":\"%LEFT_READONLY%\",\"ID\":\"%LEFT_GRID_ID%\"},\"rightGrid\":{\"customRowClick\":{\"type\":\"%CRWTYPE%\",\"route\":\"%ROUTE%\"},\"configuration\":{\"type\":\"GET\",\"onSubmit\":\"%RIGHT_GRID_CONFIG_WS%\"},\"data\":{\"type\":\"GET\",\"onSubmit\":\"%RIGHT_GRID_DATA_WS%\"},\"multiSelect\":\"%RIGHT_MS%\",\"readOnly\":\"%RIGHT_READONLY%\",\"ID\":\"%RIGHT_GRID_ID%\"},\"type\":\"double-grid\",\"addForm\":{\"configuration\":{\"type\":\"GET\",\"readOnly\":\"%READONLY%\",\"onSubmit\":\"/ReactElements/getTableJSONSchema/%TOKEN%/%TABLE_NAME%\"},\"uischema\":{\"type\":\"GET\",\"onSubmit\":\"/ReactElements/getTableUISchema/%TOKEN%/%TABLE_NAME%\"},\"save\":{\"type\":\"POST\",\"onSave\":\"/ReactElements/createTableRecordFormData/%TOKEN%/%TABLE_NAME%/%OBJECT_ID%\"}}},\"tableName\":\"%TABLE_NAME%\"}]}"
+            }
+          ]
+        }
+      }
+    ],
+    "idxItems": []
+  }
+}
