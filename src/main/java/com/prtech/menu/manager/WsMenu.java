@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -53,6 +52,9 @@ import com.prtech.svarog_common.ResponseHandler.MessageType;
 public class WsMenu {
 
 	private static final Logger log4j = LogManager.getLogger(WsMenu.class);
+	private static final Gson GSON = new Gson();
+	private static final List<String> FULL_WRITE_PERMISSIONS = List.of("FULL", "WRITE");
+	private static final List<String> FULL_READ_WRITE_PERMISSIONS = List.of("FULL", "READ", "WRITE");
 
 	/**
 	 * Web service endpoint to generate full merged menu config
@@ -102,7 +104,7 @@ public class WsMenu {
 		JsonObject requestData = new JsonObject();
 		try (SvReader svr = new SvReader(sessionId)) {
 			try {
-				requestData = new Gson().fromJson(entity, JsonObject.class);
+				requestData = GSON.fromJson(entity, JsonObject.class);
 			} catch (Exception e) {
 				jrh.create(MessageType.ERROR, "Request body has bad format", null, new JsonObject());
 				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
@@ -139,7 +141,7 @@ public class WsMenu {
 		ResponseHandler jrh = new ResponseHandler();
 		JsonObject requestData;
 		try {
-			requestData = new Gson().fromJson(entity, JsonObject.class);
+			requestData = GSON.fromJson(entity, JsonObject.class);
 		} catch (Exception e) {
 			jrh.create(MessageType.ERROR, "Request body has bad format", null, new JsonObject());
 			return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
@@ -372,12 +374,12 @@ public class WsMenu {
 		DbDataObject menuDbo = null;
 		try (SvReader svr = new SvReader(sessionId); SvWriter svw = new SvWriter(svr)) {
 			try {
-				requestData = new Gson().fromJson(entity, JsonObject.class);
+				requestData = GSON.fromJson(entity, JsonObject.class);
 			} catch (Exception e) {
 				jrh.create(MessageType.ERROR, "Request body has bad format", null, new JsonObject());
 				return Response.status(Response.Status.BAD_REQUEST).entity(jrh.getAll().toString()).build();
 			}
-			List<String> missing = MenuHelper.checkAndReturnMissingKeys(requestData, Arrays.asList(CC.OBJECT_ID));
+			List<String> missing = MenuHelper.checkAndReturnMissingKeys(requestData, List.of(CC.OBJECT_ID));
 			if (!missing.isEmpty()) {
 				jrh.create(MessageType.ERROR, "Missing required keys in request data", missing.toString(),
 						new JsonObject());
@@ -426,7 +428,7 @@ public class WsMenu {
 				jrh.create(MessageType.ERROR, "Menu not found", null, new JsonObject());
 				return Response.status(Response.Status.NOT_FOUND).entity(jrh.getAll().toString()).build();
 			}
-			if (!MenuHelper.checkUserHasPermission(menuRoot, Arrays.asList("FULL", "WRITE"), svr)) {
+			if (!MenuHelper.checkUserHasPermission(menuRoot, FULL_WRITE_PERMISSIONS, svr)) {
 				jrh.create(MessageType.ERROR, "User does not have permission to delete this menu", null,
 						new JsonObject());
 				return Response.status(Response.Status.UNAUTHORIZED).entity(jrh.getAll().toString()).build();
@@ -467,7 +469,7 @@ public class WsMenu {
 			if (menuRoot == null) {
 				return Response.status(Response.Status.NOT_FOUND).entity("Menu not found").build();
 			}
-			if (!MenuHelper.checkUserHasPermission(menuRoot, Arrays.asList("FULL", "READ", "WRITE"), svr)) {
+			if (!MenuHelper.checkUserHasPermission(menuRoot, FULL_READ_WRITE_PERMISSIONS, svr)) {
 				return Response.status(Response.Status.UNAUTHORIZED)
 						.entity("User does not have permission to download this menu").build();
 			}
@@ -480,7 +482,7 @@ public class WsMenu {
 					} catch (Exception e) {
 						log4j.error("Error while preparing menu for download", e);
 					}
-					output.write(menuJson.toString().getBytes());
+					output.write(menuJson.toString().getBytes(StandardCharsets.UTF_8));
 				}
 			};
 			return Response.ok(fileStream, MediaType.APPLICATION_OCTET_STREAM)
@@ -529,7 +531,7 @@ public class WsMenu {
 
 			if (fileData != null) {
 				try {
-					menuJson = new Gson().fromJson(fileData, JsonObject.class);
+					menuJson = GSON.fromJson(fileData, JsonObject.class);
 				} catch (Exception e) {
 					throw new SvException("perun.error.invalid_json_format", svr.getInstanceUser(), e);
 				}

@@ -2,6 +2,7 @@ package com.prtech.menu.manager;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 
 import javax.ws.rs.HeaderParam;
@@ -26,11 +27,11 @@ import com.prtech.svarog_common.DbDataObject;
 @Path("/menu")
 public class MenuExporter {
 	static final Logger log4j = LogManager.getLogger(MenuExporter.class.getName());
+	private static final int PAGE_SIZE = 50;
 
 	@Path("/config/export")
 	@Produces({ MediaType.APPLICATION_OCTET_STREAM, MediaType.APPLICATION_JSON })
 	public Response exportMenu(@HeaderParam("sessionId") String sessionId, @QueryParam("fileName") String fileName) {
-		int size = 50;
 		String fileNameStr = fileName == null ? String.format("menu_export_%s.json", LocalDate.now().toString())
 				: fileName;
 
@@ -46,8 +47,8 @@ public class MenuExporter {
 					while (true) {
 						DbDataArray menuDbArr = new DbDataArray();
 						try {
-							menuDbArr = svr.getObjectsByTypeId(SvReader.getTypeIdByName(CC.PERUN_MENU), null, size,
-									start);
+							menuDbArr = svr.getObjectsByTypeId(SvReader.getTypeIdByName(CC.PERUN_MENU), null,
+									PAGE_SIZE, start);
 						} catch (SvException e) {
 							log4j.error(e.getMessage(), e);
 							break;
@@ -66,11 +67,11 @@ public class MenuExporter {
 							}
 						}
 
-						if (menuDbArr.getItems().size() < size) {
+						if (menuDbArr.getItems().size() < PAGE_SIZE) {
 							break;
 						}
 
-						start += size;
+						start += PAGE_SIZE;
 					}
 
 					DbDataArray menuConfDbArr = new DbDataArray();
@@ -91,7 +92,7 @@ public class MenuExporter {
 
 					resultData.add("menuData", menuArr);
 					resultData.add("menuConfData", menuConfArr);
-					output.write(resultData.toString().getBytes());
+					output.write(resultData.toString().getBytes(StandardCharsets.UTF_8));
 				}
 			};
 			return Response.ok(fileStream, MediaType.APPLICATION_OCTET_STREAM)
