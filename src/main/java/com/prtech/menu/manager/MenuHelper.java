@@ -1,7 +1,6 @@
 package com.prtech.menu.manager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +39,13 @@ import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 
 final class MenuHelper {
 	private static final Logger log4j = LogManager.getLogger(MenuHelper.class);
+	private static final Gson GSON = new Gson();
+	private static final Pattern REPO_ID_PATTERN = Pattern.compile("%REPO_ID_(\\w+)%");
+	private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\%(\\w+)\\%");
+	private static final String[] LOCALIZED_PROPERTIES = { CC.LABEL, "promptTitle", "promptMessage" };
+	private static final Set<String> CONFIG_KEYS_TO_SKIP = Set.of(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU);
+	private static final Set<String> CACHE_CONFIG_KEYS_TO_SKIP = Set.of(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU,
+			CC.OBJECT_TYPE_VISIBILITY);
 
 	private MenuHelper() {
 	}
@@ -76,12 +82,11 @@ final class MenuHelper {
 
 		String year = String.valueOf(new DateTime().year().get());
 		String mergedButtonsStr = mergedButtons.toString();
-		mergedButtonsStr = mergedButtonsStr.replaceAll("%TOKEN%", svr.getSessionId());
-		mergedButtonsStr = mergedButtonsStr.replaceAll("\"true\"", "true");
-		mergedButtonsStr = mergedButtonsStr.replaceAll("\"false\"", "false");
-		mergedButtonsStr = mergedButtonsStr.replaceAll("%CURRENT_YEAR%", year);
-		Pattern pattern = Pattern.compile("%REPO_ID_(\\w+)%");
-		Matcher matcher = pattern.matcher(mergedButtonsStr);
+		mergedButtonsStr = mergedButtonsStr.replace("%TOKEN%", svr.getSessionId());
+		mergedButtonsStr = mergedButtonsStr.replace("\"true\"", "true");
+		mergedButtonsStr = mergedButtonsStr.replace("\"false\"", "false");
+		mergedButtonsStr = mergedButtonsStr.replace("%CURRENT_YEAR%", year);
+		Matcher matcher = REPO_ID_PATTERN.matcher(mergedButtonsStr);
 
 		while (matcher.find()) {
 			String tableName = matcher.group(1).toUpperCase();
@@ -90,7 +95,7 @@ final class MenuHelper {
 			mergedButtonsStr = mergedButtonsStr.replace(placeholder, replacement);
 		}
 
-		JsonArray buttonArray = new Gson().fromJson(mergedButtonsStr, JsonArray.class);
+		JsonArray buttonArray = GSON.fromJson(mergedButtonsStr, JsonArray.class);
 		result.add("buttonArray", buttonArray);
 		return result;
 	}
@@ -143,7 +148,8 @@ final class MenuHelper {
 		if (obj.has(CC.DATA) && obj.get(CC.DATA).isJsonArray()) {
 			JsonArray dataArray = new JsonArray();
 			for (JsonElement dataElem : obj.getAsJsonArray(CC.DATA)) {
-				processMenuItem(dataElem, svr, visited, dataArray, dataElem.getAsJsonObject());
+				processMenuItem(dataElem, svr, visited, dataArray, dataElem.isJsonObject() ? dataElem.getAsJsonObject()
+						: configData);
 			}
 			obj.add(CC.DATA, dataArray);
 		}
@@ -161,31 +167,33 @@ final class MenuHelper {
 
 			if (menuStr.contains("%CHILD_ID_OF%")) {
 				String recordIdStr = "0";
-				DbDataArray recordArray = svr.getObjectsByParentId(0l, dboTable.getObjectId(), null);
-				if (null != recordArray && !recordArray.isEmpty()) {
-					recordIdStr = recordArray.get(0).getObjectId().toString();
+				if (dboTable != null) {
+					DbDataArray recordArray = svr.getObjectsByParentId(0l, dboTable.getObjectId(), null);
+					if (null != recordArray && !recordArray.isEmpty()) {
+						recordIdStr = recordArray.get(0).getObjectId().toString();
+					}
 				}
-				menuStr = menuStr.replaceAll("%CHILD_ID_OF%", recordIdStr);
+				menuStr = menuStr.replace("%CHILD_ID_OF%", recordIdStr);
 			}
 
 			if (dboTable != null) {
-				menuStr = menuStr.replaceAll("%TABLE_NAME%", dboTable.getVal("TABLE_NAME").toString());
-				menuStr = menuStr.replaceAll("%TABLE_NAME_LABEL_CODE%", dboTable.getVal("LABEL_CODE").toString());
-				menuStr = menuStr.replaceAll("%TABLE_NAME_OBJECT_ID%", dboTable.getObjectId().toString());
+				menuStr = menuStr.replace("%TABLE_NAME%", dboTable.getVal("TABLE_NAME").toString());
+				menuStr = menuStr.replace("%TABLE_NAME_LABEL_CODE%", dboTable.getVal("LABEL_CODE").toString());
+				menuStr = menuStr.replace("%TABLE_NAME_OBJECT_ID%", dboTable.getObjectId().toString());
 			}
 
 			for (String key : configData.keySet()) {
-				if (Arrays.asList(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU).contains(key)) {
+				if (CONFIG_KEYS_TO_SKIP.contains(key)) {
 					continue;
 				}
 
 				if (!configData.get(key).isJsonNull()) {
 					String toReplace = "%" + key + "%";
-					menuStr = menuStr.replaceAll(toReplace, configData.get(key).getAsString());
+					menuStr = menuStr.replace(toReplace, configData.get(key).getAsString());
 				}
 			}
 
-			obj = new Gson().fromJson(menuStr, JsonObject.class);
+			obj = GSON.fromJson(menuStr, JsonObject.class);
 			cleanMenuItem(obj);
 		}
 
@@ -200,7 +208,7 @@ final class MenuHelper {
 
 	static void buildRecursiveWithSvCache(DbDataObject menuDbo, DbDataObject dboUser, SvReader svr, Set<Long> visited,
 			JsonArray mergedButtons, JsonObject configData, JsonObject objectData) throws Exception {
-		if (menuDbo == null)
+		if (menuDbo == null || !visited.add(menuDbo.getObjectId()))
 			return;
 
 		String customAclPermission = menuDbo.getAsString(CC.SVAROG_ACL_LBL);
@@ -209,7 +217,6 @@ final class MenuHelper {
 				return;
 		}
 
-		visited.add(menuDbo.getObjectId());
 		String menuConfStr = (String) menuDbo.getVal(CC.MENU_CONF);
 		if (menuConfStr == null)
 			return;
@@ -260,8 +267,8 @@ final class MenuHelper {
 		if (obj.has(CC.DATA) && obj.get(CC.DATA).isJsonArray()) {
 			JsonArray dataArray = new JsonArray();
 			for (JsonElement dataElem : obj.getAsJsonArray(CC.DATA)) {
-				processMenuItemWithSvCache(dataElem, dboUser, svr, visited, dataArray, dataElem.getAsJsonObject(),
-						objectData);
+				processMenuItemWithSvCache(dataElem, dboUser, svr, visited, dataArray,
+						dataElem.isJsonObject() ? dataElem.getAsJsonObject() : configData, objectData);
 			}
 			obj.add(CC.DATA, dataArray);
 		}
@@ -279,36 +286,37 @@ final class MenuHelper {
 
 			if (menuStr.contains("%CHILD_ID_OF%")) {
 				String recordIdStr = "0";
-				DbDataArray recordArray = svr.getObjectsByParentId(0l, dboTable.getObjectId(), null);
-				if (null != recordArray && !recordArray.isEmpty()) {
-					recordIdStr = recordArray.get(0).getObjectId().toString();
+				if (dboTable != null) {
+					DbDataArray recordArray = svr.getObjectsByParentId(0l, dboTable.getObjectId(), null);
+					if (null != recordArray && !recordArray.isEmpty()) {
+						recordIdStr = recordArray.get(0).getObjectId().toString();
+					}
 				}
-				menuStr = menuStr.replaceAll("%CHILD_ID_OF%", recordIdStr);
+				menuStr = menuStr.replace("%CHILD_ID_OF%", recordIdStr);
 			}
 
 			if (dboTable != null) {
-				menuStr = menuStr.replaceAll("%TABLE_NAME%", dboTable.getVal("TABLE_NAME").toString());
-				menuStr = menuStr.replaceAll("%TABLE_NAME_LABEL_CODE%", dboTable.getVal("LABEL_CODE").toString());
-				menuStr = menuStr.replaceAll("%TABLE_NAME_OBJECT_ID%", dboTable.getObjectId().toString());
+				menuStr = menuStr.replace("%TABLE_NAME%", dboTable.getVal("TABLE_NAME").toString());
+				menuStr = menuStr.replace("%TABLE_NAME_LABEL_CODE%", dboTable.getVal("LABEL_CODE").toString());
+				menuStr = menuStr.replace("%TABLE_NAME_OBJECT_ID%", dboTable.getObjectId().toString());
 			}
 
 			for (String key : configData.keySet()) {
-				if (Arrays.asList(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU, CC.OBJECT_TYPE_VISIBILITY).contains(key)) {
+				if (CACHE_CONFIG_KEYS_TO_SKIP.contains(key)) {
 					continue;
 				}
 
 				if (!configData.get(key).isJsonNull() && configData.get(key).isJsonPrimitive()) {
 					String toReplace = "%" + key + "%";
-					menuStr = menuStr.replaceAll(toReplace, configData.get(key).getAsString());
+					menuStr = menuStr.replace(toReplace, configData.get(key).getAsString());
 				}
 			}
 
-			obj = new Gson().fromJson(menuStr, JsonObject.class);
+			obj = GSON.fromJson(menuStr, JsonObject.class);
 			cleanMenuItem(obj);
 		}
 
-		String[] labelProperties = { CC.LABEL, "promptTitle", "promptMessage" };
-		for (String property : labelProperties) {
+		for (String property : LOCALIZED_PROPERTIES) {
 			decodeProperty(obj, property, localeId);
 		}
 
@@ -349,8 +357,7 @@ final class MenuHelper {
 
 		JsonObject obj = btnElem.getAsJsonObject();
 
-		String[] labelProperties = { CC.LABEL, "promptTitle", "promptMessage" };
-		for (String property : labelProperties) {
+		for (String property : LOCALIZED_PROPERTIES) {
 			decodeProperty(obj, property, localeId);
 		}
 
@@ -376,7 +383,7 @@ final class MenuHelper {
 	private static String getObjectStatusFromDescriptor(JsonObject objectData) {
 		String status = "";
 		for (String key : objectData.keySet()) {
-			String fieldName = key.replaceFirst("\\w+\\.", CC.EMPTY_STRING);
+			String fieldName = normalizeFieldName(key);
 			if (fieldName.equals(CC.STATUS)) {
 				status = objectData.get(key).getAsString();
 			}
@@ -387,9 +394,9 @@ final class MenuHelper {
 	private static String getObjectTypeFromDescriptor(JsonObject objectData, SvReader svr) throws SvException {
 		String objectType = "0";
 		for (String key : objectData.keySet()) {
-			String fieldName = key.replaceFirst("\\w+\\.", CC.EMPTY_STRING);
+			String fieldName = normalizeFieldName(key);
 			if (fieldName.equals(CC.OBJECT_TYPE)) {
-				objectType = objectData.get(key).toString();
+				objectType = objectData.get(key).getAsString();
 			}
 		}
 
@@ -399,6 +406,11 @@ final class MenuHelper {
 		}
 
 		return objectType;
+	}
+
+	private static String normalizeFieldName(String key) {
+		int separatorIndex = key.indexOf('.');
+		return separatorIndex >= 0 ? key.substring(separatorIndex + 1) : key;
 	}
 
 	private static void cleanMenuItem(JsonObject item) {
@@ -501,14 +513,14 @@ final class MenuHelper {
 	static DbDataObject findObjectUsingSvCache(String columnName, String columnValue, String tableName,
 			String cacheAlias, SvReader svr) throws SvException {
 		DbDataArray dbArr = findObjectsUsingSvCache(columnName, columnValue, tableName, cacheAlias, svr);
-		if (!dbArr.isEmpty()) {
+		if (dbArr != null && !dbArr.isEmpty()) {
 			DbDataObject dbo = dbArr.getItemByIdx(columnValue);
 			if (dbo == null) {
 				dbArr.rebuildIndex(columnName, true);
 			}
 			return dbArr.getItemByIdx(columnValue);
-		} else
-			return null;
+		}
+		return null;
 	}
 
 	static DbDataObject findMenuByCode(String menuCode, SvReader svr) throws SvException {
@@ -618,7 +630,6 @@ final class MenuHelper {
 	 * @throws SvException
 	 */
 	static void deleteMenuHelper(String menuCode, SvReader svr) throws SvException, MenuError {
-		Gson gson = new Gson();
 		List<String> usedBy = new ArrayList<String>();
 		DbDataArray allMenuItems = svr.getObjectsByTypeId(SvReader.getTypeIdByName(CC.PERUN_MENU), null, 0, 0);
 
@@ -626,7 +637,7 @@ final class MenuHelper {
 			String menuConfStr = (String) dbo.getVal(CC.MENU_CONF);
 			if (menuConfStr == null)
 				continue;
-			JsonObject confJson = gson.fromJson(menuConfStr, JsonObject.class);
+			JsonObject confJson = GSON.fromJson(menuConfStr, JsonObject.class);
 			if (!confJson.has("buttonArray"))
 				continue;
 			JsonArray btns = confJson.getAsJsonArray("buttonArray");
@@ -718,7 +729,7 @@ final class MenuHelper {
 		}
 
 		if (menuDbo.getObjectId() > 0) {
-			if (!checkUserHasPermission(menuDbo, Arrays.asList("FULL", "WRITE"), svr)) {
+			if (!checkUserHasPermission(menuDbo, List.of("FULL", "WRITE"), svr)) {
 				throw new UserNotAuthorizedError("User does not have permission to edit this menu");
 			}
 		}
@@ -783,7 +794,7 @@ final class MenuHelper {
 		if (resolveImports) {
 			menuConf = buildFullHierarchy(menuDbo, svr.getInstanceUser(), svr, new HashSet<Long>());
 		} else {
-			menuConf = new Gson().fromJson(menuDbo.getVal(CC.MENU_CONF).toString(), JsonObject.class);
+			menuConf = GSON.fromJson(menuDbo.getVal(CC.MENU_CONF).toString(), JsonObject.class);
 		}
 		menuJson.add(CC.MENU_CONF, menuConf);
 
@@ -951,20 +962,20 @@ final class MenuHelper {
 		String jsonStr = json.toString();
 		String objectId = "0";
 		for (String key : data.keySet()) {
-			String fieldName = key.replaceFirst("\\w+\\.", CC.EMPTY_STRING);
+			String fieldName = normalizeFieldName(key);
 			if (fieldName.equals(CC.OBJECT_ID)) {
 				objectId = data.get(key).toString();
 			}
 		}
 		for (String key : data.keySet()) {
-			String fieldName = key.replaceFirst("\\w+\\.", CC.EMPTY_STRING);
+			String fieldName = normalizeFieldName(key);
 			String toReplace = "%" + fieldName + "%";
 			if (!data.get(key).isJsonNull() && jsonStr.contains(toReplace)) {
 				String replacement = data.get(key).getAsString();
 				if (fieldName.equals(CC.PARENT_ID) && data.get(key).toString().equals("0")) {
 					replacement = objectId;
 				}
-				jsonStr = jsonStr.replaceAll(toReplace, replacement);
+				jsonStr = jsonStr.replace(toReplace, replacement);
 			}
 		}
 
@@ -994,7 +1005,7 @@ final class MenuHelper {
 					DbDataObject targetDbo = svr.getObjectById(targetObjId, SvReader.getDbtByName(tableName), null);
 					if (targetDbo != null) {
 						String replacementString = targetDbo.getAsString(fieldName);
-						jsonStr = jsonStr.replaceAll("%" + placeholder + "%", replacementString);
+						jsonStr = jsonStr.replace("%" + placeholder + "%", replacementString);
 					}
 				} catch (Exception e) {
 					log4j.error("Error replacing palceholder: " + placeholder, e);
@@ -1003,7 +1014,7 @@ final class MenuHelper {
 		}
 
 		try {
-			result = new Gson().fromJson(jsonStr, JsonObject.class);
+			result = GSON.fromJson(jsonStr, JsonObject.class);
 		} catch (Exception e) {
 			log4j.error(e.getMessage(), e);
 			result = data;
@@ -1030,8 +1041,7 @@ final class MenuHelper {
 	 */
 	static Set<String> findPlaceholders(String searchStr) {
 		Set<String> placeholders = new HashSet<String>();
-		Pattern pattern = Pattern.compile("\\%(\\w+)\\%");
-		Matcher match = pattern.matcher(searchStr);
+		Matcher match = PLACEHOLDER_PATTERN.matcher(searchStr);
 
 		while (match.find()) {
 			placeholders.add(match.group(1));
