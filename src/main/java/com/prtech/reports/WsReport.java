@@ -3,9 +3,6 @@ package com.prtech.reports;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.sql.Date;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Properties;
 
@@ -118,7 +115,7 @@ public class WsReport {
 						new JsonObject());
 				return Response.ok(jrh.getAll().toString()).build();
 			}
-			
+
 			String printParam = SvConf.getParam("print.jrxml_path");
 			Properties rb = setReportProperties(printParam, objectId, localeId, svr);
 			GeneratePrint.executeReport(rb, reportName, outputType, bstr, svr.dbGetConn());
