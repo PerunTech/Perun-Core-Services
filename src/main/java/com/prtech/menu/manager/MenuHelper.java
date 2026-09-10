@@ -102,7 +102,8 @@ final class MenuHelper {
 
 	static void buildRecursive(DbDataObject menuDbo, SvReader svr, Set<Long> visited, JsonArray mergedButtons,
 			JsonObject configData) throws Exception {
-		if (menuDbo == null || !visited.add(menuDbo.getObjectId()))
+		if (menuDbo == null
+				|| (!"menu-component".equals(menuDbo.getVal("MENU_TYPE")) && !visited.add(menuDbo.getObjectId())))
 			return;
 
 		String menuConfStr = (String) menuDbo.getVal(CC.MENU_CONF);
@@ -208,7 +209,8 @@ final class MenuHelper {
 
 	static void buildRecursiveWithSvCache(DbDataObject menuDbo, DbDataObject dboUser, SvReader svr, Set<Long> visited,
 			JsonArray mergedButtons, JsonObject configData, JsonObject objectData) throws Exception {
-		if (menuDbo == null || !visited.add(menuDbo.getObjectId()))
+		if (menuDbo == null
+				|| (!"menu-component".equals(menuDbo.getVal("MENU_TYPE")) && !visited.add(menuDbo.getObjectId())))
 			return;
 
 		String customAclPermission = menuDbo.getAsString(CC.SVAROG_ACL_LBL);
