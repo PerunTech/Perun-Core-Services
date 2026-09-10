@@ -46,6 +46,7 @@ final class MenuHelper {
 	private static final Set<String> CONFIG_KEYS_TO_SKIP = Set.of(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU);
 	private static final Set<String> CACHE_CONFIG_KEYS_TO_SKIP = Set.of(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU,
 			CC.OBJECT_TYPE_VISIBILITY);
+	private static final String MENU_COMPONENT = "menu-component";
 
 	private MenuHelper() {
 	}
@@ -102,21 +103,27 @@ final class MenuHelper {
 
 	static void buildRecursive(DbDataObject menuDbo, SvReader svr, Set<Long> visited, JsonArray mergedButtons,
 			JsonObject configData) throws Exception {
-		if (menuDbo == null
-				|| (!"menu-component".equals(menuDbo.getVal("MENU_TYPE")) && !visited.add(menuDbo.getObjectId())))
+		if (menuDbo == null || !visited.add(menuDbo.getObjectId()))
 			return;
 
-		String menuConfStr = (String) menuDbo.getVal(CC.MENU_CONF);
-		if (menuConfStr == null)
-			return;
+		boolean removeFromVisited = MENU_COMPONENT.equals(menuDbo.getVal(CC.MENU_TYPE));
+		try {
+			String menuConfStr = (String) menuDbo.getVal(CC.MENU_CONF);
+			if (menuConfStr == null)
+				return;
 
-		JsonObject confJson = JsonParser.parseString(menuConfStr).getAsJsonObject();
-		if (!confJson.has("buttonArray"))
-			return;
+			JsonObject confJson = JsonParser.parseString(menuConfStr).getAsJsonObject();
+			if (!confJson.has("buttonArray"))
+				return;
 
-		JsonArray btns = confJson.getAsJsonArray("buttonArray");
-		for (JsonElement btn : btns) {
-			processMenuItem(btn, svr, visited, mergedButtons, configData);
+			JsonArray btns = confJson.getAsJsonArray("buttonArray");
+			for (JsonElement btn : btns) {
+				processMenuItem(btn, svr, visited, mergedButtons, configData);
+			}
+		} finally {
+			if (removeFromVisited) {
+				visited.remove(menuDbo.getObjectId());
+			}
 		}
 	}
 
@@ -209,27 +216,33 @@ final class MenuHelper {
 
 	static void buildRecursiveWithSvCache(DbDataObject menuDbo, DbDataObject dboUser, SvReader svr, Set<Long> visited,
 			JsonArray mergedButtons, JsonObject configData, JsonObject objectData) throws Exception {
-		if (menuDbo == null
-				|| (!"menu-component".equals(menuDbo.getVal("MENU_TYPE")) && !visited.add(menuDbo.getObjectId())))
+		if (menuDbo == null || !visited.add(menuDbo.getObjectId()))
 			return;
 
-		String customAclPermission = menuDbo.getAsString(CC.SVAROG_ACL_LBL);
-		if (customAclPermission != null && !customAclPermission.equals(CC.EMPTY_STRING)) {
-			if (!checkUserHasCustomAclPermission(menuDbo, List.of(customAclPermission), dboUser, svr))
+		boolean removeFromVisited = MENU_COMPONENT.equals(menuDbo.getVal(CC.MENU_TYPE));
+		try {
+			String customAclPermission = menuDbo.getAsString(CC.SVAROG_ACL_LBL);
+			if (customAclPermission != null && !customAclPermission.equals(CC.EMPTY_STRING)) {
+				if (!checkUserHasCustomAclPermission(menuDbo, List.of(customAclPermission), dboUser, svr))
+					return;
+			}
+
+			String menuConfStr = (String) menuDbo.getVal(CC.MENU_CONF);
+			if (menuConfStr == null)
 				return;
-		}
 
-		String menuConfStr = (String) menuDbo.getVal(CC.MENU_CONF);
-		if (menuConfStr == null)
-			return;
+			JsonObject confJson = JsonParser.parseString(menuConfStr).getAsJsonObject();
+			if (!confJson.has("buttonArray"))
+				return;
 
-		JsonObject confJson = JsonParser.parseString(menuConfStr).getAsJsonObject();
-		if (!confJson.has("buttonArray"))
-			return;
-
-		JsonArray btns = confJson.getAsJsonArray("buttonArray");
-		for (JsonElement btn : btns) {
-			processMenuItemWithSvCache(btn, dboUser, svr, visited, mergedButtons, configData, objectData);
+			JsonArray btns = confJson.getAsJsonArray("buttonArray");
+			for (JsonElement btn : btns) {
+				processMenuItemWithSvCache(btn, dboUser, svr, visited, mergedButtons, configData, objectData);
+			}
+		} finally {
+			if (removeFromVisited) {
+				visited.remove(menuDbo.getObjectId());
+			}
 		}
 	}
 
