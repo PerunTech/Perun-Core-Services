@@ -31,6 +31,7 @@ import com.prtech.perun.services.ws.WsReactElements;
 import com.prtech.sequence.manager.SeqPatternExceptions.SeqPatternError;
 import com.prtech.sequence.manager.SeqPatternService;
 import com.prtech.svarog.I18n;
+import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvLink;
 import com.prtech.svarog.SvReader;
@@ -40,6 +41,7 @@ import com.prtech.svarog.svCONST;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbQueryObject;
+import com.prtech.svarog_common.DbSearch.DbLogicOperand;
 import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
 import com.prtech.svarog_common.DbSearchExpression;
@@ -842,12 +844,22 @@ public abstract class BaseObjectModel {
 		private boolean ignoreCase;
 		private int minLength;
 		private boolean includePercent;
+		private boolean isMultiSelect;
 
 		public SearchField(String fieldName, boolean ignoreCase, int minLength, boolean includePercent) {
 			this.fieldName = fieldName;
 			this.ignoreCase = ignoreCase;
 			this.minLength = minLength;
 			this.includePercent = includePercent;
+		}
+
+		public SearchField(String fieldName, boolean ignoreCase, int minLength, boolean includePercent,
+				boolean isMultiSelect) {
+			this.fieldName = fieldName;
+			this.ignoreCase = ignoreCase;
+			this.minLength = minLength;
+			this.includePercent = includePercent;
+			this.isMultiSelect = isMultiSelect;
 		}
 
 		public String getFieldName() {
@@ -880,6 +892,14 @@ public abstract class BaseObjectModel {
 
 		public void setIncludePercent(boolean includePercent) {
 			this.includePercent = includePercent;
+		}
+
+		public boolean isMultiSelect() {
+			return isMultiSelect;
+		}
+
+		public void setMultiSelect(boolean isMultiSelect) {
+			this.isMultiSelect = isMultiSelect;
 		}
 	}
 
@@ -1163,12 +1183,10 @@ public abstract class BaseObjectModel {
 				if (isDateString(stringValue)) {
 					operand = DbCompareOperand.EQUAL;
 					value = new DateTime(stringValue);
+				} else if (field.isMultiSelect()) {
+					return addMultiSelectCriterion(field, stringValue, dbse);
 				} else {
-					if (field.isIgnoreCase()) {
-						operand = DbCompareOperand.ILIKE;
-					} else {
-						operand = DbCompareOperand.LIKE;
-					}
+					operand = field.isIgnoreCase() ? DbCompareOperand.ILIKE : DbCompareOperand.LIKE;
 					value = stringValue;
 					if (field.getIncludePercent()) {
 						value = CC.PERCENT_OPERATOR + stringValue + CC.PERCENT_OPERATOR;
@@ -1183,6 +1201,32 @@ public abstract class BaseObjectModel {
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Builds a delimiter-aware match for multi-select fields so that searching for
+	 * code "4" doesn't also match "40", "43", "444", etc. via naive substring LIKE.
+	 * Matches the value as a whole token: alone, first, last, or in the middle of
+	 * the delimited list.
+	 */
+	private boolean addMultiSelectCriterion(SearchField field, String stringValue, DbSearchExpression dbse)
+			throws SvException {
+		String sep = SvConf.getMultiSelectSeparator();
+		DbCompareOperand operand = field.isIgnoreCase() ? DbCompareOperand.ILIKE : DbCompareOperand.LIKE;
+
+		DbSearchExpression tokenMatch = new DbSearchExpression();
+
+		tokenMatch
+				.addDbSearchItem(new DbSearchCriterion(field.getFieldName(), operand, stringValue, DbLogicOperand.OR));
+		tokenMatch.addDbSearchItem(new DbSearchCriterion(field.getFieldName(), operand,
+				stringValue + sep + CC.PERCENT_OPERATOR, DbLogicOperand.OR));
+		tokenMatch.addDbSearchItem(new DbSearchCriterion(field.getFieldName(), operand,
+				CC.PERCENT_OPERATOR + sep + stringValue, DbLogicOperand.OR));
+		tokenMatch.addDbSearchItem(new DbSearchCriterion(field.getFieldName(), operand,
+				CC.PERCENT_OPERATOR + sep + stringValue + sep + CC.PERCENT_OPERATOR, DbLogicOperand.OR));
+
+		dbse.addDbSearchItem(tokenMatch);
+		return true;
 	}
 
 	private boolean isDateString(String str) {
