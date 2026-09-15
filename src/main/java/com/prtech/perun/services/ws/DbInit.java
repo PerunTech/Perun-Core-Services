@@ -241,6 +241,7 @@ public class DbInit implements IDbInit {
 		dbe.setLabel_code("perun_menu_conf");
 		dbe.setUse_cache(false);
 		dbe.setIsConfigTable(true);
+		dbe.setConfigColumnName(CC.MENU_CODE);
 
 		DbDataField dbf1 = new DbDataField();
 		dbf1.setDbFieldName("PKID");
@@ -297,7 +298,8 @@ public class DbInit implements IDbInit {
 		dbf8.setDbFieldName(CC.MENU_CODE);
 		dbf8.setDbFieldType(DbFieldType.NVARCHAR);
 		dbf8.setDbFieldSize(50);
-		dbf8.setIsNull(true);
+		dbf8.setIsUnique(true);
+		dbf8.setIsNull(false);
 		dbf8.setLabel_code("perun_menu_conf.menu_code");
 
 		DbDataField[] dbTableFields = new DbDataField[8];
