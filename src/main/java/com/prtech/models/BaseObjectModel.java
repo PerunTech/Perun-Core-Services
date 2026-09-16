@@ -1179,7 +1179,9 @@ public abstract class BaseObjectModel {
 				value = primitive.getAsLong();
 			} else if (primitive.isString()) {
 				String stringValue = primitive.getAsString();
-
+				 if (stringValue == null || stringValue.isBlank()) {
+				        return false; 
+				    }
 				if (isDateString(stringValue)) {
 					operand = DbCompareOperand.EQUAL;
 					value = new DateTime(stringValue);
