@@ -429,6 +429,21 @@ public class WsModel {
 		return resultJsonArray;
 	}
 
+	/**
+	 * Converts a raw boolean JSON value into a display-friendly "Yes"/"No" string
+	 * for grid rendering. Non-boolean values pass through unchanged.
+	 *
+	 * @param value raw JSON value as read from the DbDataObject
+	 * @return "Yes"/"No" JsonPrimitive when the input is a JSON boolean, otherwise
+	 *         the original value
+	 */
+	private static JsonElement normalizeBooleanForDisplay(JsonElement value) {
+		if (value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isBoolean()) {
+			return new JsonPrimitive(value.getAsBoolean() ? "Yes" : "No");
+		}
+		return value;
+	}
+
 	public static LinkedHashMap<String, JsonElement> getDbDataObjectsAsLinkedHashMap(DbDataObject dbo, String tableName,
 			boolean skipRepoFields, SvReader svr) throws SvException {
 		DbDataObject dboField = null;
@@ -480,7 +495,8 @@ public class WsModel {
 								lhmObj.put(tableName + "." + value.getKey().toUpperCase(),
 										new JsonPrimitive(valueString));
 							} else {
-								lhmObj.put(tableName + "." + value.getKey().toUpperCase(), value.getValue());
+								lhmObj.put(tableName + "." + value.getKey().toUpperCase(),
+										normalizeBooleanForDisplay(value.getValue()));
 							}
 
 							if (dboField != null && dboField.getVal(CC.REFERENTIAL_FIELD) != null
@@ -523,7 +539,8 @@ public class WsModel {
 								}
 							}
 						} else {
-							lhmObj.put(tableName + "." + value.getKey().toUpperCase(), value.getValue());
+							lhmObj.put(tableName + "." + value.getKey().toUpperCase(),
+									normalizeBooleanForDisplay(value.getValue()));
 						}
 					}
 				}
