@@ -340,6 +340,11 @@ final class MenuHelper {
 			if (objConfig.has("additionalTopButtons") && objConfig.get("additionalTopButtons").isJsonArray()) {
 				JsonArray additionalTopButtons = new JsonArray();
 				for (JsonElement btnElem : objConfig.getAsJsonArray("additionalTopButtons")) {
+					if (btnElem.isJsonObject() && btnElem.getAsJsonObject().has(CC.SVAROG_ACL_LBL)) {
+						String customAclPermission = btnElem.getAsJsonObject().get(CC.SVAROG_ACL_LBL).getAsString();
+						if (!svr.hasPermission(customAclPermission))
+							continue;
+					}
 					decodeLabelCode(btnElem, additionalTopButtons, localeId);
 				}
 				objConfig.add("additionalTopButtons", additionalTopButtons);
