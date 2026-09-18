@@ -363,7 +363,7 @@ final class MenuHelper {
 		}
 
 		if (objectData != null && obj.has(CC.SVAROG_ACL_LBL)) {
-			String customAclPermission = obj.get(CC.SVAROG_ACL_LBL).toString();
+			String customAclPermission = obj.get(CC.SVAROG_ACL_LBL).getAsString();
 			if (!svr.hasPermission(customAclPermission))
 				return;
 		}
