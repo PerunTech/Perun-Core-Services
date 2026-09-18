@@ -254,12 +254,6 @@ final class MenuHelper {
 		JsonObject obj = item.getAsJsonObject();
 		String localeId = svr.getUserLocaleId(svr.getInstanceUser());
 		
-		if (objectData != null && obj.has(CC.SVAROG_ACL_LBL)) {
-			String customAclPermission = obj.get(CC.SVAROG_ACL_LBL).toString();
-			if (!svr.hasPermission(customAclPermission))
-				return;
-		}
-		
 		if (objectData != null && obj.has(CC.OBJECT_TYPE_VISIBILITY)) {
 			String objectStatus = getObjectStatusFromDescriptor(objectData);
 			String objectType = getObjectTypeFromDescriptor(objectData, svr);
@@ -366,6 +360,12 @@ final class MenuHelper {
 				}
 				objConfig.add("additionalBtns", additionalBtnsButtons);
 			}
+		}
+
+		if (objectData != null && obj.has(CC.SVAROG_ACL_LBL)) {
+			String customAclPermission = obj.get(CC.SVAROG_ACL_LBL).toString();
+			if (!svr.hasPermission(customAclPermission))
+				return;
 		}
 
 		mergedButtons.add(obj.deepCopy());
