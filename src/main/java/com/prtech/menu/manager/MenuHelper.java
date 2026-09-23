@@ -345,6 +345,17 @@ final class MenuHelper {
 						if (!svr.hasPermission(customAclPermission))
 							continue;
 					}
+					if (objectData != null && btnElem.isJsonObject() && btnElem.getAsJsonObject().has(CC.OBJECT_TYPE_VISIBILITY)) {
+						String objectStatus = getObjectStatusFromDescriptor(objectData);
+						String objectType = getObjectTypeFromDescriptor(objectData, svr);
+						JsonObject objectTypeVisibility = btnElem.getAsJsonObject().getAsJsonObject(CC.OBJECT_TYPE_VISIBILITY);
+						if (objectTypeVisibility.has(objectType)) {
+							JsonArray statusList = objectTypeVisibility.getAsJsonArray(objectType);
+							if (!statusList.contains(new JsonPrimitive(objectStatus)))
+								continue;
+						}
+						btnElem.getAsJsonObject().remove(CC.OBJECT_TYPE_VISIBILITY);
+					}
 					decodeLabelCode(btnElem, additionalTopButtons, localeId);
 				}
 				objConfig.add("additionalTopButtons", additionalTopButtons);
