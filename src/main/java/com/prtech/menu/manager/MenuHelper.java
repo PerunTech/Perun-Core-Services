@@ -253,7 +253,7 @@ final class MenuHelper {
 
 		JsonObject obj = item.getAsJsonObject();
 		String localeId = svr.getUserLocaleId(svr.getInstanceUser());
-
+		
 		if (objectData != null && obj.has(CC.OBJECT_TYPE_VISIBILITY)) {
 			String objectStatus = getObjectStatusFromDescriptor(objectData);
 			String objectType = getObjectTypeFromDescriptor(objectData, svr);
@@ -340,6 +340,22 @@ final class MenuHelper {
 			if (objConfig.has("additionalTopButtons") && objConfig.get("additionalTopButtons").isJsonArray()) {
 				JsonArray additionalTopButtons = new JsonArray();
 				for (JsonElement btnElem : objConfig.getAsJsonArray("additionalTopButtons")) {
+					if (btnElem.isJsonObject() && btnElem.getAsJsonObject().has(CC.SVAROG_ACL_LBL)) {
+						String customAclPermission = btnElem.getAsJsonObject().get(CC.SVAROG_ACL_LBL).getAsString();
+						if (!svr.hasPermission(customAclPermission))
+							continue;
+					}
+					if (objectData != null && btnElem.isJsonObject() && btnElem.getAsJsonObject().has(CC.OBJECT_TYPE_VISIBILITY)) {
+						String objectStatus = getObjectStatusFromDescriptor(objectData);
+						String objectType = getObjectTypeFromDescriptor(objectData, svr);
+						JsonObject objectTypeVisibility = btnElem.getAsJsonObject().getAsJsonObject(CC.OBJECT_TYPE_VISIBILITY);
+						if (objectTypeVisibility.has(objectType)) {
+							JsonArray statusList = objectTypeVisibility.getAsJsonArray(objectType);
+							if (!statusList.contains(new JsonPrimitive(objectStatus)))
+								continue;
+						}
+						btnElem.getAsJsonObject().remove(CC.OBJECT_TYPE_VISIBILITY);
+					}
 					decodeLabelCode(btnElem, additionalTopButtons, localeId);
 				}
 				objConfig.add("additionalTopButtons", additionalTopButtons);
@@ -360,6 +376,12 @@ final class MenuHelper {
 				}
 				objConfig.add("additionalBtns", additionalBtnsButtons);
 			}
+		}
+
+		if (objectData != null && obj.has(CC.SVAROG_ACL_LBL)) {
+			String customAclPermission = obj.get(CC.SVAROG_ACL_LBL).getAsString();
+			if (!svr.hasPermission(customAclPermission))
+				return;
 		}
 
 		mergedButtons.add(obj.deepCopy());
