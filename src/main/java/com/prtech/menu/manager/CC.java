@@ -34,6 +34,7 @@ public class CC {
 	public static final String IS_NULL = "IS_NULL";
 	public static final String NOT_NULL = "NOT_NULL";
 	public static final String ZERO = "0";
+	public static final String NEGATION_PREFIX = "!";
 
 	public static final String PARENT_NAME = "PARENT_NAME";
 	public static final String IMPORT_MENU = "IMPORT_MENU";
@@ -55,4 +56,5 @@ public class CC {
 	public static final String COND_OPERATOR = "COND_OPERATOR";
 	public static final String COND_VALUE = "COND_VALUE";
 	public static final String IS_DEFAULT = "IS_DEFAULT";
+	public static final String DISPLAY_WHEN = "DISPLAY_WHEN";
 }
