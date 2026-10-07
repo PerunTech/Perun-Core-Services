@@ -360,6 +360,10 @@ final class MenuHelper {
 							sectionElem.isJsonObject() ? sectionElem.getAsJsonObject() : configData, objectData);
 				}
 				objConfig.add(CC.SECTIONS, sectionsArray);
+				if (objConfig.has("header") && objConfig.get("header").isJsonObject())
+					for (String property : LOCALIZED_PROPERTIES) {
+						decodeProperty(objConfig.get("header").getAsJsonObject(), property, localeId);
+					}
 			}
 			if (objConfig.has("additionalTopButtons") && objConfig.get("additionalTopButtons").isJsonArray()) {
 				JsonArray additionalTopButtons = new JsonArray();
