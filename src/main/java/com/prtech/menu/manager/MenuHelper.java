@@ -353,6 +353,14 @@ final class MenuHelper {
 
 		if (obj.has("objectConfiguration")) {
 			JsonObject objConfig = obj.getAsJsonObject("objectConfiguration");
+			if (objConfig.has(CC.SECTIONS) && objConfig.get(CC.SECTIONS).isJsonArray()) {
+				JsonArray sectionsArray = new JsonArray();
+				for (JsonElement sectionElem : objConfig.getAsJsonArray(CC.SECTIONS)) {
+					processMenuItemWithSvCache(sectionElem, dboUser, svr, visited, sectionsArray,
+							sectionElem.isJsonObject() ? sectionElem.getAsJsonObject() : configData, objectData);
+				}
+				objConfig.add(CC.SECTIONS, sectionsArray);
+			}
 			if (objConfig.has("additionalTopButtons") && objConfig.get("additionalTopButtons").isJsonArray()) {
 				JsonArray additionalTopButtons = new JsonArray();
 				for (JsonElement btnElem : objConfig.getAsJsonArray("additionalTopButtons")) {
