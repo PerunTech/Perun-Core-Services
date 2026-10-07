@@ -44,7 +44,7 @@ final class MenuHelper {
 	private static final Gson GSON = new Gson();
 	private static final Pattern REPO_ID_PATTERN = Pattern.compile("%REPO_ID_(\\w+)%");
 	private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\%(\\w+)\\%");
-	private static final String[] LOCALIZED_PROPERTIES = { CC.LABEL, "promptTitle", "promptMessage" };
+	private static final String[] LOCALIZED_PROPERTIES = { CC.LABEL, "promptTitle", "promptMessage", "title", "description" };
 	private static final Set<String> CONFIG_KEYS_TO_SKIP = Set.of(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU);
 	private static final Set<String> CACHE_CONFIG_KEYS_TO_SKIP = Set.of(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU,
 			CC.OBJECT_TYPE_VISIBILITY);
@@ -415,6 +415,7 @@ final class MenuHelper {
 			String customAclPermission = obj.get(CC.SVAROG_ACL_LBL).getAsString();
 			if (!svr.hasPermission(customAclPermission))
 				return;
+			obj.remove(CC.SVAROG_ACL_LBL);
 		}
 
 		mergedButtons.add(obj.deepCopy());
