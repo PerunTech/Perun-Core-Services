@@ -431,7 +431,7 @@ public class WsModel {
 				}
 				Integer total = counts.values().stream().mapToInt(Integer::intValue).sum();
 				JsonObject item = new JsonObject();
-				item.addProperty("label", I18n.getText(localeId, "statistics.label.total_number"));
+				item.addProperty("label", I18n.getText(localeId, "perun.statistics.label.total_number"));
 				item.addProperty("value", total);
 				statistics.add(item);
 			}
