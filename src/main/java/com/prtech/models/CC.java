@@ -34,5 +34,6 @@ public class CC {
 	public static final String VALUE_LC = "value";
 	public static final String SHORT = "SHORT";
 	public static final String DETAILED = "DETAILED";
+	public static final String STATISTICS = "STATISTICS";
 
 }
