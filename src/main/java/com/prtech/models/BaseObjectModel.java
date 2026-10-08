@@ -587,6 +587,16 @@ public abstract class BaseObjectModel {
 	public List<String> getTerminalStatusList() {
 		return new ArrayList<String>();
 	}
+	
+	/**
+	 * Return a list of statuses used for statistics. Override in child
+	 * classes.
+	 * 
+	 * @return List of statistics statuses for this object
+	 */
+	public List<String> getObjectStatisticsStatusList() {
+		return Arrays.asList(CC.VALID);
+	}
 
 	/**
 	 * Method called before a status change occurs. Implementations should perform
