@@ -429,6 +429,11 @@ public class WsModel {
 					item.addProperty("value", counts.getOrDefault(status, 0));
 					statistics.add(item);
 				}
+				Integer total = counts.values().stream().mapToInt(Integer::intValue).sum();
+				JsonObject item = new JsonObject();
+				item.addProperty("label", I18n.getText(localeId, "perun.statistics.label.total_number"));
+				item.addProperty("value", total);
+				statistics.add(item);
 			}
 			data.add(CC.STATISTICS, statistics);
 		} catch (Exception e) {
