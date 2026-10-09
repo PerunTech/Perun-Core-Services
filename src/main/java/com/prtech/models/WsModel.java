@@ -383,13 +383,14 @@ public class WsModel {
 	}
 
 	/**
-	 * Returns a summary of objects per status for parentId
+	 * Returns a summary of objects per status (custom list / custom grouped list)
+	 * for parentId
 	 *
 	 * @param sessionId   User session ID
 	 * @param tableName   Name of the target table
 	 * @param parentId    ID of the parent object
 	 * @param httpRequest HTTP servlet request
-	 *                    {@link getObjectsByParentAndStatusList(Long, List, Long,
+	 *                    {@link #getObjectsByParentAndStatusList(Long, List, Long,
 	 *                    SvReader)}
 	 * 
 	 * @return JSON response with statistics array
@@ -418,16 +419,23 @@ public class WsModel {
 						new JsonObject());
 				return Response.ok(jrh.getAll().toString()).build();
 			}
-			List<String> statisticsStatusList = obj.getObjectStatisticsStatusList();
-			if (statisticsStatusList != null && !statisticsStatusList.isEmpty()) {
-				DbDataArray array = getObjectsByParentAndStatusList(parentId, statisticsStatusList,
-						SvCore.getTypeIdByName(tableName), svr);
+			Map<String, String> statisticsStatusMap = obj.getObjectStatisticsStatusMap();
+			if (statisticsStatusMap != null && !statisticsStatusMap.isEmpty()) {
+				DbDataArray array = getObjectsByParentAndStatusList(parentId,
+						new ArrayList<>(statisticsStatusMap.keySet()), SvCore.getTypeIdByName(tableName), svr);
 				Map<String, Integer> counts = countObjectsByStatus(array);
-				for (String status : statisticsStatusList) {
+				Map<String, Integer> countsByLabel = new LinkedHashMap<>();
+				for (Map.Entry<String, String> statusEntry : statisticsStatusMap.entrySet()) {
+					String status = statusEntry.getKey();
+					String statusLabel = statusEntry.getValue() != null ? statusEntry.getValue()
+							: getLabelCodeByCodelist("OBJ_STATUS", status, svr);
+					countsByLabel.put(statusLabel,
+							countsByLabel.getOrDefault(statusLabel, 0) + counts.getOrDefault(status, 0));
+				}
+				for (Map.Entry<String, Integer> statusEntry : countsByLabel.entrySet()) {
 					JsonObject item = new JsonObject();
-					String statusLabel = getLabelCodeByCodelist("OBJ_STATUS", status, svr);
-					item.addProperty("label", I18n.getText(localeId, statusLabel));
-					item.addProperty("value", counts.getOrDefault(status, 0));
+					item.addProperty("label", I18n.getText(localeId, statusEntry.getKey()));
+					item.addProperty("value", statusEntry.getValue());
 					statistics.add(item);
 				}
 				Integer total = counts.values().stream().mapToInt(Integer::intValue).sum();
@@ -455,7 +463,7 @@ public class WsModel {
 	 * @param refField    Name of the referential field in that table 
 	 * @param refObjectId OBJECT_ID of the referenced object 
 	 * @param httpRequest HTTP servlet request
-	 *                    {@link getObjectsByFieldAndStatusList(String, Long, List,
+	 *                    {@link #getObjectsByFieldAndStatusList(String, Long, List,
 	 *                    Long, SvReader)}
 	 *
 	 * @return JSON response with statistics array

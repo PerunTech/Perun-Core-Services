@@ -597,6 +597,26 @@ public abstract class BaseObjectModel {
 	public List<String> getObjectStatisticsStatusList() {
 		return Arrays.asList(CC.VALID);
 	}
+	
+	/**
+	 * Returns a map of statuses and custom label codes used for statistics.
+	 * Set label code as null sets default status label.
+	 * Multiple statuses can be grouped under the same label code.
+	 * The default is build from {@link #getObjectStatisticsStatusList()}
+	 * Override in child classes.
+	 *
+	 * @return Ordered map of status to custom label code
+	 */
+	public Map<String, String> getObjectStatisticsStatusMap() {
+		Map<String, String> statuses = new LinkedHashMap<>();
+		List<String> statusList = getObjectStatisticsStatusList();
+		if (statusList != null) {
+			for (String status : statusList) {
+				statuses.put(status, null);
+			}
+		}
+		return statuses;
+	}
 
 	/**
 	 * Method called before a status change occurs. Implementations should perform
