@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -117,7 +118,8 @@ public class WsReport {
 			}
 
 			String printParam = SvConf.getParam("print.jrxml_path");
-			Properties rb = setReportProperties(printParam, objectId, localeId, svr);
+			Map<String, String[]> fromValsArrayMap = getFormValsAsArrayMap(formVals);
+			Properties rb = setReportProperties(printParam, objectId, fromValsArrayMap, localeId, svr);
 			GeneratePrint.executeReport(rb, reportName, outputType, bstr, svr.dbGetConn());
 			if (bstr.size() > 0) {
 				String fileExt = outputType.equals(CC.PDF) ? ".pdf" : ".xlsx";
@@ -356,5 +358,10 @@ public class WsReport {
 			svw.deleteObject(dboLink);
 		}
 		svl.linkObjects(dbo, dboFile, CC.LINK_FILE, null, false);
+	}
+
+	private Map<String, String[]> getFormValsAsArrayMap(MultivaluedMap<String, String> formVals) {
+		return formVals.entrySet().stream().filter(entry -> entry.getValue() != null)
+				.collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().toArray(new String[0])));
 	}
 }
