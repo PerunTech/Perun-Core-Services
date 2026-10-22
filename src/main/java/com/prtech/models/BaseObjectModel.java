@@ -603,13 +603,12 @@ public abstract class BaseObjectModel {
 	public List<String> getObjectStatisticsStatusList() {
 		return Arrays.asList(CC.VALID);
 	}
-	
+
 	/**
-	 * Returns a map of statuses and custom label codes used for statistics.
-	 * Set label code as null sets default status label.
-	 * Multiple statuses can be grouped under the same label code.
-	 * The default is build from {@link #getObjectStatisticsStatusList()}
-	 * Override in child classes.
+	 * Returns a map of statuses and custom label codes used for statistics. Set
+	 * label code as null sets default status label. Multiple statuses can be
+	 * grouped under the same label code. The default is build from
+	 * {@link #getObjectStatisticsStatusList()} Override in child classes.
 	 *
 	 * @return Ordered map of status to custom label code
 	 */
@@ -1096,26 +1095,31 @@ public abstract class BaseObjectModel {
 			joinRefField = sortDenorm.getRefField();
 			joinRefTable = sortDenorm.getRefTable();
 		}
-		
+
 		DbDataObject mainDbt = SvReader.getDbtByName(getTableName());
-		
-		DbDataObject refDbt = SvReader.getDbtByName(joinRefTable);
-		boolean sortOnRef = sortDenorm != null;
-		DbJoinType joinType = refHasCrit ? DbJoinType.INNER : DbJoinType.LEFT;
-		DbQueryObject mainQ = new DbQueryObject(mainDbt, hasCrit ? dbse : null, joinType, null,
-				LinkType.CUSTOM, sortOnRef ? null : orderBy, null);
-		mainQ.addCustomJoinLeft(joinRefField);
-		mainQ.addCustomJoinRight(CC.OBJECT_ID);
-		
-		DbQueryObject refQ = new DbQueryObject(refDbt, refHasCrit ? refDbse : null, DbJoinType.INNER, null, null,
-				sortOnRef ? orderBy : null, null);
-		
+		DbQueryObject mainQ = null;
 		DbQueryExpression dqe = new DbQueryExpression();
+		if (joinRefTable == null) {
+			mainQ = new DbQueryObject(mainDbt, hasCrit ? dbse : null, null, null, LinkType.CUSTOM, orderBy, null);
+		}
+		
 		dqe.addItem(mainQ);
-		dqe.addItem(refQ);
+		if (joinRefTable != null) {
+			DbDataObject refDbt = SvReader.getDbtByName(joinRefTable);
+			boolean sortOnRef = sortDenorm != null;
+			DbJoinType joinType = refHasCrit ? DbJoinType.INNER : DbJoinType.LEFT;
+			mainQ = new DbQueryObject(mainDbt, hasCrit ? dbse : null, joinType, null, LinkType.CUSTOM,
+					sortOnRef ? null : orderBy, null);
+			mainQ.addCustomJoinLeft(joinRefField);
+			mainQ.addCustomJoinRight(CC.OBJECT_ID);
+
+			DbQueryObject refQ = new DbQueryObject(refDbt, refHasCrit ? refDbse : null, DbJoinType.INNER, null, null,
+					sortOnRef ? orderBy : null, null);
+			dqe.addItem(refQ);
+		}
 		dqe.setReturnType(mainDbt);
 		result = svr.getObjects(dqe, rowLimit, offset);
-		
+
 		return result;
 	}
 
