@@ -423,26 +423,7 @@ public class WsModel {
 			if (statisticsStatusMap != null && !statisticsStatusMap.isEmpty()) {
 				DbDataArray array = getObjectsByParentAndStatusList(parentId,
 						new ArrayList<>(statisticsStatusMap.keySet()), SvCore.getTypeIdByName(tableName), svr);
-				Map<String, Integer> counts = countObjectsByStatus(array);
-				Map<String, Integer> countsByLabel = new LinkedHashMap<>();
-				for (Map.Entry<String, String> statusEntry : statisticsStatusMap.entrySet()) {
-					String status = statusEntry.getKey();
-					String statusLabel = statusEntry.getValue() != null ? statusEntry.getValue()
-							: getLabelCodeByCodelist("OBJ_STATUS", status, svr);
-					countsByLabel.put(statusLabel,
-							countsByLabel.getOrDefault(statusLabel, 0) + counts.getOrDefault(status, 0));
-				}
-				for (Map.Entry<String, Integer> statusEntry : countsByLabel.entrySet()) {
-					JsonObject item = new JsonObject();
-					item.addProperty("label", I18n.getText(localeId, statusEntry.getKey()));
-					item.addProperty("value", statusEntry.getValue());
-					statistics.add(item);
-				}
-				Integer total = counts.values().stream().mapToInt(Integer::intValue).sum();
-				JsonObject item = new JsonObject();
-				item.addProperty("label", I18n.getText(localeId, "perun.statistics.label.total_number"));
-				item.addProperty("value", total);
-				statistics.add(item);
+				statistics = buildStatistics(statisticsStatusMap, array, localeId, svr);
 			}
 			data.add(CC.STATISTICS, statistics);
 		} catch (Exception e) {
@@ -499,11 +480,11 @@ public class WsModel {
 						new JsonObject());
 				return Response.status(400).entity(jrh.getAll().toString()).build();
 			}
-			List<String> statisticsStatusList = obj.getObjectStatisticsStatusList();
-			if (statisticsStatusList != null && !statisticsStatusList.isEmpty()) {
+			Map<String, String> statisticsStatusMap = obj.getObjectStatisticsStatusMap();
+			if (statisticsStatusMap != null && !statisticsStatusMap.isEmpty()) {
 				DbDataArray array = getObjectsByFieldAndStatusList(refField.toUpperCase(), refObjectId,
-						statisticsStatusList, SvCore.getTypeIdByName(tableName), svr);
-				statistics = buildStatistics(statisticsStatusList, array, localeId, svr);
+						new ArrayList<>(statisticsStatusMap.keySet()), SvCore.getTypeIdByName(tableName), svr);
+				statistics = buildStatistics(statisticsStatusMap, array, localeId, svr);
 			}
 			data.add(CC.STATISTICS, statistics);
 		} catch (Exception e) {
@@ -587,7 +568,7 @@ public class WsModel {
 		return svr.getObjects(dbse, typeId, null, null, null);
 	}
 
-	private Map<String, Integer> countObjectsByStatus(DbDataArray array) {
+	private static Map<String, Integer> countObjectsByStatus(DbDataArray array) {
 		Map<String, Integer> counts = new HashMap<>();
 		if (array != null) {
 			for (DbDataObject dbo : array.getItems()) {
@@ -597,20 +578,35 @@ public class WsModel {
 		return counts;
 	}
 
-	private JsonArray buildStatistics(List<String> statusList, DbDataArray array, String localeId, SvReader svr)
+	private JsonArray buildStatistics(Map<String, String> statusMap, DbDataArray array, String localeId, SvReader svr)
 			throws SvException {
+		Map<String, String> statusLabels = new LinkedHashMap<>();
+		for (Map.Entry<String, String> entry : statusMap.entrySet()) {
+			statusLabels.put(entry.getKey(), entry.getValue() != null ? entry.getValue()
+					: getLabelCodeByCodelist("OBJ_STATUS", entry.getKey(), svr));
+		}
+		return buildStatistics(statusLabels, array, labelCode -> I18n.getText(localeId, labelCode));
+	}
+
+	static JsonArray buildStatistics(Map<String, String> statusLabels, DbDataArray array,
+			Function<String, String> localize) {
 		JsonArray statistics = new JsonArray();
 		Map<String, Integer> counts = countObjectsByStatus(array);
-		for (String status : statusList) {
+		Map<String, Integer> countsByLabel = new LinkedHashMap<>();
+		for (Map.Entry<String, String> entry : statusLabels.entrySet()) {
+			String labelCode = entry.getValue();
+			countsByLabel.put(labelCode,
+					countsByLabel.getOrDefault(labelCode, 0) + counts.getOrDefault(entry.getKey(), 0));
+		}
+		for (Map.Entry<String, Integer> entry : countsByLabel.entrySet()) {
 			JsonObject item = new JsonObject();
-			String statusLabel = getLabelCodeByCodelist("OBJ_STATUS", status, svr);
-			item.addProperty("label", I18n.getText(localeId, statusLabel));
-			item.addProperty("value", counts.getOrDefault(status, 0));
+			item.addProperty("label", localize.apply(entry.getKey()));
+			item.addProperty("value", entry.getValue());
 			statistics.add(item);
 		}
-		Integer total = counts.values().stream().mapToInt(Integer::intValue).sum();
+		Integer total = countsByLabel.values().stream().mapToInt(Integer::intValue).sum();
 		JsonObject item = new JsonObject();
-		item.addProperty("label", I18n.getText(localeId, "perun.statistics.label.total_number"));
+		item.addProperty("label", localize.apply("perun.statistics.label.total_number"));
 		item.addProperty("value", total);
 		statistics.add(item);
 		return statistics;

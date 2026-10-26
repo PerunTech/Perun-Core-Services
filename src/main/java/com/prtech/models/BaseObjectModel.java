@@ -1101,10 +1101,8 @@ public abstract class BaseObjectModel {
 		DbQueryExpression dqe = new DbQueryExpression();
 		if (joinRefTable == null) {
 			mainQ = new DbQueryObject(mainDbt, hasCrit ? dbse : null, null, null, LinkType.CUSTOM, orderBy, null);
-		}
-		
-		dqe.addItem(mainQ);
-		if (joinRefTable != null) {
+			dqe.addItem(mainQ);
+		} else {
 			DbDataObject refDbt = SvReader.getDbtByName(joinRefTable);
 			boolean sortOnRef = sortDenorm != null;
 			DbJoinType joinType = refHasCrit ? DbJoinType.INNER : DbJoinType.LEFT;
@@ -1112,6 +1110,7 @@ public abstract class BaseObjectModel {
 					sortOnRef ? null : orderBy, null);
 			mainQ.addCustomJoinLeft(joinRefField);
 			mainQ.addCustomJoinRight(CC.OBJECT_ID);
+			dqe.addItem(mainQ);
 
 			DbQueryObject refQ = new DbQueryObject(refDbt, refHasCrit ? refDbse : null, DbJoinType.INNER, null, null,
 					sortOnRef ? orderBy : null, null);

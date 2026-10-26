@@ -274,8 +274,7 @@ final class MenuHelper {
 			String objectType = getObjectTypeFromDescriptor(objectData, svr);
 			JsonArray displayConds = obj.getAsJsonArray(CC.DISPLAY_WHEN);
 			if (areDisplayCondsValid(displayConds)) {
-				DbSearchExpression dbse = getSearchExpressionForConditionalRender(displayConds);
-				dbse.addDbSearchItem(new DbSearchCriterion(CC.OBJECT_ID, DbCompareOperand.EQUAL, objectId));
+				DbSearchExpression dbse = getSearchExpressionForConditionalRender(displayConds, objectId);
 				DbDataArray results = svr.getObjects(dbse, SvReader.getTypeIdByName(objectType), null, null, null);
 				if (results == null || results.isEmpty()) {
 					return;
@@ -392,8 +391,7 @@ final class MenuHelper {
 						String objectType = getObjectTypeFromDescriptor(objectData, svr);
 						JsonArray displayConds = btnElem.getAsJsonObject().getAsJsonArray(CC.DISPLAY_WHEN);
 						if (areDisplayCondsValid(displayConds)) {
-							DbSearchExpression dbse = getSearchExpressionForConditionalRender(displayConds);
-							dbse.addDbSearchItem(new DbSearchCriterion(CC.OBJECT_ID, DbCompareOperand.EQUAL, objectId));
+							DbSearchExpression dbse = getSearchExpressionForConditionalRender(displayConds, objectId);
 							DbDataArray results = svr.getObjects(dbse, SvReader.getTypeIdByName(objectType), null, null,
 									null);
 							if (results == null || results.isEmpty()) {
@@ -568,7 +566,7 @@ final class MenuHelper {
 		return new DbSearchCriterion(field, DbCompareOperand.EQUAL, valueToJavaType);
 	}
 
-	private static DbSearchExpression getSearchExpressionForConditionalRender(JsonArray displayWhen)
+	static DbSearchExpression getSearchExpressionForConditionalRender(JsonArray displayWhen, Long objectId)
 			throws SvException {
 		JsonArray fields = displayWhen.get(0).getAsJsonArray();
 		JsonArray values = displayWhen.get(1).getAsJsonArray();
@@ -583,7 +581,9 @@ final class MenuHelper {
 			crit = buildCriterion(fields.get(i).getAsString(), values.get(i));
 			dbse.addDbSearchItem(crit);
 		}
-		return dbse;
+		// Keep every OR branch scoped to the current object.
+		return new DbSearchExpression().addDbSearchItem(dbse)
+				.addDbSearchItem(new DbSearchCriterion(CC.OBJECT_ID, DbCompareOperand.EQUAL, objectId));
 	}
 
 	private static Object toJavaValue(JsonElement el) {
