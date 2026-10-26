@@ -1,5 +1,6 @@
 package com.prtech.menu.manager;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -36,13 +37,14 @@ import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
+import com.prtech.svarog_common.DbSearchExpression;
 
 final class MenuHelper {
 	private static final Logger log4j = LogManager.getLogger(MenuHelper.class);
 	private static final Gson GSON = new Gson();
 	private static final Pattern REPO_ID_PATTERN = Pattern.compile("%REPO_ID_(\\w+)%");
 	private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\%(\\w+)\\%");
-	private static final String[] LOCALIZED_PROPERTIES = { CC.LABEL, "promptTitle", "promptMessage" };
+	private static final String[] LOCALIZED_PROPERTIES = { CC.LABEL, "promptTitle", "promptMessage", "title", "description" };
 	private static final Set<String> CONFIG_KEYS_TO_SKIP = Set.of(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU);
 	private static final Set<String> CACHE_CONFIG_KEYS_TO_SKIP = Set.of(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU,
 			CC.OBJECT_TYPE_VISIBILITY);
@@ -156,8 +158,8 @@ final class MenuHelper {
 		if (obj.has(CC.DATA) && obj.get(CC.DATA).isJsonArray()) {
 			JsonArray dataArray = new JsonArray();
 			for (JsonElement dataElem : obj.getAsJsonArray(CC.DATA)) {
-				processMenuItem(dataElem, svr, visited, dataArray, dataElem.isJsonObject() ? dataElem.getAsJsonObject()
-						: configData);
+				processMenuItem(dataElem, svr, visited, dataArray,
+						dataElem.isJsonObject() ? dataElem.getAsJsonObject() : configData);
 			}
 			obj.add(CC.DATA, dataArray);
 		}
@@ -267,6 +269,20 @@ final class MenuHelper {
 			obj.remove(CC.OBJECT_TYPE_VISIBILITY);
 		}
 
+		if (objectData != null && obj.has(CC.DISPLAY_WHEN)) {
+			Long objectId = getObjectIdFromDescriptor(objectData);
+			String objectType = getObjectTypeFromDescriptor(objectData, svr);
+			JsonArray displayConds = obj.getAsJsonArray(CC.DISPLAY_WHEN);
+			if (areDisplayCondsValid(displayConds)) {
+				DbSearchExpression dbse = getSearchExpressionForConditionalRender(displayConds);
+				dbse.addDbSearchItem(new DbSearchCriterion(CC.OBJECT_ID, DbCompareOperand.EQUAL, objectId));
+				DbDataArray results = svr.getObjects(dbse, SvReader.getTypeIdByName(objectType), null, null, null);
+				if (results == null || results.isEmpty()) {
+					return;
+				}
+			}
+		}
+
 		if (obj.has(CC.IMPORT_MENU)) {
 			String importCode = obj.get(CC.IMPORT_MENU).getAsString();
 			DbDataObject importedMenu = findObjectUsingSvCache(CC.MENU_CODE, importCode, CC.PERUN_MENU, CC.PM, svr);
@@ -337,9 +353,54 @@ final class MenuHelper {
 
 		if (obj.has("objectConfiguration")) {
 			JsonObject objConfig = obj.getAsJsonObject("objectConfiguration");
+			if (objConfig.has(CC.SECTIONS) && objConfig.get(CC.SECTIONS).isJsonArray()) {
+				JsonArray sectionsArray = new JsonArray();
+				for (JsonElement sectionElem : objConfig.getAsJsonArray(CC.SECTIONS)) {
+					processMenuItemWithSvCache(sectionElem, dboUser, svr, visited, sectionsArray,
+							sectionElem.isJsonObject() ? sectionElem.getAsJsonObject() : configData, objectData);
+				}
+				objConfig.add(CC.SECTIONS, sectionsArray);
+				if (objConfig.has("header") && objConfig.get("header").isJsonObject())
+					for (String property : LOCALIZED_PROPERTIES) {
+						decodeProperty(objConfig.get("header").getAsJsonObject(), property, localeId);
+					}
+			}
 			if (objConfig.has("additionalTopButtons") && objConfig.get("additionalTopButtons").isJsonArray()) {
 				JsonArray additionalTopButtons = new JsonArray();
 				for (JsonElement btnElem : objConfig.getAsJsonArray("additionalTopButtons")) {
+					if (btnElem.isJsonObject() && btnElem.getAsJsonObject().has(CC.SVAROG_ACL_LBL)) {
+						String customAclPermission = btnElem.getAsJsonObject().get(CC.SVAROG_ACL_LBL).getAsString();
+						if (!svr.hasPermission(customAclPermission))
+							continue;
+					}
+					if (objectData != null && btnElem.isJsonObject()
+							&& btnElem.getAsJsonObject().has(CC.OBJECT_TYPE_VISIBILITY)) {
+						String objectStatus = getObjectStatusFromDescriptor(objectData);
+						String objectType = getObjectTypeFromDescriptor(objectData, svr);
+						JsonObject objectTypeVisibility = btnElem.getAsJsonObject()
+								.getAsJsonObject(CC.OBJECT_TYPE_VISIBILITY);
+						if (objectTypeVisibility.has(objectType)) {
+							JsonArray statusList = objectTypeVisibility.getAsJsonArray(objectType);
+							if (!statusList.contains(new JsonPrimitive(objectStatus)))
+								continue;
+						}
+						btnElem.getAsJsonObject().remove(CC.OBJECT_TYPE_VISIBILITY);
+					}
+					if (objectData != null && btnElem.isJsonObject()
+							&& btnElem.getAsJsonObject().has(CC.DISPLAY_WHEN)) {
+						Long objectId = getObjectIdFromDescriptor(objectData);
+						String objectType = getObjectTypeFromDescriptor(objectData, svr);
+						JsonArray displayConds = btnElem.getAsJsonObject().getAsJsonArray(CC.DISPLAY_WHEN);
+						if (areDisplayCondsValid(displayConds)) {
+							DbSearchExpression dbse = getSearchExpressionForConditionalRender(displayConds);
+							dbse.addDbSearchItem(new DbSearchCriterion(CC.OBJECT_ID, DbCompareOperand.EQUAL, objectId));
+							DbDataArray results = svr.getObjects(dbse, SvReader.getTypeIdByName(objectType), null, null,
+									null);
+							if (results == null || results.isEmpty()) {
+								continue;
+							}
+						}
+					}
 					decodeLabelCode(btnElem, additionalTopButtons, localeId);
 				}
 				objConfig.add("additionalTopButtons", additionalTopButtons);
@@ -360,6 +421,13 @@ final class MenuHelper {
 				}
 				objConfig.add("additionalBtns", additionalBtnsButtons);
 			}
+		}
+
+		if (objectData != null && obj.has(CC.SVAROG_ACL_LBL)) {
+			String customAclPermission = obj.get(CC.SVAROG_ACL_LBL).getAsString();
+			if (!svr.hasPermission(customAclPermission))
+				return;
+			obj.remove(CC.SVAROG_ACL_LBL);
 		}
 
 		mergedButtons.add(obj.deepCopy());
@@ -421,6 +489,132 @@ final class MenuHelper {
 		}
 
 		return objectType;
+	}
+
+	private static Long getObjectIdFromDescriptor(JsonObject objectData) {
+		Long objectId = 0L;
+		for (String key : objectData.keySet()) {
+			String fieldName = normalizeFieldName(key);
+			if (fieldName.equals(CC.OBJECT_ID)) {
+				objectId = objectData.get(key).getAsLong();
+			}
+		}
+		return objectId;
+	}
+
+	private static Boolean areDisplayCondsValid(JsonArray displayWhen) {
+		if (displayWhen == null || displayWhen.size() != 3) {
+			return false;
+		}
+
+		for (JsonElement el : displayWhen) {
+			if (!el.isJsonArray()) {
+				return false;
+			}
+		}
+
+		int fieldsSize = displayWhen.get(0).getAsJsonArray().size();
+		int valuesSize = displayWhen.get(1).getAsJsonArray().size();
+		int opsSize = displayWhen.get(2).getAsJsonArray().size();
+
+		return fieldsSize == valuesSize && opsSize == fieldsSize - 1;
+	}
+
+	private static boolean isNegated(String rawField) {
+		return rawField.trim().startsWith(CC.NEGATION_PREFIX);
+	}
+
+	private static String stripNegation(String rawField) {
+		String f = rawField.trim();
+		return f.startsWith(CC.NEGATION_PREFIX) ? f.substring(CC.NEGATION_PREFIX.length()).trim() : f;
+	}
+
+	private static DbSearchCriterion buildCriterion(String rawField, JsonElement value) throws SvException {
+		String field = stripNegation(rawField);
+		if (field.isEmpty()) {
+			throw new IllegalArgumentException("Invalid field name in DISPLAY_WHEN: '" + rawField + "'");
+		}
+
+		DbSearchCriterion crit = buildBaseCriterion(field, value);
+		if (isNegated(rawField)) {
+			crit.setNotPrefix(!crit.getNotPrefix());
+		}
+		return crit;
+	}
+
+	private static DbSearchCriterion buildBaseCriterion(String field, JsonElement value) throws SvException {
+		if (value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()) {
+			String s = value.getAsString();
+			if ("IS_NULL".equalsIgnoreCase(s)) {
+				return new DbSearchCriterion(field, DbCompareOperand.ISNULL);
+			}
+			if ("NOT_NULL".equalsIgnoreCase(s)) {
+				DbSearchCriterion crit = new DbSearchCriterion(field, DbCompareOperand.ISNULL);
+				crit.setNotPrefix(true);
+				return crit;
+			}
+		}
+		Object valueToJavaType = toJavaValue(value);
+//		    TODO: IMPLEMENT IN CASE WHEN IN_LIST GETS ADDED IN A NEW SVAROG VERSION
+//		    if (value != null && value.isJsonArray()) {
+//		        ArrayList<Object> list = new ArrayList<>();
+//		        for (JsonElement item : value.getAsJsonArray()) {
+//		            list.add(toJavaValue(item));
+//		        }
+//		        DbSearchCriterion crit = new DbSearchCriterion(field, DbCompareOperand.IN_LIST);
+//		        crit.setInList(list);
+//		        return crit;
+//		    }
+		return new DbSearchCriterion(field, DbCompareOperand.EQUAL, valueToJavaType);
+	}
+
+	private static DbSearchExpression getSearchExpressionForConditionalRender(JsonArray displayWhen)
+			throws SvException {
+		JsonArray fields = displayWhen.get(0).getAsJsonArray();
+		JsonArray values = displayWhen.get(1).getAsJsonArray();
+		JsonArray ops = displayWhen.get(2).getAsJsonArray();
+
+		DbSearchExpression dbse = new DbSearchExpression();
+		DbSearchCriterion crit = buildCriterion(fields.get(0).getAsString(), values.get(0));
+		dbse.addDbSearchItem(crit);
+
+		for (int i = 1; i < fields.size(); i++) {
+			crit.setNextCritOperand(ops.get(i - 1).getAsString().toUpperCase());
+			crit = buildCriterion(fields.get(i).getAsString(), values.get(i));
+			dbse.addDbSearchItem(crit);
+		}
+		return dbse;
+	}
+
+	private static Object toJavaValue(JsonElement el) {
+		if (el == null || el.isJsonNull()) {
+			return null;
+		}
+		if (el.isJsonArray()) {
+			// e.g. for an IN operator
+			List<Object> list = new ArrayList<>();
+			for (JsonElement item : el.getAsJsonArray()) {
+				list.add(toJavaValue(item));
+			}
+			return list;
+		}
+		if (el.isJsonObject()) {
+			throw new IllegalArgumentException("Nested objects are not supported as values: " + el);
+		}
+
+		JsonPrimitive p = el.getAsJsonPrimitive();
+		if (p.isBoolean()) {
+			return p.getAsBoolean();
+		}
+		if (p.isNumber()) {
+			BigDecimal bd = p.getAsBigDecimal();
+			try {
+				return bd.longValueExact(); // whole numbers become Long
+			} catch (ArithmeticException e) {
+				return bd.doubleValue(); // decimals become Double
+			}
+		}
+		return p.getAsString();
 	}
 
 	private static String normalizeFieldName(String key) {

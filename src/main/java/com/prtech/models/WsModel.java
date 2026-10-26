@@ -2,6 +2,7 @@ package com.prtech.models;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,10 +44,12 @@ import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog.SvWorkflow;
 import com.prtech.svarog.SvWriter;
+import com.prtech.svarog.svCONST;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
+import com.prtech.svarog_common.DbSearchExpression;
 import com.prtech.svarog_common.ResponseHandler;
 import com.prtech.svarog_common.ResponseHandler.MessageType;
 
@@ -377,6 +380,240 @@ public class WsModel {
 
 		jrh.create(MessageType.SUCCESS, I18n.getText(localeId, "data.read"), null, data);
 		return Response.ok(jrh.getAll().toString()).build();
+	}
+
+	/**
+	 * Returns a summary of objects per status (custom list / custom grouped list)
+	 * for parentId
+	 *
+	 * @param sessionId   User session ID
+	 * @param tableName   Name of the target table
+	 * @param parentId    ID of the parent object
+	 * @param httpRequest HTTP servlet request
+	 *                    {@link #getObjectsByParentAndStatusList(Long, List, Long,
+	 *                    SvReader)}
+	 * 
+	 * @return JSON response with statistics array
+	 */
+	@Path("/getObjectStatistics/{sessionId}/{tableName}/{parentId}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getObjectStatistics(@PathParam("sessionId") String sessionId,
+			@PathParam("tableName") String tableName, @PathParam("parentId") Long parentId,
+			@Context HttpServletRequest httpRequest) {
+		ResponseHandler jrh = new ResponseHandler();
+		JsonObject data = new JsonObject();
+		if (Objects.isNull(tableName) || Objects.isNull(parentId)) {
+			jrh.create(MessageType.ERROR, I18n.getText("perun.error.missingParameters"), CC.EMPTY_STRING,
+					new JsonObject());
+			return Response.status(400).entity(jrh.getAll().toString()).build();
+		}
+		String localeId = SvConf.getDefaultLocale();
+		BaseObjectModel obj = null;
+		JsonArray statistics = new JsonArray();
+		try (SvReader svr = new SvReader(sessionId)) {
+			localeId = svr.getUserLocaleId(svr.getInstanceUser());
+			obj = createModel.apply(tableName);
+			if (obj == null) {
+				jrh.create(MessageType.ERROR, I18n.getText("perun.error.objectTableNotFound"), CC.EMPTY_STRING,
+						new JsonObject());
+				return Response.ok(jrh.getAll().toString()).build();
+			}
+			Map<String, String> statisticsStatusMap = obj.getObjectStatisticsStatusMap();
+			if (statisticsStatusMap != null && !statisticsStatusMap.isEmpty()) {
+				DbDataArray array = getObjectsByParentAndStatusList(parentId,
+						new ArrayList<>(statisticsStatusMap.keySet()), SvCore.getTypeIdByName(tableName), svr);
+				Map<String, Integer> counts = countObjectsByStatus(array);
+				Map<String, Integer> countsByLabel = new LinkedHashMap<>();
+				for (Map.Entry<String, String> statusEntry : statisticsStatusMap.entrySet()) {
+					String status = statusEntry.getKey();
+					String statusLabel = statusEntry.getValue() != null ? statusEntry.getValue()
+							: getLabelCodeByCodelist("OBJ_STATUS", status, svr);
+					countsByLabel.put(statusLabel,
+							countsByLabel.getOrDefault(statusLabel, 0) + counts.getOrDefault(status, 0));
+				}
+				for (Map.Entry<String, Integer> statusEntry : countsByLabel.entrySet()) {
+					JsonObject item = new JsonObject();
+					item.addProperty("label", I18n.getText(localeId, statusEntry.getKey()));
+					item.addProperty("value", statusEntry.getValue());
+					statistics.add(item);
+				}
+				Integer total = counts.values().stream().mapToInt(Integer::intValue).sum();
+				JsonObject item = new JsonObject();
+				item.addProperty("label", I18n.getText(localeId, "perun.statistics.label.total_number"));
+				item.addProperty("value", total);
+				statistics.add(item);
+			}
+			data.add(CC.STATISTICS, statistics);
+		} catch (Exception e) {
+			log4j.error("General error in getObjectStatistics:", e);
+			return PerunUtil.handleException(e, jrh, "perun.error.generalError");
+		}
+
+		jrh.create(MessageType.SUCCESS, I18n.getText(localeId, "data.read"), null, data);
+		return Response.ok(jrh.getAll().toString()).build();
+	}
+
+	/**
+	 * Returns a summary of objects per status for objects that reference the given
+	 * object through a denormalised (referential) key.
+	 *
+	 * @param sessionId   User session ID
+	 * @param tableName   Name of the table that holds the referencing objects 
+	 * @param refField    Name of the referential field in that table 
+	 * @param refObjectId OBJECT_ID of the referenced object 
+	 * @param httpRequest HTTP servlet request
+	 *                    {@link #getObjectsByFieldAndStatusList(String, Long, List,
+	 *                    Long, SvReader)}
+	 *
+	 * @return JSON response with statistics array
+	 */
+	@Path("/getObjectStatisticsByRef/{sessionId}/{tableName}/{refField}/{refObjectId}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getObjectStatisticsByRef(@PathParam("sessionId") String sessionId,
+			@PathParam("tableName") String tableName, @PathParam("refField") String refField,
+			@PathParam("refObjectId") Long refObjectId, @Context HttpServletRequest httpRequest) {
+		ResponseHandler jrh = new ResponseHandler();
+		JsonObject data = new JsonObject();
+		if (Objects.isNull(tableName) || Objects.isNull(refField) || Objects.isNull(refObjectId)) {
+			jrh.create(MessageType.ERROR, I18n.getText("perun.error.missingParameters"), CC.EMPTY_STRING,
+					new JsonObject());
+			return Response.status(400).entity(jrh.getAll().toString()).build();
+		}
+		String localeId = SvConf.getDefaultLocale();
+		BaseObjectModel obj = null;
+		JsonArray statistics = new JsonArray();
+		try (SvReader svr = new SvReader(sessionId)) {
+			localeId = svr.getUserLocaleId(svr.getInstanceUser());
+			obj = createModel.apply(tableName);
+			if (obj == null) {
+				jrh.create(MessageType.ERROR, I18n.getText("perun.error.objectTableNotFound"), CC.EMPTY_STRING,
+						new JsonObject());
+				return Response.ok(jrh.getAll().toString()).build();
+			}
+			// only allow real referential fields, so nobody can filter on arbitrary columns
+			DbDataObject fieldDbo = obj.getTableFields().get(refField.toUpperCase());
+			if (fieldDbo == null || fieldDbo.getVal(CC.REFERENTIAL_TABLE) == null) {
+				jrh.create(MessageType.ERROR, I18n.getText("perun.error.missingParameters"), CC.EMPTY_STRING,
+						new JsonObject());
+				return Response.status(400).entity(jrh.getAll().toString()).build();
+			}
+			List<String> statisticsStatusList = obj.getObjectStatisticsStatusList();
+			if (statisticsStatusList != null && !statisticsStatusList.isEmpty()) {
+				DbDataArray array = getObjectsByFieldAndStatusList(refField.toUpperCase(), refObjectId,
+						statisticsStatusList, SvCore.getTypeIdByName(tableName), svr);
+				statistics = buildStatistics(statisticsStatusList, array, localeId, svr);
+			}
+			data.add(CC.STATISTICS, statistics);
+		} catch (Exception e) {
+			log4j.error("General error in getObjectStatisticsByRef:", e);
+			return PerunUtil.handleException(e, jrh, "perun.error.generalError");
+		}
+
+		jrh.create(MessageType.SUCCESS, I18n.getText(localeId, "data.read"), null, data);
+		return Response.ok(jrh.getAll().toString()).build();
+	}
+
+	public static String getLabelCodeByCodelist(String codeList, String codeValue, SvReader svr) throws SvException {
+		DbDataObject dboLabel = null;
+		DbReader dbr = new DbReader();
+		DbDataArray dataEntry = dbr.searchObjectsBySingleFilter(DbCompareOperand.EQUAL, svCONST.OBJECT_TYPE_CODE,
+				"PARENT_CODE_VALUE", codeList, svr);
+		if (!dataEntry.isEmpty()) {
+			for (int i = 0; i < dataEntry.size(); ++i) {
+				DbDataObject entry = dataEntry.get(i);
+				if (entry.getAsString("CODE_VALUE").equals(codeValue)) {
+					dboLabel = entry;
+					break;
+				}
+			}
+		}
+		if (dboLabel != null) {
+			return dboLabel.getVal("LABEL_CODE").toString();
+		}
+		return null;
+	}
+
+	/**
+	 * returns child objects for the given parent id and status list.
+	 *
+	 * @param parentId   ID of the parent object
+	 * @param statusList List of statuses to include
+	 * @param typeId     Object type ID of the target table
+	 *
+	 * @throws SvException
+	 */
+	private DbDataArray getObjectsByParentAndStatusList(Long parentId, List<String> statusList, Long typeId,
+			SvReader svr) throws SvException {
+		DbSearchCriterion dbc1 = new DbSearchCriterion(CC.PARENT_ID, DbCompareOperand.EQUAL, parentId);
+		DbSearchExpression dbse = new DbSearchExpression().addDbSearchItem(dbc1);
+		DbSearchExpression dbseStatus = new DbSearchExpression();
+		for (String status : statusList) {
+			DbSearchCriterion crit = new DbSearchCriterion(CC.STATUS, DbCompareOperand.EQUAL, status);
+			crit.setNextCritOperand("OR");
+			dbseStatus.addDbSearchItem(crit);
+		}
+		if (!dbseStatus.getExprList().isEmpty()) {
+			dbse.addDbSearchItem(dbseStatus);
+		}
+		return svr.getObjects(dbse, typeId, null, null, null);
+	}
+
+	/**
+	 * returns objects of the given type where the given field equals the given
+	 * value and the status is in the status list.
+	 *
+	 * @param fieldName  Field to filter on (any referential field)
+	 * @param value      Value of the field 
+	 * @param statusList List of statuses to include
+	 * @param typeId     Object type ID of the target table
+	 *
+	 * @throws SvException
+	 */
+	private DbDataArray getObjectsByFieldAndStatusList(String fieldName, Long value, List<String> statusList,
+			Long typeId, SvReader svr) throws SvException {
+		DbSearchCriterion dbc1 = new DbSearchCriterion(fieldName, DbCompareOperand.EQUAL, value);
+		DbSearchExpression dbse = new DbSearchExpression().addDbSearchItem(dbc1);
+		DbSearchExpression dbseStatus = new DbSearchExpression();
+		for (String status : statusList) {
+			DbSearchCriterion crit = new DbSearchCriterion(CC.STATUS, DbCompareOperand.EQUAL, status);
+			crit.setNextCritOperand("OR");
+			dbseStatus.addDbSearchItem(crit);
+		}
+		if (!dbseStatus.getExprList().isEmpty()) {
+			dbse.addDbSearchItem(dbseStatus);
+		}
+		return svr.getObjects(dbse, typeId, null, null, null);
+	}
+
+	private Map<String, Integer> countObjectsByStatus(DbDataArray array) {
+		Map<String, Integer> counts = new HashMap<>();
+		if (array != null) {
+			for (DbDataObject dbo : array.getItems()) {
+				counts.put(dbo.getStatus(), counts.getOrDefault(dbo.getStatus(), 0) + 1);
+			}
+		}
+		return counts;
+	}
+
+	private JsonArray buildStatistics(List<String> statusList, DbDataArray array, String localeId, SvReader svr)
+			throws SvException {
+		JsonArray statistics = new JsonArray();
+		Map<String, Integer> counts = countObjectsByStatus(array);
+		for (String status : statusList) {
+			JsonObject item = new JsonObject();
+			String statusLabel = getLabelCodeByCodelist("OBJ_STATUS", status, svr);
+			item.addProperty("label", I18n.getText(localeId, statusLabel));
+			item.addProperty("value", counts.getOrDefault(status, 0));
+			statistics.add(item);
+		}
+		Integer total = counts.values().stream().mapToInt(Integer::intValue).sum();
+		JsonObject item = new JsonObject();
+		item.addProperty("label", I18n.getText(localeId, "perun.statistics.label.total_number"));
+		item.addProperty("value", total);
+		statistics.add(item);
+		return statistics;
 	}
 
 	/**

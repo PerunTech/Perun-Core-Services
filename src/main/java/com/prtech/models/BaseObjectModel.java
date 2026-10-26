@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -32,6 +33,7 @@ import com.prtech.sequence.manager.SeqPatternExceptions.SeqPatternError;
 import com.prtech.sequence.manager.SeqPatternService;
 import com.prtech.svarog.I18n;
 import com.prtech.svarog.SvConf;
+import com.prtech.svarog.SvCore;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvLink;
 import com.prtech.svarog.SvReader;
@@ -39,8 +41,13 @@ import com.prtech.svarog.SvWorkflow;
 import com.prtech.svarog.SvWriter;
 import com.prtech.svarog.svCONST;
 import com.prtech.svarog_common.DbDataArray;
+import com.prtech.svarog_common.DbDataField;
 import com.prtech.svarog_common.DbDataObject;
+import com.prtech.svarog_common.DbDataTable;
+import com.prtech.svarog_common.DbQueryExpression;
 import com.prtech.svarog_common.DbQueryObject;
+import com.prtech.svarog_common.DbQueryObject.DbJoinType;
+import com.prtech.svarog_common.DbQueryObject.LinkType;
 import com.prtech.svarog_common.DbSearch.DbLogicOperand;
 import com.prtech.svarog_common.DbSearchCriterion;
 import com.prtech.svarog_common.DbSearchCriterion.DbCompareOperand;
@@ -589,6 +596,34 @@ public abstract class BaseObjectModel {
 	}
 
 	/**
+	 * Return a list of statuses used for statistics. Override in child classes.
+	 * 
+	 * @return List of statistics statuses for this object
+	 */
+	public List<String> getObjectStatisticsStatusList() {
+		return Arrays.asList(CC.VALID);
+	}
+
+	/**
+	 * Returns a map of statuses and custom label codes used for statistics. Set
+	 * label code as null sets default status label. Multiple statuses can be
+	 * grouped under the same label code. The default is build from
+	 * {@link #getObjectStatisticsStatusList()} Override in child classes.
+	 *
+	 * @return Ordered map of status to custom label code
+	 */
+	public Map<String, String> getObjectStatisticsStatusMap() {
+		Map<String, String> statuses = new LinkedHashMap<>();
+		List<String> statusList = getObjectStatisticsStatusList();
+		if (statusList != null) {
+			for (String status : statusList) {
+				statuses.put(status, null);
+			}
+		}
+		return statuses;
+	}
+
+	/**
 	 * Method called before a status change occurs. Implementations should perform
 	 * validation and return any errors that prevent the status change.
 	 * 
@@ -845,6 +880,9 @@ public abstract class BaseObjectModel {
 		private int minLength;
 		private boolean includePercent;
 		private boolean isMultiSelect;
+		private boolean isDenormalized;
+		private String refField;
+		private String refTable;
 
 		public SearchField(String fieldName, boolean ignoreCase, int minLength, boolean includePercent) {
 			this.fieldName = fieldName;
@@ -860,6 +898,18 @@ public abstract class BaseObjectModel {
 			this.minLength = minLength;
 			this.includePercent = includePercent;
 			this.isMultiSelect = isMultiSelect;
+		}
+
+		public SearchField(String fieldName, boolean ignoreCase, int minLength, boolean includePercent,
+				boolean isMultiSelect, boolean isDenormalized, String denormField, String refTable) {
+			this.fieldName = fieldName;
+			this.ignoreCase = ignoreCase;
+			this.minLength = minLength;
+			this.includePercent = includePercent;
+			this.isMultiSelect = isMultiSelect;
+			this.isDenormalized = isDenormalized;
+			this.refField = denormField;
+			this.refTable = refTable;
 		}
 
 		public String getFieldName() {
@@ -901,6 +951,30 @@ public abstract class BaseObjectModel {
 		public void setMultiSelect(boolean isMultiSelect) {
 			this.isMultiSelect = isMultiSelect;
 		}
+
+		public boolean isDenormalized() {
+			return isDenormalized;
+		}
+
+		public void setDenormalized(boolean isDenormalized) {
+			this.isDenormalized = isDenormalized;
+		}
+
+		public String getRefField() {
+			return refField;
+		}
+
+		public void setRefField(String refField) {
+			this.refField = refField;
+		}
+
+		public String getRefTable() {
+			return refTable;
+		}
+
+		public void setRefTable(String refTable) {
+			this.refTable = refTable;
+		}
 	}
 
 	/**
@@ -939,7 +1013,11 @@ public abstract class BaseObjectModel {
 	public DbDataArray searchObjects(JsonObject searchParams, SvReader svr) throws SvException {
 		DbDataArray result = new DbDataArray();
 		DbSearchExpression dbse = new DbSearchExpression();
+		DbSearchExpression refDbse = new DbSearchExpression();
 		Boolean hasCrit = false;
+		Boolean refHasCrit = false;
+		String joinRefField = null;
+		String joinRefTable = null;
 		Set<String> searchFieldsPresent = new HashSet<>();
 
 		Boolean hasSearchParams = false;
@@ -955,41 +1033,93 @@ public abstract class BaseObjectModel {
 		}
 
 		for (SearchField field : getSearchableFields()) {
-			boolean added = addSearchCriterion(searchParams, field, dbse) || hasCrit;
-			if (added) {
+			if (field.isDenormalized()) {
+				if (addSearchCriterion(searchParams, field, refDbse)) {
+					if (joinRefField != null && !joinRefField.equals(field.getRefField())) {
+						throw new SvException("perun.error.multiple_denormalized_tables_unsupported",
+								svr.getInstanceUser());
+					}
+					joinRefField = field.getRefField();
+					joinRefTable = field.getRefTable();
+					refHasCrit = true;
+					searchFieldsPresent.add(field.getFieldName().toUpperCase());
+				}
+			} else if (addSearchCriterion(searchParams, field, dbse)) {
+				hasCrit = true;
 				searchFieldsPresent.add(field.getFieldName().toUpperCase());
 			}
-			hasCrit = added || hasCrit;
 		}
 
-		if (hasCrit) {
-			validateSearchCombination(searchFieldsPresent, svr);
-			Integer rowLimit = null;
-			Integer offset = null;
-			String sortByField = CC.PKID;
-			String sortOrder = "DESC";
-			try {
-				if (searchParams.has(CC.ROW_LIMIT)) {
-					rowLimit = Integer.valueOf(searchParams.get(CC.ROW_LIMIT).getAsInt());
+		if (searchFieldsPresent.isEmpty()) {
+			return result;
+		}
+
+		validateSearchCombination(searchFieldsPresent, svr);
+		Integer rowLimit = null;
+		Integer offset = null;
+		String sortByField = CC.PKID;
+		String sortOrder = "DESC";
+		try {
+			if (searchParams.has(CC.ROW_LIMIT)) {
+				rowLimit = Integer.valueOf(searchParams.get(CC.ROW_LIMIT).getAsInt());
+			}
+		} catch (NumberFormatException e) {
+		}
+		if (rowLimit == null) {
+			rowLimit = ROW_LIMIT;
+		}
+		if (searchParams.has(CC.SORT_FIELD)) {
+			sortByField = searchParams.get(CC.SORT_FIELD).getAsString();
+		}
+		if (searchParams.has(CC.SORT_ORDER)) {
+			sortOrder = searchParams.get(CC.SORT_ORDER).getAsString();
+		}
+
+		ArrayList<String> orderBy = new ArrayList<String>();
+		orderBy.add(sortByField + " " + sortOrder);
+
+		SearchField sortDenorm = null;
+		if (!tableFields.containsKey(sortByField.toUpperCase())) {
+			for (SearchField f : getSearchableFields()) {
+				if (f.isDenormalized() && f.getFieldName().equalsIgnoreCase(sortByField)) {
+					sortDenorm = f;
+					break;
 				}
-			} catch (NumberFormatException e) {
 			}
-			if (rowLimit == null) {
-				rowLimit = ROW_LIMIT;
-			}
-			if (searchParams.has(CC.SORT_FIELD)) {
-				sortByField = searchParams.get(CC.SORT_FIELD).getAsString();
-			}
-			if (searchParams.has(CC.SORT_ORDER)) {
-				sortOrder = searchParams.get(CC.SORT_ORDER).getAsString();
-			}
-
-			DbQueryObject query = new DbQueryObject(SvReader.getDbtByName(getTableName()), dbse, null, null);
-			ArrayList<String> orderBy = new ArrayList<String>();
-			orderBy.add(sortByField + " " + sortOrder);
-			query.setOrderByFields(orderBy);
-			result = svr.getObjects(query, rowLimit, offset);
 		}
+
+		if (sortDenorm != null) {
+			if (joinRefField != null && !joinRefField.equals(sortDenorm.getRefField())) {
+				throw new SvException("perun.error.multiple_denormalized_tables_unsupported", svr.getInstanceUser());
+			}
+			joinRefField = sortDenorm.getRefField();
+			joinRefTable = sortDenorm.getRefTable();
+		}
+
+		DbDataObject mainDbt = SvReader.getDbtByName(getTableName());
+		DbQueryObject mainQ = null;
+		DbQueryExpression dqe = new DbQueryExpression();
+		if (joinRefTable == null) {
+			mainQ = new DbQueryObject(mainDbt, hasCrit ? dbse : null, null, null, LinkType.CUSTOM, orderBy, null);
+		}
+		
+		dqe.addItem(mainQ);
+		if (joinRefTable != null) {
+			DbDataObject refDbt = SvReader.getDbtByName(joinRefTable);
+			boolean sortOnRef = sortDenorm != null;
+			DbJoinType joinType = refHasCrit ? DbJoinType.INNER : DbJoinType.LEFT;
+			mainQ = new DbQueryObject(mainDbt, hasCrit ? dbse : null, joinType, null, LinkType.CUSTOM,
+					sortOnRef ? null : orderBy, null);
+			mainQ.addCustomJoinLeft(joinRefField);
+			mainQ.addCustomJoinRight(CC.OBJECT_ID);
+
+			DbQueryObject refQ = new DbQueryObject(refDbt, refHasCrit ? refDbse : null, DbJoinType.INNER, null, null,
+					sortOnRef ? orderBy : null, null);
+			dqe.addItem(refQ);
+		}
+		dqe.setReturnType(mainDbt);
+		result = svr.getObjects(dqe, rowLimit, offset);
+
 		return result;
 	}
 
@@ -1179,9 +1309,9 @@ public abstract class BaseObjectModel {
 				value = primitive.getAsLong();
 			} else if (primitive.isString()) {
 				String stringValue = primitive.getAsString();
-				 if (stringValue == null || stringValue.isBlank()) {
-				        return false; 
-				    }
+				if (stringValue == null || stringValue.isBlank()) {
+					return false;
+				}
 				if (isDateString(stringValue)) {
 					operand = DbCompareOperand.EQUAL;
 					value = new DateTime(stringValue);
