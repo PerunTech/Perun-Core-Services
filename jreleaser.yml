@@ -4,6 +4,10 @@ signing:
     
 deploy:
   maven:
+    # JasperReports' itext is only on Jaspersoft's repository, so the pom keeps a <repositories>
+    # block, which strict mode rejects.
+    pomchecker:
+      strict: false
     mavenCentral:
       sonatype:
         active: RELEASE
