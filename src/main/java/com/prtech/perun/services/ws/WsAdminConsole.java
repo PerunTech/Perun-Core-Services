@@ -1539,24 +1539,24 @@ public class WsAdminConsole {
 	public Response getPermissionMatrixByUser(@PathParam("session_id") String session,
 			@PathParam("object_id") Long objectId, @Context HttpServletRequest httpRequest) throws SvException {
 		ResponseHandler jrh = new ResponseHandler();
-		try (SvReader svr = new SvReader(session); SvSecurity svs = new SvSecurity(svr)) {
+		try (SvReader svr = new SvReader(session)) {
 			DbDataObject user = svr.getObjectById(objectId, svCONST.OBJECT_TYPE_USER, null);
 			if (user == null)
 				throw new SvException("system.error.no_user_found", svr.getInstanceUser());
 			DbDataArray tables = svr.getObjects(new DbQueryObject(SvCore.getDbt(svCONST.OBJECT_TYPE_TABLE),
 					null, null, null), null, null);
-			DbDataArray permissions = svs.getPermissions(user, svr);
+			DbDataArray permissions = svr.getPermissions(user, svr);
 			Map<Long, Set<String>> groupsByAcl = new LinkedHashMap<>();
-			DbDataArray groups = svs.getAllUserGroups(user, false);
+			DbDataArray groups = svr.getAllUserGroups(user, false);
 			if (groups != null)
 				for (DbDataObject group : groups.getItems()) {
-					for (DbDataObject acl : svs.getPermissions(group, svr).getItems())
+					for (DbDataObject acl : svr.getPermissions(group, svr).getItems())
 						groupsByAcl.computeIfAbsent(acl.getObjectId(), key -> new TreeSet<>())
 								.add(group.getVal("GROUP_NAME").toString());
 				}
 			boolean bypass = objectId.equals(svCONST.OBJECT_USER_SYSTEM)
 					|| objectId.equals(svCONST.OBJECT_USER_SERVICE);
-			DbDataArray defaultGroups = svs.getAllUserGroups(user, true);
+			DbDataArray defaultGroups = svr.getAllUserGroups(user, true);
 			if (defaultGroups != null)
 				for (DbDataObject group : defaultGroups.getItems())
 					bypass |= group.getObjectId().equals(svCONST.SID_ADMINISTRATORS);
