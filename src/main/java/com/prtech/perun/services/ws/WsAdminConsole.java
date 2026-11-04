@@ -22,8 +22,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
-import org.apache.logging.log4j.Logger;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -58,8 +56,6 @@ import com.prtech.svarog_common.ResponseHandler.MessageType;
 
 @Path("/WsAdminConsole")
 public class WsAdminConsole {
-	static final Logger log4j = SvConf.getLogger(WsConf.class);
-
 	/**
 	 * default user group f.r
 	 * 
