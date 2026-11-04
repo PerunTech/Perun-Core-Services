@@ -3,10 +3,14 @@ package com.prtech.perun.services.ws;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -30,6 +34,7 @@ import com.prtech.svarog.Sv;
 import com.prtech.svarog.SvConf;
 import com.prtech.svarog.SvConf.SvDbType;
 import com.prtech.svarog.SvCore;
+import com.prtech.svarog.SvCore.SvAccess;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvExecManager;
 import com.prtech.svarog.SvLink;
@@ -1522,8 +1527,165 @@ public class WsAdminConsole {
 	}
 
 	/**
+	 * Return one row per table, including tables without ACLs. Effective access is
+	 * the maximum unscoped table grant, using Svarog's SvAccess ordering. Scoped
+	 * permissions remain in grants and otherPermissions; they do not grant access
+	 * to the entire table. Administrator/system/service bypass is reported as FULL.
+	 */
+	@Path("/get-permission-matrix-by-user/sid/{session_id}/user_object_id/{object_id}")
+	@GET
+	@Produces("application/json")
+	public Response getPermissionMatrixByUser(@PathParam("session_id") String session,
+			@PathParam("object_id") Long objectId, @Context HttpServletRequest httpRequest) throws SvException {
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(session); SvSecurity svs = new SvSecurity(svr)) {
+			DbDataObject user = svr.getObjectById(objectId, svCONST.OBJECT_TYPE_USER, null);
+			if (user == null)
+				throw new SvException("system.error.no_user_found", svr.getInstanceUser());
+			DbDataArray tables = svr.getObjects(new DbQueryObject(SvCore.getDbt(svCONST.OBJECT_TYPE_TABLE),
+					null, null, null), null, null);
+			DbDataArray permissions = svs.getPermissions(user, svr);
+			Map<Long, Set<String>> groupsByAcl = new LinkedHashMap<>();
+			DbDataArray groups = svs.getAllUserGroups(user, false);
+			if (groups != null)
+				for (DbDataObject group : groups.getItems()) {
+					for (DbDataObject acl : svs.getPermissions(group, svr).getItems())
+						groupsByAcl.computeIfAbsent(acl.getObjectId(), key -> new TreeSet<>())
+								.add(group.getVal("GROUP_NAME").toString());
+				}
+			boolean bypass = objectId.equals(svCONST.OBJECT_USER_SYSTEM)
+					|| objectId.equals(svCONST.OBJECT_USER_SERVICE);
+			DbDataArray defaultGroups = svs.getAllUserGroups(user, true);
+			if (defaultGroups != null)
+				for (DbDataObject group : defaultGroups.getItems())
+					bypass |= group.getObjectId().equals(svCONST.SID_ADMINISTRATORS);
+			JsonObject matrix = buildPermissionMatrix(tables, permissions, groupsByAcl, bypass);
+			jrh.create(MessageType.SUCCESS, I18n.getText("console.success.defaultUsers"),
+					I18n.getText("console.success.defaultUsers"), matrix.getAsJsonArray("rows"));
+			jrh.getAll().add("otherPermissions", matrix.getAsJsonArray("otherPermissions"));
+			jrh.getAll().addProperty("administratorBypass", bypass);
+			jrh.getAll().addProperty("permissionScope", "TABLE");
+		} catch (SvException e) {
+			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()),
+					new JsonObject());
+			return Response.status("error.invalid_session".equals(e.getLabelCode()) ? 401 : 200)
+					.entity(jrh.getAll().toString()).build();
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+
+	/**
+	 * Build the matrix without database access. ACL resource IDs (not label strings)
+	 * determine the table. NONE is the absence of a grant, not an overriding deny.
+	 */
+	static JsonObject buildPermissionMatrix(DbDataArray tables, DbDataArray permissions,
+			Map<Long, Set<String>> groupsByAcl, boolean bypass) {
+		Map<Long, JsonObject> rowsById = new LinkedHashMap<>();
+		Map<Long, SvAccess> accessById = new LinkedHashMap<>();
+		Map<Long, Set<String>> groupsByTable = new LinkedHashMap<>();
+		Map<String, JsonObject> sortedRows = new TreeMap<>();
+		for (DbDataObject table : tables.getItems()) {
+			JsonObject row = new JsonObject();
+			row.addProperty("tableId", table.getObjectId());
+			row.addProperty("tableName", (String) table.getVal("TABLE_NAME"));
+			row.addProperty("labelCode", (String) table.getVal("LABEL_CODE"));
+			row.addProperty("hasScopedPermissions", false);
+			row.add("grants", new JsonArray());
+			rowsById.put(table.getObjectId(), row);
+			accessById.put(table.getObjectId(), bypass ? SvAccess.FULL : SvAccess.NONE);
+			groupsByTable.put(table.getObjectId(), new TreeSet<>());
+			sortedRows.put(table.getVal("TABLE_NAME") + ":" + table.getObjectId(), row);
+		}
+		JsonArray otherPermissions = new JsonArray();
+		Set<Long> seen = new HashSet<>();
+		for (DbDataObject acl : permissions.getItems()) {
+			if (!seen.add(acl.getObjectId()))
+				continue;
+			Object value = acl.getVal("ACCESS_TYPE");
+			SvAccess access = value == null ? SvAccess.NONE : SvAccess.valueOf(value.toString());
+			Long resourceId = (Long) acl.getVal("ACL_OBJECT_ID");
+			boolean isTable = Objects.equals(svCONST.OBJECT_TYPE_TABLE, acl.getVal("ACL_OBJECT_TYPE"));
+			boolean scoped = acl.getVal("ACL_CONFIG_UNQ") != null;
+			JsonObject grant = new JsonObject();
+			grant.addProperty("aclId", acl.getObjectId());
+			grant.addProperty("labelCode", (String) acl.getVal("LABEL_CODE"));
+			grant.addProperty("accessType", access.name());
+			grant.addProperty("resourceId", resourceId);
+			grant.addProperty("resourceType", (Long) acl.getVal("ACL_OBJECT_TYPE"));
+			grant.addProperty("configKey", (String) acl.getVal("ACL_CONFIG_UNQ"));
+			JsonArray sourceGroups = new JsonArray();
+			Set<String> groups = groupsByAcl.get(acl.getObjectId());
+			if (groups != null)
+				for (String group : groups)
+					sourceGroups.add(group);
+			grant.add("sourceGroups", sourceGroups);
+			JsonObject row = isTable ? rowsById.get(resourceId) : null;
+			if (row != null) {
+				row.getAsJsonArray("grants").add(grant);
+				if (groups != null)
+					groupsByTable.get(resourceId).addAll(groups);
+				if (scoped)
+					row.addProperty("hasScopedPermissions", true);
+				else if (access.compareTo(accessById.get(resourceId)) > 0)
+					accessById.put(resourceId, access);
+			}
+			if (scoped || row == null)
+				otherPermissions.add(grant);
+		}
+		for (Entry<Long, JsonObject> entry : rowsById.entrySet()) {
+			SvAccess access = accessById.get(entry.getKey());
+			JsonObject row = entry.getValue();
+			row.addProperty("effectiveAccess", access.name());
+			for (SvAccess level : SvAccess.values())
+				row.addProperty(level.name(), access == level);
+			JsonArray sourceGroups = new JsonArray();
+			for (String group : groupsByTable.get(entry.getKey()))
+				sourceGroups.add(group);
+			row.add("sourceGroups", sourceGroups);
+		}
+		JsonArray rows = new JsonArray();
+		for (JsonObject row : sortedRows.values())
+			rows.add(row);
+		JsonObject result = new JsonObject();
+		result.add("rows", rows);
+		result.add("otherPermissions", otherPermissions);
+		return result;
+	}
+
+	/** Column definitions for the user permission matrix. */
+	@Path("/get-permission-matrix-by-user-field-list/sid/{session_id}")
+	@GET
+	@Produces("application/json")
+	public Response getPermissionMatrixByUserFieldList(@PathParam("session_id") String session,
+			@Context HttpServletRequest httpRequest) throws SvException {
+		ResponseHandler jrh = new ResponseHandler();
+		try (SvReader svr = new SvReader(session)) {
+			JsonArray fields = new JsonArray();
+			String[] keys = { "tableName", "labelCode", "NONE", "READ", "WRITE", "EXECUTE", "MODIFY", "FULL" };
+			for (String key : keys) {
+				JsonObject field = new JsonObject();
+				field.addProperty("key", key);
+				field.addProperty("name", "tableName".equals(key) ? "Table" : "labelCode".equals(key) ? "Label code"
+						: I18n.getText(WsReactElements.getLocaleId(svr), "acl_type." + key.toLowerCase(java.util.Locale.ROOT)));
+				field.addProperty("visible", true);
+				field.addProperty("editable", false);
+				field.addProperty("filterable", true);
+				field.addProperty("sortable", true);
+				fields.add(field);
+			}
+			jrh.create(MessageType.SUCCESS, I18n.getText("console.success.acl.sid.field.list"),
+					I18n.getText("console.success.acl.sid.field.list"), fields);
+		} catch (SvException e) {
+			jrh.create(MessageType.ERROR, I18n.getText(e.getLabelCode()), I18n.getText(e.getLabelCode()), new JsonObject());
+			return Response.status("error.invalid_session".equals(e.getLabelCode()) ? 401 : 200)
+					.entity(jrh.getAll().toString()).build();
+		}
+		return Response.status(200).entity(jrh.getAll().toString()).build();
+	}
+
+	/**
 	 * return all ACLs for a given group OBJECT_ID, field list for the show grid
-	 * 
+	 *
 	 */
 	@Path("/get-acl-by-user-field-list/sid/{session_id}")
 	@GET
