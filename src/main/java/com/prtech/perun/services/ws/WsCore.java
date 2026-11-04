@@ -7,14 +7,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.google.gson.JsonObject;
 import com.prtech.perun.PerunUtil;
 import com.prtech.svarog.SvException;
 import com.prtech.svarog.SvReader;
 import com.prtech.svarog_common.DbDataArray;
 import com.prtech.svarog_common.DbDataObject;
 import com.prtech.svarog_common.ResponseHandler;
-import com.prtech.svarog_common.ResponseHandler.MessageType;
 
 @Path("/WsCore")
 public class WsCore {
