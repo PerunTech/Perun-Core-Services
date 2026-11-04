@@ -7,7 +7,7 @@
 	<artifactId>perun-core-services</artifactId>
 	<version>4.1.3-SNAPSHOT</version>
 	<packaging>bundle</packaging>
-	<name>Perun Core</name>
+	<name>Perun Core Services</name>
 	<url>https://github.com/PerunTech/perun-core-services</url>
 	<organization>
 		<name>Perun Technologies</name>
@@ -55,7 +55,7 @@
 			<timezone>Europe/Skopje</timezone>
 		</developer>
 	</developers>
-	<description>Perun-core-services is the back-ned bundle of the Svarog
+	<description>Perun-core-services is the back-end bundle of the Svarog
 		Business Platform GUI</description>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
