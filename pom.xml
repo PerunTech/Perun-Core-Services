@@ -177,6 +177,7 @@
 							com.prtech.menu.manager,
 							com.prtech.models,
 							com.prtech.form,
+							com.prtech.reports,
 							com.prtech.sequence.manager
 						</Export-Package>
 						<Import-Package>
