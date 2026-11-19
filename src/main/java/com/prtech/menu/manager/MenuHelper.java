@@ -44,7 +44,8 @@ final class MenuHelper {
 	private static final Gson GSON = new Gson();
 	private static final Pattern REPO_ID_PATTERN = Pattern.compile("%REPO_ID_(\\w+)%");
 	private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\%(\\w+)\\%");
-	private static final String[] LOCALIZED_PROPERTIES = { CC.LABEL, "promptTitle", "promptMessage", "title", "description" };
+	private static final String[] LOCALIZED_PROPERTIES = { CC.LABEL, "promptTitle", "promptMessage", "title",
+			"description" };
 	private static final Set<String> CONFIG_KEYS_TO_SKIP = Set.of(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU);
 	private static final Set<String> CACHE_CONFIG_KEYS_TO_SKIP = Set.of(CC.TABLE_NAME, CC.INSERT, CC.IMPORT_MENU,
 			CC.OBJECT_TYPE_VISIBILITY);
@@ -1110,17 +1111,33 @@ final class MenuHelper {
 	private static boolean checkObjectByRefField(JsonObject requestData, DbDataObject dbo, SvReader svr)
 			throws SvException {
 		String value = getValueFromRequestData(requestData, dbo);
-		String refTableName = dbo.getAsString(CC.REF_TABLE_NAME);
-		String refFieldName = dbo.getAsString(CC.REF_FIELD_NAME);
-
-		DbDataObject dboRef = svr.getObjectById(Long.valueOf(value), SvReader.getTypeIdByName(refTableName), null);
-
-		if (dboRef != null && dbo.getVal(CC.CDL_ITEM_NAME) != null && dbo.getVal(CC.CDL_ITEM_NAME) != null
-				&& dboRef.getVal(refFieldName) != null
-				&& dbo.getVal(CC.CDL_ITEM_NAME).equals(dboRef.getVal(refFieldName).toString())) {
-			return true;
+		String cdlItem = dbo.getAsString(CC.CDL_ITEM_NAME);
+		if (value.isBlank() || cdlItem == null) {
+			return false;
+		}
+		long refId;
+		try {
+			refId = Long.parseLong(value.trim());
+		} catch (NumberFormatException e) {
+			return false;
 		}
 
+		String refTableName = dbo.getAsString(CC.REF_TABLE_NAME);
+		String refFieldName = dbo.getAsString(CC.REF_FIELD_NAME);
+		DbDataObject dboRef = svr.getObjectById(refId, SvReader.getTypeIdByName(refTableName), null);
+		if (dboRef == null || dboRef.getVal(refFieldName) == null) {
+			return false;
+		}
+		return matchesCdlItem(dboRef.getVal(refFieldName).toString(), cdlItem.trim());
+	}
+
+	private static boolean matchesCdlItem(String rawValue, String cdlItem) {
+		String normalized = rawValue.replace("[", "").replace("]", "").replace("\"", "");
+		for (String token : normalized.split("[;,]")) {
+			if (cdlItem.equals(token.trim())) {
+				return true;
+			}
+		}
 		return false;
 	}
 
